@@ -6,4 +6,5 @@ B=${1:-build/ds1}
 cd "$(dirname "$0")/.."
 python3 tools/find_funcs.py "$B"
 python3 tools/lift.py "$B"
+python3 tools/lift_drivers.py "${GAME:-game/ds1}/RESOURCE.GFF" "$B"
 cmake --build build/cmake 2>&1 | grep -E "error|FAILED" || true

@@ -13,11 +13,19 @@
 #include "runtime.h"
 #include <stdlib.h>
 #include <string.h>
+#ifdef __linux__
+#include <execinfo.h>
+#endif
 
+#define RING 256
+static const char *g_ring[RING];
+static unsigned g_ring_i;
 #define MAXMISS 4096
 static unsigned g_miss[MAXMISS];
 static int g_nmiss;
 static int g_depth;
+
+void dispatch_backtrace(void);
 
 static void note_miss(unsigned lin)
 {
@@ -26,6 +34,31 @@ static void note_miss(unsigned lin)
     if (g_nmiss < MAXMISS) g_miss[g_nmiss++] = lin;
     trace("[dispatch] no function at %05X (ds=%04X ss:sp=%04X:%04X)\n",
           lin, g_cpu->ds, g_cpu->ss, g_cpu->sp);
+    if (g_nmiss <= 12) dispatch_backtrace();
+    if (lin < 0xA0000 && g_nmiss <= 4) {
+        fprintf(stderr, "           bytes there:");
+        for (int i = -16; i < 32; i++) fprintf(stderr, "%s%02X", i == 0 ? " [" : " ", g_cpu->mem[lin + i]);
+        fprintf(stderr, "\n");
+    }
+}
+
+void dispatch_backtrace(void)
+{
+    {
+#ifdef __linux__
+        /* the guest's call chain is the host's: lifted functions are C functions */
+        void *bt[24];
+        int n = backtrace(bt, 24);
+        char **sym = backtrace_symbols(bt, n);
+        fprintf(stderr, "           called from:");
+        for (int i = 2; i < n && sym; i++) {
+            char *p = strstr(sym[i], "(fn_");
+            if (p) { char *e = strchr(p, '+'); if (e) *e = 0; fprintf(stderr, " %s", p + 4); }
+        }
+        fprintf(stderr, "\n");
+        free(sym);
+#endif
+    }
 }
 
 void dispatch_dump_misses(const char *path)
@@ -78,8 +111,17 @@ int recomp_dispatch(CPU *cpu, unsigned seg, unsigned off)
         return 1;
     }
     if (lin == 0) return 0;
+    /* Offset FFFF is the return address every lifted call site pushes. Code
+     * that pops its own return address and later jumps to it (Borland's
+     * _setargv does: `pop [x] ... jmp [x]`) is returning to its C caller. */
+    if ((off & 0xFFFF) == 0xFFFF) return 1;
     recomp_fn fn = lookup(lin);
-    if (!fn) { note_miss(lin); return 0; }
+    if (!fn) {
+        extern int ail_driver_call(CPU *, unsigned, unsigned);
+        if (ail_driver_call(cpu, seg, off)) return 1;
+        note_miss(lin);
+        return 0;
+    }
     if (++g_depth > 2000) fatal("dispatch nested %d deep at %05X", g_depth, lin);
     fn(cpu);
     g_depth--;
@@ -111,4 +153,59 @@ void recomp_unlifted(CPU *cpu, unsigned lin)
 void recomp_div0(const char *kind)
 {
     trace("[cpu] divide error (%s)\n", kind);
+}
+
+/* ---- where it was -------------------------------------------------------------
+ * Every lifted function announces itself (RECOMP_ENTER); the last few hundred
+ * names are kept, with how often each was entered, and printed when a run
+ * ends by timeout -- which turns "it hangs" into the loop it hangs in. */
+static unsigned long g_entered;
+
+void recomp_enter(const char *fn)
+{
+    g_ring[g_ring_i++ & (RING - 1)] = fn;
+    g_entered++;
+}
+
+void recomp_trace_last(int n)
+{
+    fprintf(stderr, "           after:");
+    for (int k = n; k >= 1; k--)
+        if (g_ring_i >= (unsigned)k) fprintf(stderr, " %s", g_ring[(g_ring_i - k) & (RING - 1)] + 3);
+    fprintf(stderr, "\n");
+}
+
+void recomp_trace_dump(const char *why)
+{
+    fprintf(stderr, "[trace] %s: %lu functions entered; the last %d, oldest first:\n",
+            why, g_entered, RING < (int)g_ring_i ? RING : (int)g_ring_i);
+    unsigned n = g_ring_i < RING ? g_ring_i : RING;
+    const char *prev = NULL; int rep = 0;
+    for (unsigned k = 0; k < n; k++) {
+        const char *s = g_ring[(g_ring_i - n + k) & (RING - 1)];
+        if (prev && s == prev) { rep++; continue; }
+        if (rep) fprintf(stderr, "    (x%d)\n", rep + 1);
+        fprintf(stderr, "  %s\n", s);
+        prev = s; rep = 0;
+    }
+    if (rep) fprintf(stderr, "    (x%d)\n", rep + 1);
+    fprintf(stderr, "[trace] cs=%04X ds=%04X es=%04X ss:sp=%04X:%04X ax=%04X bx=%04X cx=%04X dx=%04X\n",
+            g_cpu->cs, g_cpu->ds, g_cpu->es, g_cpu->ss, g_cpu->sp, g_cpu->ax, g_cpu->bx, g_cpu->cx, g_cpu->dx);
+}
+
+/* ---- stack audit (tools/lift.py --spcheck) ------------------------------------
+ * A function is entered with its return address on the guest stack and must
+ * leave having popped it: +2 for a near return, +4 for a far one, plus what a
+ * `ret n` clears for its caller. Anything else is a function that took stack
+ * it did not own, or left some behind, and everything after it runs on a
+ * stack that no longer holds what it pushed. */
+void recomp_sp_check(unsigned fn, uint16_t sp0, uint16_t ss0, uint16_t bp0, CPU *cpu)
+{
+    static int reported;
+    if (cpu->ss != ss0) return;                       /* switched stacks */
+    int d = (int16_t)(uint16_t)(cpu->sp - sp0);
+    if (d >= 2 && d <= 64 && !(d & 1) && cpu->bp == bp0) return;
+    if (reported++ < 40)
+        fprintf(stderr, "[sp] fn_%05X moved SP by %+d (%04X -> %04X), BP %04X -> %04X\n",
+                fn, d, sp0, cpu->sp, bp0, cpu->bp);
 }

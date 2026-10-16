@@ -166,6 +166,33 @@ static int host_path(const char *dos, char *out, size_t n, int must_exist)
     return !must_exist || stat(out, &st) == 0;
 }
 
+/* Files the runtime supplies itself, whatever is in the game folder.
+ *
+ * SOUND.CFG chooses the AIL drivers and their settings. GOG's Shattered Lands
+ * copy selects an MT-32, whose instrument file (STDPATCH.MT) GOG does not
+ * ship; this is the configuration GOG's Wake of the Ravager comes with (the
+ * format is the same): Sound Blaster Pro FM music (ADV chunk 11), Sound
+ * Blaster Pro digital sound (ADV 8), port 220h, IRQ 5, DMA 1. Every install
+ * then hears the same thing, and the player's own file is never read. */
+static const uint8_t SOUND_CFG[] = {
+    0x20,0x02,0x05,0x00,0x01,0x00,0x01,0x00,0x7a,0x00,0x20,0x02,0x05,0x00,0x01,0x00,
+    0x01,0x00,0x7a,0x00,0x0b,0x00,'s','b','p','2','f','m','.','a','d','v',
+    0,0,0,0,'s','b','p','d','i','g','.','a','d','v',0,0,
+    0,0,0x01,0x00,0x04,0x00,0x08,0x00,0x0b,0x00,0x00,
+};
+
+static FILE *builtin_file(const char *name)
+{
+    const char *base = strrchr(name, '\\');
+    base = base ? base + 1 : (name[1] == ':' ? name + 2 : name);
+    if (strcasecmp(base, "SOUND.CFG")) return NULL;
+    FILE *f = tmpfile();
+    if (!f) return NULL;
+    fwrite(SOUND_CFG, 1, sizeof SOUND_CFG, f);
+    rewind(f);
+    return f;
+}
+
 static int new_handle(FILE *f)
 {
     for (int h = 5; h < MAXF; h++) if (!g_files[h]) { g_files[h] = f; return h; }
@@ -295,6 +322,9 @@ void dos_service(CPU *cpu)
         guest_str(cpu, cpu->ds, cpu->dx, name, sizeof name);
         int mode = cpu->al & 3;
         if (!strncasecmp(name, "EMMXXXX0", 8) || !strncasecmp(name, "MSCD", 4)) { fail(cpu, 2); break; }
+        FILE *bf = mode == 0 ? builtin_file(name) : NULL;
+        if (bf) { int h = new_handle(bf); trace("[dos] open %s -> the runtime's own\n", name);
+                  if (h < 0) { fclose(bf); fail(cpu, 4); } else { cpu->ax = (uint16_t)h; set_cf(cpu, 0); } break; }
         if (!host_path(name, path, sizeof path, 1)) { trace("[dos] open %s: not found\n", name); fail(cpu, 2); break; }
         FILE *f = fopen(path, mode == 0 ? "rb" : "r+b");
         if (!f && mode) f = fopen(path, "rb");
@@ -370,9 +400,13 @@ void dos_service(CPU *cpu)
         cpu->ax = (uint16_t)nh; set_cf(cpu, 0);
         break; }
     case 0x47: mem_write8(cpu, cpu->ds, cpu->si, 0); set_cf(cpu, 0); break;
-    case 0x48: mem_alloc(cpu); break;
-    case 0x49: mem_free(cpu, cpu->es); break;
-    case 0x4A: mem_resize(cpu); break;
+    case 0x48: { uint16_t want = cpu->bx; mem_alloc(cpu);
+        trace("[dos] alloc %04X paragraphs -> %s %04X\n", want, (cpu->flags & FLAG_CF) ? "fail, largest" : "seg",
+              (cpu->flags & FLAG_CF) ? cpu->bx : cpu->ax); break; }
+    case 0x49: trace("[dos] free %04X\n", cpu->es); mem_free(cpu, cpu->es); break;
+    case 0x4A: { uint16_t want = cpu->bx; mem_resize(cpu);
+        trace("[dos] resize %04X to %04X paragraphs -> %s %04X\n", cpu->es, want,
+              (cpu->flags & FLAG_CF) ? "fail, largest" : "ok", cpu->bx); break; }
     case 0x4C: case 0x00:
         fprintf(stderr, "[dos] the game exited (code %d)\n", cpu->al);
         { extern void host_exit(int); host_exit(cpu->al); }

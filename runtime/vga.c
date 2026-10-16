@@ -9,6 +9,7 @@
  * are not drawn.
  */
 #include "runtime.h"
+#include <stdlib.h>
 #include <string.h>
 
 static uint8_t g_plane[4][65536];
@@ -25,6 +26,7 @@ volatile unsigned long g_vga_frames;
 
 void vga_init(void)
 {
+    mem_watch_init();
     memset(g_plane, 0, sizeof g_plane);
     g_seq[2] = 0x0F; g_seq[4] = 0x0E;
     g_gc[5] = 0x40; g_gc[6] = 0x05; g_gc[8] = 0xFF;
@@ -110,9 +112,22 @@ static uint8_t planar_read(uint16_t a)
     return g_plane[g_gc[4] & 3][a];
 }
 
+/* DS_WATCH=<linear hex>: report writes to one address, with who made them */
+static uint32_t g_watch = 0xFFFFFFFFu;
+void mem_watch_init(void)
+{
+    const char *e = getenv("DS_WATCH");
+    if (e) g_watch = (uint32_t)strtoul(e, NULL, 16);
+}
+extern void dispatch_backtrace(void);
+
 int recomp_mem_write8(CPU *cpu, uint32_t addr, uint8_t val)
 {
     (void)cpu;
+    if ((addr & ~1u) == (g_watch & ~1u)) {
+        trace("[watch] %05X <- %02X\n", addr, val);
+        dispatch_backtrace();
+    }
     if (addr < 0xA0000 || addr >= 0xB0000) return 0;
     uint16_t a = (uint16_t)(addr - 0xA0000);
     if (chain4()) { g_plane[a & 3][a >> 2] = val; return 1; }

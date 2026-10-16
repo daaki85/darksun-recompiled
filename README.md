@@ -8,9 +8,12 @@ planned for the same program, and the
 [Obsidian Edition](https://github.com/daaki85/darksun-obsidian-edition) mod is
 to be carried over.
 
-**Status: prototype.** The start-up code runs: Borland's C run-time,
-the overlay manager's set-up, XMS and the first data files. It does not reach
-the title screen yet. See [docs/DESIGN.md](docs/DESIGN.md) for how it works and
+**Status: prototype.** The intro runs: the SSI logo and the AD&D screen are
+drawn by the recompiled game, timed by its own music sequencer (translated
+from the Miles driver it ships with; silent so far).
+
+![The SSI logo, drawn by the recompiled game](docs/img/ssi-logo.png)
+ See [docs/DESIGN.md](docs/DESIGN.md) for how it works and
 [docs/STATUS.md](docs/STATUS.md) for where it stands.
 
 **This repository contains no game data or code.** You need the GOG release of
@@ -29,6 +32,7 @@ innoextract -s -d game/ds1 setup_dark_sun_shattered_lands_1.1_cs_\(28043\).exe
 python3 tools/build_image.py game/ds1/DSUN.EXE --out build/ds1
 python3 tools/find_funcs.py build/ds1
 python3 tools/lift.py build/ds1
+python3 tools/lift_drivers.py game/ds1/RESOURCE.GFF build/ds1
 cmake -S . -B build/cmake -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build build/cmake
 ./build/cmake/dsun --game game/ds1 --build build/ds1

@@ -14,6 +14,7 @@
 
 #define RECOMP_MEM_HOOK 1      /* the VGA's planes sit behind A000 */
 #define RECOMP_IRQ 1           /* timer and keyboard interrupts */
+#define RECOMP_TRACE 1         /* remember the last functions entered */
 
 #include "cpu.h"
 #include <stdint.h>

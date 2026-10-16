@@ -15,17 +15,21 @@ set(GAME_BUILD "${CMAKE_SOURCE_DIR}/build/ds1" CACHE PATH "folder with gen/ from
 
 find_package(SDL2 REQUIRED)
 
-file(GLOB GEN_SOURCES "${GAME_BUILD}/gen/recomp_*.c")
+file(GLOB GEN_SOURCES "${GAME_BUILD}/gen/recomp_*.c" "${GAME_BUILD}/gen/drv_*.c")
 add_executable(dsun
     runtime/main.c runtime/host.c runtime/bios.c runtime/dos.c runtime/vga.c
-    runtime/dispatch.c ${GEN_SOURCES})
+    runtime/dispatch.c runtime/aildrv.c runtime/opl.c ${GEN_SOURCES})
 target_include_directories(dsun PRIVATE
     runtime third_party/pcrecomp/runtime/recomp16 "${GAME_BUILD}/gen")
-target_link_libraries(dsun PRIVATE SDL2::SDL2 m)
+find_package(ZLIB REQUIRED)
+target_link_libraries(dsun PRIVATE SDL2::SDL2 ZLIB::ZLIB m)
 # Generated code is machine-written: labels go unused, temporaries shadow.
 set_source_files_properties(${GEN_SOURCES} PROPERTIES COMPILE_OPTIONS
     "-w;-fno-strict-aliasing")
 target_compile_options(dsun PRIVATE -fno-strict-aliasing)
+if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
+    target_link_options(dsun PRIVATE -rdynamic)   # names in backtraces
+endif()
 if(WIN32)
     target_link_options(dsun PRIVATE -static)
 endif()

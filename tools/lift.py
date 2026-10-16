@@ -13,15 +13,28 @@ import argparse
 import json
 import os
 
-from dsimage import Image
+from dsimage import Image, OpType
+from decode16 import Instruction, Operand
 import lift16
 from lift16 import Lifter
 
 CHUNK = 80
 
-# Routines replaced by C in runtime/native.c rather than lifted (by linear
-# entry, per game). Each says why.
-NATIVE = {}
+# Routines answered by a few lines of C instead of being lifted, by linear
+# entry and by the EXE's size (one table per game). Each is
+# (C body, why). Far routines end in `cpu->sp += 4`: the caller pushed CS:IP.
+NATIVE = {
+    611408: {   # Shattered Lands, GOG 1.10
+        0x3F35A: ('cpu->ax = 0; cpu->sp += 4;',
+                  'VROOMM init (3E63:0D2A, from _INIT_): every module is already '
+                  'in place and its stubs patched, so the manager must not install '
+                  'INT 3Fh or take over the descriptors'),
+        0x3EF1E: ('cpu->ax = 0; cpu->sp += 4;',
+                  'VROOMM: cache overlays in expanded/extended memory -- nothing to cache'),
+        0x3F0E8: ('cpu->ax = 0; cpu->sp += 4;',
+                  'VROOMM: the other memory-cache set-up, same reason'),
+    },
+}
 
 
 def name_of(lin):
@@ -31,11 +44,14 @@ def name_of(lin):
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('build', nargs='?', default='build/ds1')
+    ap.add_argument('--spcheck', action='store_true',
+                    help='wrap every function to report the ones that leave the guest stack unbalanced')
     a = ap.parse_args(argv)
     img = Image(a.build)
     funcs = {int(k, 16): v for k, v in
              json.load(open(os.path.join(a.build, 'functions.json'))).items()}
 
+    native = NATIVE.get(img.layout['exe_size'], {})
     known = {lin: name_of(lin) for lin in funcs}
     for stub, target in img.stub_target.items():
         if target in known:
@@ -48,13 +64,15 @@ def main(argv=None):
             os.remove(os.path.join(out, f))
 
     lift16.DIV0_FN = 'recomp_div0'
-    bodies, calls, segs, failed, unhandled = [], set(), set(), 0, 0
+    bodies, calls, segs, failed, unhandled, overlaps = [], set(), set(), 0, 0, 0
     for lin in sorted(funcs):
         f = funcs[lin]
         cs = f['cs']
         segs.add(cs)
         name = name_of(lin)
-        if lin in NATIVE:
+        if lin in native:
+            code, why = native[lin]
+            bodies.append(f'/* {why} */\nvoid {name}(CPU *cpu)\n{{\n    RECOMP_ENTER("{name}");\n    {code}\n}}')
             continue
         insns = []
         for ip in f['ips']:
@@ -62,6 +80,23 @@ def main(argv=None):
             ins.address = ip
             ins.offset = cs * 16 + ip
             insns.append(ins)
+        # Every instruction that can fall through must be followed by the one
+        # it falls into: the lifter emits them in order and C falls through.
+        # Where it does not (code that jumps into the middle of an instruction,
+        # so two decodings overlap), make the fall-through an explicit jump.
+        ends = {'ret', 'retf', 'iret', 'hlt', 'jmp', 'jmp far'}
+        fixed = []
+        for i, ins in enumerate(insns):
+            fixed.append(ins)
+            nxt = (ins.address + ins.length) & 0xFFFF
+            if ins.mnemonic in ends or (i + 1 < len(insns) and insns[i + 1].address == nxt):
+                continue
+            j = Instruction()
+            j.mnemonic, j.address, j.offset, j.length, j.raw = 'jmp', -1, -1, 0, b''
+            j.op1 = Operand(type=OpType.REL16, disp=nxt, size=2)
+            fixed.append(j)
+            overlaps += 1
+        insns = fixed
         lf = Lifter(known_funcs=known)
         lf.dispatch = True
         lf.far_base = 0
@@ -80,6 +115,10 @@ def main(argv=None):
                     f'void {name}(CPU *cpu) {{ recomp_unlifted(cpu, 0x{lin:05X}); }}')
         unhandled += body.count('UNHANDLED') + body.count('/* FPU:')
         body = body.replace('(CPU *cpu)\n{', f'(CPU *cpu)\n{{\n    cpu->cs = 0x{cs:04X};', 1)
+        if a.spcheck:
+            body = body.replace(f'void {name}(CPU *cpu)', f'static void {name}__body(CPU *cpu)', 1)
+            body += (f'\nvoid {name}(CPU *cpu) {{ uint16_t _s = cpu->sp, _ss = cpu->ss, _bp = cpu->bp; '
+                     f'{name}__body(cpu); recomp_sp_check(0x{lin:05X}, _s, _ss, _bp, cpu); }}')
         bodies.append(body)
         calls |= lf.func_calls
 
@@ -92,6 +131,7 @@ def main(argv=None):
 
     with open(os.path.join(out, 'recomp_all.h'), 'w') as fh:
         fh.write('#ifndef RECOMP_ALL_H\n#define RECOMP_ALL_H\n#include "runtime.h"\n\n')
+        fh.write('void recomp_sp_check(unsigned fn, uint16_t sp0, uint16_t ss0, uint16_t bp0, CPU *cpu);\n')
         for s in sorted(segs):
             fh.write(f'#define SEG_{s:04X} 0x{s:04X}\n')
         for n in names + stubs:
@@ -124,7 +164,8 @@ def main(argv=None):
 
     print(f'lifted {len(bodies)} functions into {(len(bodies) + CHUNK - 1) // CHUNK} files; '
           f'{failed} failed, {unhandled} unhandled instructions, '
-          f'{len(stubs)} unresolved call targets, {len(segs)} code segments')
+          f'{len(stubs)} unresolved call targets, {len(segs)} code segments, '
+          f'{overlaps} overlapping fall-throughs made explicit')
 
 
 if __name__ == '__main__':

@@ -174,8 +174,8 @@ class Finder:
         while work:
             ip = work.pop()
             while ip not in seen:
-                if ip != ip0 and cs * 16 + ip in self.entries:
-                    break                                  # falls into another function
+                # Falling into another function's entry is not the end of this
+                # one: the CPU runs on, so the code is decoded again here.
                 ins = self.img.decode_at(cs, ip)
                 if ins is None or ins.mnemonic == 'db':
                     break

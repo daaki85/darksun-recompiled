@@ -260,6 +260,8 @@ int host_run(int headless, double seconds, const char *shots, const char *input)
         }
         if (seconds > 0 && now >= seconds) {
             fprintf(stderr, "[host] %.0f s are up; %lu retraces waited on\n", seconds, g_vga_frames);
+            { extern void recomp_trace_dump(const char *); recomp_trace_dump("timeout"); }
+            { extern volatile int g_want_backtrace; g_want_backtrace = 1; SDL_Delay(300); }
             if (shots) { char p[1024]; snprintf(p, sizeof p, "%s/final.bmp", shots); vga_save_bmp(p); }
             host_exit(0);
         }

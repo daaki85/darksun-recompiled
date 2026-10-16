@@ -47,6 +47,49 @@
    - `dispatch.c`: calls through addresses known only at run time, by linear
      address; misses are written out for the next build.
 
+## Things the game does that needed handling
+
+- **The overlay manager** still has its init in Borland's `_INIT_` table and
+  two routines the game calls to cache overlays in EMS/XMS; all three are
+  answered natively (`NATIVE` in `tools/lift.py`), so the manager never
+  installs INT 3Fh.
+- **`_setargv`** pops its own return address and later jumps to it. Under
+  the lifter that address is the sentinel FFFF every call site pushes, so a
+  jump to offset FFFF is a return to the C caller (`runtime/dispatch.c`).
+- **Code that jumps into the middle of an instruction** (Borland's start-up)
+  gives two overlapping decodings; `lift.py` makes the fall-through of such an
+  instruction an explicit jump.
+- **The intro waits on the music.** A cutscene advances when the XMIDI
+  sequence sends callback value 7Fh, so the music driver has to really run.
+  The AIL drivers are translated (`tools/lift_drivers.py`) against a code
+  segment that is a variable, and `runtime/aildrv.c` recognises a loaded
+  driver by its bytes. The FM chip (`runtime/opl.c`) keeps its own clock, a
+  microsecond per port access as on the ISA bus, because the drivers time its
+  timers with loops of port reads.
+
+## Debugging aids
+
+- `--headless --seconds N --shots DIR` and scripted `--input`.
+- `tools/lift.py --spcheck`: every function reports a stack or BP it leaves
+  unbalanced.
+- `DS_WATCH=<linear>`: every write to an address, with the call chain.
+- A miss prints the call chain and the bytes at the address; a timeout prints
+  the last functions entered and where the game is.
+- `DS_TRACE_XMS`, `DS_TRACE_OPL`.
+
+## References
+
+- [OpenDS](https://github.com/VirInvictus/opends): the overlay format,
+  symbols for both games, the GPL script VM, file formats.
+- [Exhume / Underworld Exhumed](https://github.com/abedegno/Exhume) (MIT):
+  Borland/VROOMM ports of Ultima Underworld 1 and 2, with AIL 2's drivers in C
+  from Miles' public-domain source, Nuked OPL3 and libmt32emu behind them.
+  The likely source of the synthesiser side.
+- [soloscuro](https://gitea.com/paulofthewest/soloscuro): an engine
+  reimplementation of Dark Sun (stalled 2023); formats and scripts.
+- [DeSt](https://github.com/NancySadkov/dest) (CC0): SSI's Stronghold, also
+  Borland with FBOV overlays; its `mzap` flattens such an EXE for Ghidra.
+
 ## Plans recorded so far
 
 - **Sound.** The Miles AIL 2.x drivers (`*.ADV`) are loaded from

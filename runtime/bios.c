@@ -156,9 +156,17 @@ void irq_poll(CPU *cpu)
     mouse_poll(cpu);
 }
 
+volatile int g_want_backtrace;
+
 void recomp_tick(CPU *cpu)
 {
     g_recomp_tick_budget = 2000;
+    if (g_want_backtrace) {
+        extern void dispatch_backtrace(void);
+        g_want_backtrace = 0;
+        trace("[tick] the game is in:\n");
+        dispatch_backtrace();
+    }
     irq_poll(cpu);
 }
 
@@ -178,10 +186,14 @@ void kbd_irq(CPU *cpu)
 }
 
 /* ---- ports ---------------------------------------------------------------------- */
+int opl_port_in(uint16_t port, uint8_t *v);
+int opl_port_out(uint16_t port, uint8_t v);
+
 uint8_t port_in8(CPU *cpu, uint16_t port)
 {
     (void)cpu;
     if (port >= 0x3B0 && port <= 0x3DF) return vga_port_in(port);
+    { uint8_t v; if (opl_port_in(port, &v)) return v; }
     switch (port) {
     case 0x20: return 0;
     case 0x21: return g_pic_mask;
@@ -192,6 +204,7 @@ uint8_t port_in8(CPU *cpu, uint16_t port)
     case 0x64: return 0x14;
     case 0x201: return 0xFF;                      /* no joystick */
     }
+    { static int n; if (n++ < 40) trace("[port] in %03X: nothing there\n", port); }
     return 0xFF;                                  /* nothing there: no sound card */
 }
 
@@ -199,6 +212,7 @@ void port_out8(CPU *cpu, uint16_t port, uint8_t val)
 {
     (void)cpu;
     if (port >= 0x3B0 && port <= 0x3DF) { vga_port_out(port, val); return; }
+    if (opl_port_out(port, val)) return;
     switch (port) {
     case 0x20: case 0xA0: return;                 /* EOI */
     case 0x21: g_pic_mask = val; return;
@@ -206,6 +220,7 @@ void port_out8(CPU *cpu, uint16_t port, uint8_t val)
     case 0x40: case 0x41: case 0x42: case 0x43: pit_write(port, val); return;
     case 0x61: g_port61 = val; return;
     }
+    { static int n; if (n++ < 40) trace("[port] out %03X %02X: nothing there\n", port, val); }
 }
 
 uint16_t port_in16(CPU *cpu, uint16_t port)
@@ -438,6 +453,9 @@ static uint8_t *xms_ptr(CPU *cpu, uint16_t h, uint32_t off, uint32_t len)
 
 void xms_service(CPU *cpu)
 {
+    static int quiet = -1;
+    if (quiet < 0) quiet = getenv("DS_TRACE_XMS") == NULL;
+    if (!quiet) trace("[xms] AH=%02X BX=%04X DX=%04X\n", cpu->ah, cpu->bx, cpu->dx);
     switch (cpu->ah) {
     case 0x00: cpu->ax = 0x0300; cpu->bx = 0x0300; cpu->dx = 1; break;
     case 0x03: case 0x04: case 0x05: case 0x06: cpu->ax = 1; cpu->bl = 0; break;
