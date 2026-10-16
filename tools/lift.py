@@ -37,6 +37,15 @@ NATIVE = {
 }
 
 
+# Functions that move the stack on purpose, left out of the --spcheck audit.
+SP_OK = {
+    611408: {
+        0x08799,   # Borland's struct-by-value push: makes room below its return address
+        0x09E3A, 0x08320,   # the start-up's argv/env builders
+    },
+}
+
+
 def name_of(lin):
     return f'fn_{lin:05X}'
 
@@ -115,7 +124,7 @@ def main(argv=None):
                     f'void {name}(CPU *cpu) {{ recomp_unlifted(cpu, 0x{lin:05X}); }}')
         unhandled += body.count('UNHANDLED') + body.count('/* FPU:')
         body = body.replace('(CPU *cpu)\n{', f'(CPU *cpu)\n{{\n    cpu->cs = 0x{cs:04X};', 1)
-        if a.spcheck:
+        if a.spcheck and lin not in SP_OK.get(img.layout['exe_size'], ()):
             body = body.replace(f'void {name}(CPU *cpu)', f'static void {name}__body(CPU *cpu)', 1)
             body += (f'\nvoid {name}(CPU *cpu) {{ uint16_t _s = cpu->sp, _ss = cpu->ss, _bp = cpu->bp; '
                      f'{name}__body(cpu); recomp_sp_check(0x{lin:05X}, _s, _ss, _bp, cpu); }}')

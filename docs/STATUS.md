@@ -2,11 +2,13 @@
 
 ## Shattered Lands (GOG 1.10, DSUN.EXE 611,408 bytes)
 
-**The intro runs**: the SSI logo and the AD&D licence screen are drawn by the
-recompiled game, timed by its own music sequencer.
+**The intro runs through to the main menu**: the SSI logo, the AD&D screen,
+the title card, the cinematic and the scroll, timed by the game's own music
+sequencer; Esc skips it. The main menu draws and waits for input with no
+misses and no stack faults.
 
+![The main menu](img/main-menu.png)
 ![The SSI logo](img/ssi-logo.png)
-![The AD&D licence screen](img/add-screen.png)
 
 - Image: 52 overlay modules loaded, 935 stubs patched; Borland's overlay
   manager is kept from starting (its three entry points are native no-ops).
@@ -25,7 +27,7 @@ recompiled game, timed by its own music sequencer.
 
 ## Next
 
-- Run past the intro to the title menu; character creation; the first region.
+- START GAME: the slave pens; character creation; loading a save.
 - FM synthesis (an OPL3 emulator fed with the register writes), then the
   Sound Blaster DSP and DMA for digital sound.
 - Clean up misses.txt handling (only real entry points should be kept).

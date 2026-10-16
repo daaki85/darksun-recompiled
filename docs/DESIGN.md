@@ -67,6 +67,18 @@
   microsecond per port access as on the ISA bus, because the drivers time its
   timers with loops of port reads.
 
+- **Borland's switches** come in three shapes: a dense table bounded by
+  `cmp bx, N`; a sparse list of word values followed by the arms; and the same
+  with dword values (`mov eax, cs:[bx]` / `add bx, 4` / `add cx, cx` /
+  `add bx, cx`), whose arms start 4N bytes into the list. The finder must know
+  the shape to find the arms; a wrong shape sends real arms to the dispatcher
+  as misses, and a miss seeded as a function is entered as one, with the
+  stack of a function it is not.
+- **The GPL interpreter's opcode handlers** are reached only through a table
+  of near pointers in DGROUP (`NEAR_TABLES` in the finder); most have
+  Borland's frameless prologue (`cmp [stack_base], sp / ja / call overflow`),
+  which the finder also scans for.
+
 ## Debugging aids
 
 - `--headless --seconds N --shots DIR` and scripted `--input`.
@@ -75,7 +87,11 @@
 - `DS_WATCH=<linear>`: every write to an address, with the call chain.
 - A miss prints the call chain and the bytes at the address; a timeout prints
   the last functions entered and where the game is.
-- `DS_TRACE_XMS`, `DS_TRACE_OPL`.
+- `DS_TRACE_XMS`, `DS_TRACE_OPL`; `DS_DUMP=<linear>:<n>` prints memory at each
+  miss; `DS_SITES=1` prints the host frames of a miss, for
+  `gdb -batch -ex "info line *(fn_XXXXX+0xNN)" build/cmake/dsun`, which names
+  the generated line. A lifted function that ends in a dispatch is a tail
+  call and does not appear in backtraces: the frame shown is its caller.
 
 ## References
 

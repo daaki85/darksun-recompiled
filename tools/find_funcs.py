@@ -31,6 +31,15 @@ JCC = {'jo', 'jno', 'jb', 'jae', 'je', 'jne', 'jbe', 'ja', 'js', 'jns', 'jp',
 STOP = {'ret', 'retf', 'iret', 'hlt'}
 
 
+# Tables of near function pointers in DGROUP, per game (by EXE size): offset,
+# count and the code segment the handlers run in. Nothing in the code names
+# these as code (a near pointer has no segment), so they are listed. DS1: the
+# GPL script interpreter's opcode handlers (OpenDS, dispatch-table-ds1.md).
+NEAR_TABLES = {
+    611408: [(0xC0, 0x81, 0x0C4D)],
+}
+
+
 class Finder:
     def __init__(self, img):
         self.img = img
@@ -79,7 +88,33 @@ class Finder:
                 k = blob.find(b'\x55\x8B\xEC', k + 1)
         self.seed_init_tables()
         self.seed_data_pointers()
+        self.seed_stack_checks()
+        dg = lay['dgroup'] * 16
+        for off, count, cs in NEAR_TABLES.get(lay['exe_size'], []):
+            for i in range(count):
+                self.seed(cs * 16 + self.img.u16(dg + off + 2 * i), cs, 'near-table')
         return n
+
+    def seed_stack_checks(self):
+        """Borland's other prologue: a function with no locals opens with
+        `[push reg...] cmp word [stack_base], sp / ja ok / call far overflow`.
+        The entry is before the pushes, so both the pushes' start and the
+        compare are seeded (the bodies overlap harmlessly)."""
+        m = self.img.mem
+        for s in self.img.segs:
+            b = s['seg'] * 16
+            blob = m[b:b + s['size']]
+            k = blob.find(b'\x39\x26')
+            while k >= 0:
+                if k + 6 < len(blob) and blob[k + 4] == 0x77 and blob[k + 6] == 0x9A:
+                    self.seed(b + k, s['seg'], 'stack-check')
+                    j = k
+                    for _ in range(4):
+                        if j > 0 and (0x50 <= blob[j - 1] <= 0x57 or blob[j - 1] in (0x1E, 0x06)):
+                            j -= 1
+                    if j != k:
+                        self.seed(b + j, s['seg'], 'stack-check')
+                k = blob.find(b'\x39\x26', k + 1)
 
     def seed_init_tables(self):
         """Borland's start-up walks {type, priority, far ptr} records between
@@ -140,7 +175,10 @@ class Finder:
                 and not o.index):
             return None
         bound = bx_imm = cx_imm = None
-        for j in insns_before[-10:]:
+        add_bx_cx = False
+        for j in insns_before[-12:]:
+            if j.mnemonic == 'add' and repr(j.op1) == 'bx' and j.op2 and repr(j.op2) == 'cx':
+                add_bx_cx = True
             if not (j.op1 and j.op1.type == OpType.REG16 and j.op2
                     and j.op2.type in (OpType.IMM8, OpType.IMM16)):
                 continue
@@ -151,8 +189,14 @@ class Finder:
                 bx_imm = j.op2.disp & 0xFFFF
             elif j.mnemonic == 'mov' and reg == 'cx':
                 cx_imm = j.op2.disp & 0xFFFF
+        # Borland's sparse switch: bx walks a list of N case values, cx counts
+        # down, and the arm offsets follow the list. Word values: the hit
+        # jumps through cs:[bx + 2N], so the arms start at list + 2N. Dword
+        # values (4 bytes each): `add cx,cx / add bx,cx / jmp cs:[bx+2N]`, so
+        # for a hit at index i (bx = list + 4i, cx = N - i) the arm is at
+        # list + 2N + 2N + 2i: the arms start at list + 4N.
         if bx_imm is not None and cx_imm and (o.disp & 0xFFFF) == cx_imm * 2:
-            start, bound = bx_imm + cx_imm * 2, cx_imm         # sparse switch
+            start, bound = bx_imm + cx_imm * (4 if add_bx_cx else 2), cx_imm
         else:
             start = o.disp & 0xFFFF
             if bound is None:

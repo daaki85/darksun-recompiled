@@ -35,6 +35,15 @@ static void note_miss(unsigned lin)
     trace("[dispatch] no function at %05X (ds=%04X ss:sp=%04X:%04X)\n",
           lin, g_cpu->ds, g_cpu->ss, g_cpu->sp);
     if (g_nmiss <= 12) dispatch_backtrace();
+    const char *dump = getenv("DS_DUMP");            /* DS_DUMP=<linear>:<bytes> shown at each miss */
+    if (dump && g_nmiss <= 12) {
+        unsigned at = (unsigned)strtoul(dump, NULL, 16), n = 32;
+        const char *c = strchr(dump, ':');
+        if (c) n = (unsigned)strtoul(c + 1, NULL, 0);
+        fprintf(stderr, "           %05X:", at);
+        for (unsigned i = 0; i < n && at + i < MEM_SIZE; i++) fprintf(stderr, "%s%02X", (i % 2) ? "" : " ", g_cpu->mem[at + i]);
+        fprintf(stderr, "\n");
+    }
     if (lin < 0xA0000 && g_nmiss <= 4) {
         fprintf(stderr, "           bytes there:");
         for (int i = -16; i < 32; i++) fprintf(stderr, "%s%02X", i == 0 ? " [" : " ", g_cpu->mem[lin + i]);
@@ -53,9 +62,14 @@ void dispatch_backtrace(void)
         fprintf(stderr, "           called from:");
         for (int i = 2; i < n && sym; i++) {
             char *p = strstr(sym[i], "(fn_");
-            if (p) { char *e = strchr(p, '+'); if (e) *e = 0; fprintf(stderr, " %s", p + 4); }
+            if (p) { char *e = strchr(p, '+'); fprintf(stderr, " %.*s", (int)(e ? e - p - 4 : 8), p + 4); }
         }
         fprintf(stderr, "\n");
+        if (getenv("DS_SITES")) {           /* for addr2line -e dsun */
+            fprintf(stderr, "           sites:");
+            for (int i = 2; i < n && i < 5 && sym; i++) fprintf(stderr, " %s", sym[i]);
+            fprintf(stderr, "\n");
+        }
         free(sym);
 #endif
     }

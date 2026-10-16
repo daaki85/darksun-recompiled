@@ -26,7 +26,7 @@ target_link_libraries(dsun PRIVATE SDL2::SDL2 ZLIB::ZLIB m)
 # Generated code is machine-written: labels go unused, temporaries shadow.
 set_source_files_properties(${GEN_SOURCES} PROPERTIES COMPILE_OPTIONS
     "-w;-fno-strict-aliasing")
-target_compile_options(dsun PRIVATE -fno-strict-aliasing)
+target_compile_options(dsun PRIVATE -fno-strict-aliasing -g1)
 if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
     target_link_options(dsun PRIVATE -rdynamic)   # names in backtraces
 endif()

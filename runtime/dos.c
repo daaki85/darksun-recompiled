@@ -309,6 +309,9 @@ void dos_service(CPU *cpu)
     case 0x35: cpu->bx = mem_read16(cpu, 0, (uint16_t)(cpu->al * 4));
                cpu->es = mem_read16(cpu, 0, (uint16_t)(cpu->al * 4 + 2)); break;
     case 0x36: cpu->ax = 64; cpu->bx = 0x7FFF; cpu->cx = 512; cpu->dx = 0xFFFF; break;
+    case 0x1B: case 0x1C:                          /* allocation info: 64 sectors a cluster */
+        cpu->al = 64; cpu->cx = 512; cpu->dx = 0xFFFF;
+        cpu->mem[0x4F0] = 0xF8; cpu->ds = 0x40; cpu->bx = 0xF0; break;
     case 0x3B: set_cf(cpu, 0); break;
     case 0x3C: case 0x5B: {
         guest_str(cpu, cpu->ds, cpu->dx, name, sizeof name);
