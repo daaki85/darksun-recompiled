@@ -1,0 +1,7 @@
+# Esc through the intro to the main menu, which must stand still.
+seconds = 50
+input = "20:key=ESC 24:key=ESC 28:key=ESC 32:key=ESC"
+screen = [
+  { at = 42, ref = "menu", min_colours = 60 },
+  { at = 49, ref = "menu", min_colours = 60 },
+]
