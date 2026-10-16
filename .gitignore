@@ -1,0 +1,3 @@
+# The game's files and everything made from them stay out of git.
+/game/
+/build/
