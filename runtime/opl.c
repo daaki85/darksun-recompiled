@@ -43,10 +43,29 @@ static uint8_t status(void)
 
 void audio_opl_write(int bank, uint8_t reg, uint8_t val);
 
+static unsigned long g_count[2][256];
+
+void opl_report(void)
+{
+    unsigned long keyon = 0, freq = 0, op = 0;
+    for (int b = 0; b < 2; b++)
+        for (int r = 0; r < 256; r++) {
+            if (r >= 0xB0 && r <= 0xB8) keyon += g_count[b][r];
+            else if (r >= 0xA0 && r <= 0xA8) freq += g_count[b][r];
+            else if (r >= 0x20 && r < 0xA0) op += g_count[b][r];
+        }
+    fprintf(stderr, "[opl] %lu register writes: %lu key-on/off, %lu frequency, %lu operator\n",
+            g_opl_writes, keyon, freq, op);
+}
+
 static void write_reg(int bank, uint8_t idx, uint8_t val)
 {
     g_reg[bank][idx] = val;
     g_opl_writes++;
+    g_count[bank][idx]++;
+    { static FILE *lf; static int tried;             /* DS_OPL_LOG=file: "t_us reg val" lines */
+      if (!tried) { tried = 1; const char *e = getenv("DS_OPL_LOG"); if (e) lf = fopen(e, "w"); }
+      if (lf) fprintf(lf, "%llu %03X %02X\n", (unsigned long long)host_us(), (bank << 8) | idx, val); }
     audio_opl_write(bank, idx, val);
     if (bank == 0 && idx == 4) {
         if (val & 0x80) { g_status_flags = 0; return; }

@@ -44,6 +44,7 @@ class Finder:
     def __init__(self, img):
         self.img = img
         self.entries = {}          # linear entry -> cs
+        self.code_segs = {s['seg']: s['size'] for s in img.segs}
         self.funcs = {}
         self.why = {}
 
@@ -253,8 +254,19 @@ class Finder:
                         tables[ip] = arms
                         work.extend(arms)
                     break
-                if m == 'jmp far':
-                    break
+                if m == 'jmp far' or (m == 'call far' and o and o.type == OpType.MEM):
+                    # `jmp far cs:[bx+table]`: a table of far pointers in the
+                    # code segment (the sprite blitters pick a routine that
+                    # way). Entries are read while they point into code.
+                    if o and o.type == OpType.MEM and o.seg == 'cs' and o.base == 'bx' and not o.index:
+                        a = cs * 16 + (o.disp & 0xFFFF)
+                        for k in range(256):
+                            off, sg = self.img.u16(a + 4 * k), self.img.u16(a + 4 * k + 2)
+                            if sg not in self.code_segs or off >= self.code_segs[sg]:
+                                break
+                            calls.add(sg * 16 + off)
+                    if m == 'jmp far':
+                        break
                 if m == 'call' and o and o.type == OpType.REL16:
                     calls.add(cs * 16 + (o.disp & 0xFFFF))
                 elif m == 'call' and o and o.type == OpType.FAR:

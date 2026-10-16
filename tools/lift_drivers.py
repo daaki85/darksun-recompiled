@@ -32,6 +32,7 @@ class DriverImage:
 
     def __init__(self, blob):
         self.mem = blob + bytes(0x10000 - len(blob))
+        self.segs = []                  # no far-pointer tables inside a driver
         self.stub_target = {}
         self.layout = {}
         self._dec = Decoder(self.mem, base_offset=0)

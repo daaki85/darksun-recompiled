@@ -192,6 +192,8 @@ void host_exit(int code)
 {
     g_exit_code = code;
     { extern void audio_close(void); audio_close(); }
+    { extern void opl_report(void); opl_report(); }
+    { extern void ail_report(void); ail_report(); }
     extern void dispatch_dump_misses(const char *);
     extern const char *g_build_dir;
     char p[1024];

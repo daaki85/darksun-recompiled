@@ -49,6 +49,23 @@ static const DrvImage *which_driver(CPU *cpu, uint32_t base)
     return NULL;
 }
 
+/* how often each driver function ran, for the report at exit */
+static struct { int id; unsigned off; unsigned long n; } g_calls[128];
+static int g_ncalls;
+
+static void ail_count(int id, unsigned off)
+{
+    for (int i = 0; i < g_ncalls; i++)
+        if (g_calls[i].id == id && g_calls[i].off == off) { g_calls[i].n++; return; }
+    if (g_ncalls < 128) { g_calls[g_ncalls].id = id; g_calls[g_ncalls].off = off; g_calls[g_ncalls++].n = 1; }
+}
+
+void ail_report(void)
+{
+    for (int i = 0; i < g_ncalls; i++)
+        fprintf(stderr, "[ail] ADV %d +%04X ran %lu times\n", g_calls[i].id, g_calls[i].off, g_calls[i].n);
+}
+
 static int run_lifted(CPU *cpu, unsigned seg, unsigned off)
 {
     const DrvImage *d = which_driver(cpu, (uint32_t)seg << 4);
@@ -59,6 +76,7 @@ static int run_lifted(CPU *cpu, unsigned seg, unsigned off)
             uint16_t args[4];
             for (int k = 0; k < 4; k++) args[k] = mem_read16(cpu, cpu->ss, (uint16_t)(cpu->sp + 4 + 2 * k));
             e->fn(cpu);
+            ail_count(d->id, off);
             static int logged;
             if (logged++ < 60)
                 trace("[ail] ADV %d +%04X (%04X %04X %04X %04X) -> DX:AX %04X:%04X\n",

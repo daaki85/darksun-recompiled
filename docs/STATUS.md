@@ -9,7 +9,11 @@ dialogue, the scripted fight of Celgor the defiler against the rampager (the
 combat view, turn by turn), and the party at the gate waiting to be moved: all
 with no misses and no stack faults.
 
+Clicking on the sand walks the party into the arena, the map scrolling with
+it.
+
 ![The scripted fight](img/arena-fight.png)
+![Walking into the arena](img/arena-walk.png)
 
 ![The arena's opening scene](img/arena-opening.png)
 ![The main menu](img/main-menu.png)
@@ -22,10 +26,11 @@ with no misses and no stack faults.
   copy (DARKSAVE.GFF to DARKRUN.GFF), mode 13h, the keyboard and mouse hooks.
 - Sound: the 16 Miles AIL 2 drivers in RESOURCE.GFF are translated too and run
   where the game loads them. The music driver (Sound Blaster Pro FM) runs
-  against an emulated FM chip (timers, status, the SB Pro mixer): sequencing,
-  timing and the XMIDI callbacks the intro waits on all work, but the FM
-  register writes are not synthesised yet, so it is silent. The digital driver
-  answers natively and plays nothing.
+  against an emulated FM chip (timers, status, the SB Pro mixer) at its 120 Hz,
+  and its register writes go to Nuked OPL3 and out through SDL (or to a file
+  with `--wav`). Whether what comes out is the right music is being checked
+  (the first 14 s hold only short notes of one pitch, which may be a drum
+  intro). The digital driver answers natively and plays nothing yet.
 - The runtime supplies its own SOUND.CFG (GOG's selects an MT-32, whose
   instrument file GOG does not ship).
 
