@@ -4,8 +4,12 @@
 
 **The game is in play.** The intro (SSI logo, AD&D screen, title card,
 cinematic, scroll; Esc skips it), the main menu, START GAME, the decree and
-the gladiators' cinematic, and the first scene in the arena of Draj with its
-dialogue, all with no misses and no stack faults.
+the gladiators' cinematic, the first scene in the arena of Draj with its
+dialogue, the scripted fight of Celgor the defiler against the rampager (the
+combat view, turn by turn), and the party at the gate waiting to be moved: all
+with no misses and no stack faults.
+
+![The scripted fight](img/arena-fight.png)
 
 ![The arena's opening scene](img/arena-opening.png)
 ![The main menu](img/main-menu.png)
