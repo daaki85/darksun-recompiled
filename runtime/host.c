@@ -191,6 +191,7 @@ extern int game_main(void *arg);
 void host_exit(int code)
 {
     g_exit_code = code;
+    { extern void audio_close(void); audio_close(); }
     extern void dispatch_dump_misses(const char *);
     extern const char *g_build_dir;
     char p[1024];
@@ -242,6 +243,7 @@ int host_run(int headless, double seconds, const char *shots, const char *input)
             if (e.type == SDL_MOUSEBUTTONUP) g_mb &= ~(e.button.button == SDL_BUTTON_LEFT ? 1 : 2);
         }
         run_actions(now);
+        { extern void audio_pump(void); audio_pump(); }
         if (!headless) {
             int w, h;
             vga_render(px, &w, &h);

@@ -41,10 +41,13 @@ static uint8_t status(void)
     return s;                         /* low bits 0: an OPL3, as on a SB Pro 2 */
 }
 
+void audio_opl_write(int bank, uint8_t reg, uint8_t val);
+
 static void write_reg(int bank, uint8_t idx, uint8_t val)
 {
     g_reg[bank][idx] = val;
     g_opl_writes++;
+    audio_opl_write(bank, idx, val);
     if (bank == 0 && idx == 4) {
         if (val & 0x80) { g_status_flags = 0; return; }
         if ((val & 1) && !g_t1_run) g_t1_start = now_us();

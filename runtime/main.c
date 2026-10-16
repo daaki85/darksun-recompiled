@@ -43,7 +43,7 @@ int main(int argc, char **argv)
 {
     int headless = 0;
     double seconds = 0;
-    const char *shots = NULL, *input = NULL;
+    const char *shots = NULL, *input = NULL, *wav = NULL;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--game") && i + 1 < argc) g_game_dir = argv[++i];
         else if (!strcmp(argv[i], "--build") && i + 1 < argc) g_build_dir = argv[++i];
@@ -51,6 +51,7 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[i], "--seconds") && i + 1 < argc) seconds = atof(argv[++i]);
         else if (!strcmp(argv[i], "--shots") && i + 1 < argc) shots = argv[++i];
         else if (!strcmp(argv[i], "--input") && i + 1 < argc) input = argv[++i];
+        else if (!strcmp(argv[i], "--wav") && i + 1 < argc) wav = argv[++i];
         else { fprintf(stderr, "unknown argument %s\n", argv[i]); return 2; }
     }
     if (!getenv("DISPLAY") && !getenv("WAYLAND_DISPLAY")) {
@@ -71,6 +72,9 @@ int main(int argc, char **argv)
     bios_init(g_cpu);
     dos_init(g_cpu);
     vga_init();
+    { extern int audio_init(void); extern int audio_wav_open(const char *);
+      if (!getenv("DS_NO_AUDIO")) audio_init();
+      if (wav && !audio_wav_open(wav)) fprintf(stderr, "cannot write %s\n", wav); }
     return host_run(headless, seconds, shots, input);
 }
 
