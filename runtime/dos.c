@@ -15,10 +15,11 @@
 #include <sys/stat.h>
 #include <time.h>
 #include <unistd.h>
+#include <fcntl.h>
 #include <strings.h>
 
 #define MAXF 64
-static FILE *g_files[MAXF];
+static int g_files[MAXF];          /* host descriptors, -1 = free */
 static char g_dta_seg_off_set;
 static uint16_t g_dta_seg, g_dta_off;
 static uint16_t g_psp;
@@ -181,23 +182,28 @@ static const uint8_t SOUND_CFG[] = {
     0,0,0x01,0x00,0x04,0x00,0x08,0x00,0x0b,0x00,0x00,
 };
 
-static FILE *builtin_file(const char *name)
+static int builtin_file(const char *name)
 {
     const char *base = strrchr(name, '\\');
     base = base ? base + 1 : (name[1] == ':' ? name + 2 : name);
-    if (strcasecmp(base, "SOUND.CFG")) return NULL;
+    if (strcasecmp(base, "SOUND.CFG")) return -1;
     FILE *f = tmpfile();
-    if (!f) return NULL;
+    if (!f) return -1;
     fwrite(SOUND_CFG, 1, sizeof SOUND_CFG, f);
-    rewind(f);
-    return f;
+    fflush(f);
+    int fd = dup(fileno(f));
+    fclose(f);
+    lseek(fd, 0, SEEK_SET);
+    return fd;
 }
 
-static int new_handle(FILE *f)
+static int new_handle(int fd)
 {
-    for (int h = 5; h < MAXF; h++) if (!g_files[h]) { g_files[h] = f; return h; }
+    for (int h = 5; h < MAXF; h++) if (g_files[h] < 0) { g_files[h] = fd; return h; }
     return -1;
 }
+
+static int valid(int h) { return h >= 0 && h < MAXF && g_files[h] >= 0; }
 
 /* ---- find first / next ---------------------------------------------------------------- */
 static char g_find_pat[128], g_find_dir[512];
@@ -267,8 +273,9 @@ static int find_next(CPU *cpu)
 /* ---- the service ------------------------------------------------------------------------ */
 void dos_init(CPU *cpu)
 {
-    g_files[0] = stdin; g_files[1] = stdout; g_files[2] = stderr;
-    g_files[3] = stderr; g_files[4] = stderr;
+    for (int h = 0; h < MAXF; h++) g_files[h] = -1;
+    g_files[0] = 0; g_files[1] = 2; g_files[2] = 2;      /* DOS's console goes to stderr */
+    g_files[3] = 2; g_files[4] = 2;
     g_psp = 0x0800;
     mcb_set(cpu, FIRST_MCB, 'M', g_psp, 0x1F);                 /* environment */
     mcb_set(cpu, 0x07FF, 'Z', g_psp, (uint16_t)(0xA000 - 0x0800 - 1));
@@ -316,51 +323,52 @@ void dos_service(CPU *cpu)
     case 0x3C: case 0x5B: {
         guest_str(cpu, cpu->ds, cpu->dx, name, sizeof name);
         host_path(name, path, sizeof path, 0);
-        FILE *f = fopen(path, "w+b");
-        trace("[dos] create %s -> %s\n", name, f ? "ok" : "failed");
-        int h = f ? new_handle(f) : -1;
-        if (h < 0) { if (f) fclose(f); fail(cpu, f ? 4 : 3); break; }
+        int fd = open(path, O_RDWR | O_CREAT | O_TRUNC, 0644);
+        trace("[dos] create %s -> %s\n", name, fd >= 0 ? "ok" : "failed");
+        int h = fd >= 0 ? new_handle(fd) : -1;
+        if (h < 0) { if (fd >= 0) close(fd); fail(cpu, fd >= 0 ? 4 : 3); break; }
         cpu->ax = (uint16_t)h; set_cf(cpu, 0);
         break; }
     case 0x3D: {
         guest_str(cpu, cpu->ds, cpu->dx, name, sizeof name);
         int mode = cpu->al & 3;
         if (!strncasecmp(name, "EMMXXXX0", 8) || !strncasecmp(name, "MSCD", 4)) { fail(cpu, 2); break; }
-        FILE *bf = mode == 0 ? builtin_file(name) : NULL;
-        if (bf) { int h = new_handle(bf); trace("[dos] open %s -> the runtime's own\n", name);
-                  if (h < 0) { fclose(bf); fail(cpu, 4); } else { cpu->ax = (uint16_t)h; set_cf(cpu, 0); } break; }
+        int bfd = mode == 0 ? builtin_file(name) : -1;
+        if (bfd >= 0) { int h = new_handle(bfd); trace("[dos] open %s -> the runtime's own\n", name);
+                  if (h < 0) { close(bfd); fail(cpu, 4); } else { cpu->ax = (uint16_t)h; set_cf(cpu, 0); } break; }
         if (!host_path(name, path, sizeof path, 1)) { trace("[dos] open %s: not found\n", name); fail(cpu, 2); break; }
-        FILE *f = fopen(path, mode == 0 ? "rb" : "r+b");
-        if (!f && mode) f = fopen(path, "rb");
-        trace("[dos] open %s (mode %d) -> %s\n", name, mode, f ? "ok" : "failed");
-        int h = f ? new_handle(f) : -1;
-        if (h < 0) { if (f) fclose(f); fail(cpu, f ? 4 : 5); break; }
+        int fd = open(path, mode == 0 ? O_RDONLY : O_RDWR);
+        if (fd < 0 && mode) fd = open(path, O_RDONLY);
+        trace("[dos] open %s (mode %d) -> %s\n", name, mode, fd >= 0 ? "ok" : "failed");
+        int h = fd >= 0 ? new_handle(fd) : -1;
+        if (h < 0) { if (fd >= 0) close(fd); fail(cpu, fd >= 0 ? 4 : 5); break; }
         cpu->ax = (uint16_t)h; set_cf(cpu, 0);
         break; }
     case 0x3E: {
         int h = cpu->bx;
-        if (h >= 5 && h < MAXF && g_files[h]) { fclose(g_files[h]); g_files[h] = NULL; }
+        if (h >= 5 && valid(h)) { close(g_files[h]); g_files[h] = -1; }
         set_cf(cpu, 0);
         break; }
     case 0x3F: {
         int h = cpu->bx;
         if (h == 0) { cpu->ax = 0; set_cf(cpu, 0); break; }
-        if (h < 0 || h >= MAXF || !g_files[h]) { fail(cpu, 6); break; }
+        if (!valid(h)) { fail(cpu, 6); break; }
         uint32_t lin = ((uint32_t)cpu->ds << 4) + cpu->dx;
-        size_t n = fread(cpu->mem + lin, 1, cpu->cx, g_files[h]);
-        if (lin < 0xB0000 && lin + n > 0xA0000) trace("[dos] read into video memory\n");
+        ssize_t n = read(g_files[h], cpu->mem + lin, cpu->cx);
+        if (n < 0) { fail(cpu, 5); break; }
         cpu->ax = (uint16_t)n; set_cf(cpu, 0);
         break; }
     case 0x40: {
         int h = cpu->bx;
-        if (h < 0 || h >= MAXF || !g_files[h]) { fail(cpu, 6); break; }
+        if (!valid(h)) { fail(cpu, 6); break; }
         uint32_t lin = ((uint32_t)cpu->ds << 4) + cpu->dx;
         if (cpu->cx == 0 && h >= 5) {                    /* truncate here */
-            fflush(g_files[h]);
+            off_t at = lseek(g_files[h], 0, SEEK_CUR);
+            if (at >= 0) ftruncate(g_files[h], at);
             cpu->ax = 0; set_cf(cpu, 0); break;
         }
-        size_t n = fwrite(cpu->mem + lin, 1, cpu->cx, g_files[h]);
-        if (h < 5) fflush(g_files[h]);
+        ssize_t n = write(g_files[h], cpu->mem + lin, cpu->cx);
+        if (n < 0) { fail(cpu, 5); break; }
         cpu->ax = (uint16_t)n; set_cf(cpu, 0);
         break; }
     case 0x41: {
@@ -370,11 +378,11 @@ void dos_service(CPU *cpu)
         break; }
     case 0x42: {
         int h = cpu->bx;
-        if (h < 5 || h >= MAXF || !g_files[h]) { if (h < 5) { cpu->ax = cpu->dx = 0; set_cf(cpu, 0); } else fail(cpu, 6); break; }
-        long off = (long)(int32_t)(((uint32_t)cpu->cx << 16) | cpu->dx);
-        if (cpu->al == 0) off = (long)(((uint32_t)cpu->cx << 16) | cpu->dx);
-        fseek(g_files[h], off, cpu->al == 0 ? SEEK_SET : cpu->al == 1 ? SEEK_CUR : SEEK_END);
-        long pos = ftell(g_files[h]);
+        if (h < 5 || !valid(h)) { if (h < 5) { cpu->ax = cpu->dx = 0; set_cf(cpu, 0); } else fail(cpu, 6); break; }
+        off_t off = (off_t)(int32_t)(((uint32_t)cpu->cx << 16) | cpu->dx);
+        if (cpu->al == 0) off = (off_t)(((uint32_t)cpu->cx << 16) | cpu->dx);
+        off_t pos = lseek(g_files[h], off, cpu->al == 0 ? SEEK_SET : cpu->al == 1 ? SEEK_CUR : SEEK_END);
+        if (pos < 0) { fail(cpu, 0x19); break; }
         cpu->ax = (uint16_t)pos; cpu->dx = (uint16_t)(pos >> 16); set_cf(cpu, 0);
         break; }
     case 0x43: {
@@ -387,7 +395,7 @@ void dos_service(CPU *cpu)
         if (cpu->al == 0x00) {
             int h = cpu->bx;
             cpu->dx = h < 5 ? (h == 0 ? 0x81 : 0x82) | 0x80 : 0x0002;
-            if (h >= 5 && (h >= MAXF || !g_files[h])) { fail(cpu, 6); break; }
+            if (h >= 5 && !valid(h)) { fail(cpu, 6); break; }
             set_cf(cpu, 0);
         } else if (cpu->al == 0x08) { cpu->ax = 1; set_cf(cpu, 0); }
         else if (cpu->al == 0x09) { cpu->dx = 0; set_cf(cpu, 0); }
@@ -396,11 +404,10 @@ void dos_service(CPU *cpu)
     case 0x45: {
         int h = cpu->bx;
         if (h < 5) { cpu->ax = (uint16_t)h; set_cf(cpu, 0); break; }
-        if (h >= MAXF || !g_files[h]) { fail(cpu, 6); break; }
-        int fd = dup(fileno(g_files[h]));
-        FILE *f = fd >= 0 ? fdopen(fd, "r+b") : NULL;
-        int nh = f ? new_handle(f) : -1;
-        if (nh < 0) { fail(cpu, 4); break; }
+        if (!valid(h)) { fail(cpu, 6); break; }
+        int fd = dup(g_files[h]);
+        int nh = fd >= 0 ? new_handle(fd) : -1;
+        if (nh < 0) { if (fd >= 0) close(fd); fail(cpu, 4); break; }
         cpu->ax = (uint16_t)nh; set_cf(cpu, 0);
         break; }
     case 0x47: mem_write8(cpu, cpu->ds, cpu->si, 0); set_cf(cpu, 0); break;
