@@ -302,6 +302,7 @@ void dos_service(CPU *cpu)
     case 0x2C: { uint64_t us = host_us(); time_t t = time(NULL); struct tm *tm = localtime(&t);
                  cpu->ch = (uint8_t)tm->tm_hour; cpu->cl = (uint8_t)tm->tm_min; cpu->dh = (uint8_t)tm->tm_sec;
                  cpu->dl = (uint8_t)((us / 10000) % 100); break; }
+    case 0x2B: case 0x2D: cpu->al = 0; break;                  /* set date/time: accepted, ignored */
     case 0x2F: cpu->es = g_dta_seg; cpu->bx = g_dta_off; break;
     case 0x30: cpu->ax = 0x0005; cpu->bx = 0; cpu->cx = 0; break;   /* DOS 5.0 */
     case 0x33: if (cpu->al == 0 || cpu->al == 2) cpu->dl = 0; else if (cpu->al == 5) cpu->dl = 3; break;

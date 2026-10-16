@@ -1,0 +1,8 @@
+# The intro: SSI logo, AD&D screen, title card, the cinematic.
+seconds = 60
+screen = [
+  { at = 3,  ref = "ssi",   min_colours = 60 },
+  { at = 10, ref = "add",   min_colours = 200 },
+  { at = 20, ref = "title", min_colours = 140 },
+  { at = 50, min_colours = 150 },          # somewhere in the cinematic
+]
