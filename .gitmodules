@@ -1,3 +1,6 @@
 [submodule "third_party/pcrecomp"]
 	path = third_party/pcrecomp
 	url = https://github.com/sp00nznet/pcrecomp
+[submodule "third_party/nuked-opl3"]
+	path = third_party/nuked-opl3
+	url = https://github.com/nukeykt/Nuked-OPL3

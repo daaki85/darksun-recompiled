@@ -1,0 +1,16 @@
+# Cross-build for Windows from Linux with MinGW-w64:
+#   cmake -S . -B build/win -G Ninja -DCMAKE_BUILD_TYPE=Release \
+#         -DCMAKE_TOOLCHAIN_FILE=cmake/mingw-w64-x86_64.cmake
+# SDL2 for MinGW must be installed where the toolchain finds it
+# (e.g. /usr/x86_64-w64-mingw32, or set SDL2_DIR / CMAKE_PREFIX_PATH).
+set(CMAKE_SYSTEM_NAME Windows)
+set(CMAKE_SYSTEM_PROCESSOR x86_64)
+set(TOOLCHAIN_PREFIX x86_64-w64-mingw32)
+set(CMAKE_C_COMPILER ${TOOLCHAIN_PREFIX}-gcc)
+set(CMAKE_CXX_COMPILER ${TOOLCHAIN_PREFIX}-g++)
+set(CMAKE_RC_COMPILER ${TOOLCHAIN_PREFIX}-windres)
+set(CMAKE_FIND_ROOT_PATH /usr/${TOOLCHAIN_PREFIX} ${CMAKE_PREFIX_PATH})
+set(CMAKE_FIND_ROOT_PATH_MODE_PROGRAM NEVER)
+set(CMAKE_FIND_ROOT_PATH_MODE_LIBRARY ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_INCLUDE ONLY)
+set(CMAKE_FIND_ROOT_PATH_MODE_PACKAGE ONLY)
