@@ -79,6 +79,13 @@
   Borland's frameless prologue (`cmp [stack_base], sp / ja / call overflow`),
   which the finder also scans for.
 
+- **`mov bx, imm / call bx`**: Borland's run-time picks helper routines
+  that way (the huge-pointer arithmetic in segment 1D69). An immediate loaded
+  into a register in a function that calls or jumps through a register is
+  seeded as an entry when it decodes as code.
+- **DOS files** are raw descriptors, not stdio: the game interleaves reads
+  and writes on one handle without seeking, which stdio does not allow.
+
 ## Debugging aids
 
 - `--headless --seconds N --shots DIR` and scripted `--input`.

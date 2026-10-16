@@ -2,13 +2,13 @@
 
 ## Shattered Lands (GOG 1.10, DSUN.EXE 611,408 bytes)
 
-**The intro runs through to the main menu**: the SSI logo, the AD&D screen,
-the title card, the cinematic and the scroll, timed by the game's own music
-sequencer; Esc skips it. The main menu draws and waits for input with no
-misses and no stack faults.
+**The game is in play.** The intro (SSI logo, AD&D screen, title card,
+cinematic, scroll; Esc skips it), the main menu, START GAME, the decree and
+the gladiators' cinematic, and the first scene in the arena of Draj with its
+dialogue, all with no misses and no stack faults.
 
+![The arena's opening scene](img/arena-opening.png)
 ![The main menu](img/main-menu.png)
-![The SSI logo](img/ssi-logo.png)
 
 - Image: 52 overlay modules loaded, 935 stubs patched; Borland's overlay
   manager is kept from starting (its three entry points are native no-ops).
@@ -27,7 +27,8 @@ misses and no stack faults.
 
 ## Next
 
-- START GAME: the slave pens; character creation; loading a save.
+- Through the first fight, out of the pens; character creation; saving and
+  loading.
 - FM synthesis (an OPL3 emulator fed with the register writes), then the
   Sound Blaster DSP and DMA for digital sound.
 - Clean up misses.txt handling (only real entry points should be kept).

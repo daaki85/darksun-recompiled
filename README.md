@@ -8,11 +8,11 @@ planned for the same program, and the
 [Obsidian Edition](https://github.com/daaki85/darksun-obsidian-edition) mod is
 to be carried over.
 
-**Status: prototype.** The intro runs: the SSI logo and the AD&D screen are
-drawn by the recompiled game, timed by its own music sequencer (translated
-from the Miles driver it ships with; silent so far).
+**Status: prototype, in play.** The intro, the main menu, START GAME and the
+first scene in the arena of Draj run (silent so far: the music driver is
+translated and sequences, but nothing synthesises its output yet).
 
-![The SSI logo, drawn by the recompiled game](docs/img/ssi-logo.png)
+![The arena's opening scene, drawn by the recompiled game](docs/img/arena-opening.png)
  See [docs/DESIGN.md](docs/DESIGN.md) for how it works and
 [docs/STATUS.md](docs/STATUS.md) for where it stands.
 

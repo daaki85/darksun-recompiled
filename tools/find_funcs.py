@@ -260,6 +260,19 @@ class Finder:
                 elif m == 'call' and o and o.type == OpType.FAR:
                     calls.add(self.far_lin(o.far_seg, o.disp))
                 ip = nxt
+        # `mov reg, imm16 ... call reg` / `jmp reg`: the immediate is a routine
+        # in this segment (Borland's run-time picks helpers that way). Only
+        # immediates that decode as code, and only when the function calls or
+        # jumps through a register at all.
+        if any(i.mnemonic in ('call', 'jmp') and i.op1 and i.op1.type == OpType.REG16
+               for i in seen.values()):
+            for i in seen.values():
+                if (i.mnemonic == 'mov' and i.op1 and i.op1.type == OpType.REG16 and i.op2
+                        and i.op2.type == OpType.IMM16 and repr(i.op1) in ('bx', 'ax', 'si', 'di', 'dx', 'cx')):
+                    t = i.op2.disp & 0xFFFF
+                    ins = self.img.decode_at(cs, t)
+                    if ins and ins.mnemonic not in ('db', 'add') and t < 0xFFF0:
+                        calls.add(cs * 16 + t)
         return dict(cs=cs, ips=sorted(seen), tables=tables), calls
 
     def run(self, misses=()):
