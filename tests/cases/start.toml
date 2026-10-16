@@ -1,0 +1,9 @@
+# Esc through the intro, START GAME with the game's own party: the decree,
+# the gladiators' cinematic, then the arena's opening scene and its dialogue.
+seconds = 100
+input = "20:key=ESC 24:key=ESC 28:key=ESC 32:key=ESC 40:move=160,76 41:click=160,76"
+screen = [
+  { at = 45, ref = "decree",   min_colours = 40 },
+  { at = 70, ref = "gladiators", min_colours = 90 },
+  { at = 95, ref = "arena",    min_colours = 100 },
+]
