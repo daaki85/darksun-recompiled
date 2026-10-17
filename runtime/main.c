@@ -41,6 +41,10 @@ int game_main(void *arg)
 
 int main(int argc, char **argv)
 {
+#ifdef _WIN32
+    freopen("dsun.log", "w", stderr);        /* no terminal: the log goes to a file */
+    setvbuf(stderr, NULL, _IOLBF, 0);
+#endif
     int headless = 0;
     double seconds = 0;
     const char *shots = NULL, *input = NULL, *wav = NULL;
