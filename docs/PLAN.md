@@ -59,11 +59,16 @@ the intro plays (SSI logo, AD&D screen).
 
 ## Phase 5: The Obsidian Edition
 
-- Route A (fastest, the mod unchanged): apply its 185 patches (`gamepatch.py`)
-  to DSUN.EXE before the build; translate DSCLOG.EXE as a second program and
-  load it as DOS would; its interrupt hooks already work through the runtime's
-  vector table. The memory pressure goes away, since the overlays no longer
-  use conventional memory.
+- Route A (fastest, the mod unchanged): apply its patches to DSUN.EXE before
+  the build. They are byte replacements at file offsets (`Patch(name, offset,
+  original, replacement)` in `gamepatch.py`, applied by `patched()`), so
+  `build_image.py` takes the patched file as it is, overlays included; the
+  `INT nn` instructions they plant go through the runtime's vector table to
+  whatever handles them. DSCLOG.EXE (the helper, a DOS program) is translated
+  as a second image, loaded above the game as DOS would, and its install code
+  run first, so its hooks are in the vector table when the game starts. The
+  memory pressure that shaped the helper goes away, since the overlays no
+  longer use conventional memory.
 - The Loader: replace DOSBox memory scanning (`process.py`, `guestmem.py`)
   with direct access to the runtime's memory; the window stays.
 - Route B (later): each patch becomes a C hook.
