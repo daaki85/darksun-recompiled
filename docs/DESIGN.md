@@ -113,13 +113,32 @@
 - [DeSt](https://github.com/NancySadkov/dest) (CC0): SSI's Stronghold, also
   Borland with FBOV overlays; its `mzap` flattens such an EXE for Ghidra.
 
+## Sound
+
+The Miles AIL 2 drivers (`ADV` chunks in `RESOURCE.GFF`) are translated like
+the game (`tools/lift_drivers.py`), each against a code segment that is a
+variable, and `runtime/aildrv.c` recognises a loaded driver by its first 256
+bytes and runs the translated function at the offset called. Below them is
+the card:
+
+- `opl.c`: the FM chip's ports (AdLib and Sound Blaster addresses), its two
+  timers and status (the drivers time the timers with loops of port reads, so
+  the chip's clock advances a microsecond per access), and the SB Pro mixer.
+  Every register write is timestamped and handed to `audio.c`.
+- `sb.c`: the DSP (reset, version 3.02, speaker, time constant, single-cycle
+  and auto-init 8-bit DMA, F2h's interrupt), the 8237's registers, IRQ 5, and
+  the DMA stream read from guest memory as the audio clock consumes it.
+- `audio.c`: Nuked OPL3 rendered in order of the writes' times, a little
+  behind real time, mixed with the DMA stream; out through SDL, or to a WAV
+  (`--wav`), and always rendered even without a device, since the DMA clock
+  and its interrupts live in that rendering.
+
+`DS_OPL_LOG=file` writes every FM register write with its time, and a replay
+through the chip offline tells whether a problem is in the stream or in the
+rendering.
+
 ## Plans recorded so far
 
-- **Sound.** The Miles AIL 2.x drivers (`*.ADV`) are loaded from
-  `RESOURCE.GFF` at run time and called through far pointers. Either the
-  hardware they drive is emulated (OPL, Sound Blaster DSP, MPU-401) and the
-  drivers are translated as separate small binaries, or the AIL driver
-  interface is answered natively.
 - **Wake of the Ravager** uses the same Borland overlay format and engine;
   `build_image.py` and the finder take its DSUN.EXE as they are. Its CD audio
   becomes playing the OGG tracks GOG ships.

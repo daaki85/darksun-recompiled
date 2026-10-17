@@ -29,7 +29,7 @@ uint16_t g_drv_seg[64];
 static int lifted_ok(int id)
 {
     switch (id) {
-    case 3: case 6: case 8: case 13: case 18: case 20: return 0;   /* digital */
+    case 3: case 13: case 18: case 20: return 0;   /* PAS, AdLib Gold, GUS, Aria digital: no such cards here */
     }
     return 1;
 }

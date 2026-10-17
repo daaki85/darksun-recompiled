@@ -66,6 +66,21 @@ def lift_driver(cid, blob, out):
     f = Finder(img)
     for off in entries:
         f.seed(off, 0, 'table')
+    # A driver is small and all code, so every immediate that decodes as an
+    # instruction is tried as an entry too: that is how its interrupt handler
+    # (`mov ax, handler` stored into the vector table) and the routines it
+    # picks by register are found. A false entry is a function nothing calls.
+    dec = img.decode_at
+    for lin in list(f.entries):
+        pass
+    import re
+    for m in re.finditer(rb'[\xB8\xBA\xBB\xBE\xBF](..)', blob):
+        t = m.group(1)[0] | (m.group(1)[1] << 8)
+        if 0x20 <= t < len(blob):
+            ins = dec(0, t)
+            prev = blob[t - 1]
+            if ins and ins.mnemonic not in ('db', 'add') and prev in (0xC3, 0xCB, 0xCF, 0xC2, 0xCA, 0x90, 0xEB, 0xE9) or (ins and blob[t] in (0x50, 0x51, 0x52, 0x53, 0x56, 0x57, 0x1E, 0x06, 0x55, 0x9C, 0xFA, 0xFB)):
+                f.seed(t, 0, 'imm')
     while True:                                   # bodies add near-call targets
         before = len(f.entries)
         funcs = {}
@@ -86,6 +101,7 @@ def lift_driver(cid, blob, out):
     lift16._CODE_SEG = seg
     known = {base + lin: f'drv{cid:02d}_{lin:04X}' for lin in funcs}
     bodies = []
+    unresolved = set()
     for lin in sorted(funcs):
         insns = []
         for ip in funcs[lin]['ips']:
@@ -100,11 +116,14 @@ def lift_driver(cid, blob, out):
                                 entry_addr=lin if insns[0].address != lin else None)
         body = body.replace('(CPU *cpu)\n{', f'(CPU *cpu)\n{{\n    cpu->cs = SEG_{seg};', 1)
         bodies.append(body)
+        unresolved |= {c for c in lf.func_calls if c not in known.values()}
     with open(os.path.join(out, f'drv_{cid:02d}.c'), 'w') as fh:
         fh.write('#include "recomp_all.h"\n#include "drivers.h"\n\n')
         fh.write(f'#undef SEG_{seg}\n#define SEG_{seg} (g_drv_seg[{cid}])\n\n')
         for n in known.values():
             fh.write(f'void {n}(CPU *cpu);\n')
+        for u in sorted(unresolved):      # a call to nothing: keep the stack balanced
+            fh.write(f'static void {u}(CPU *cpu) {{ recomp_missing(cpu, "{u}"); cpu->sp += {4 if u.startswith("far_") else 2}; }}\n')
         fh.write('\n' + '\n\n'.join(bodies) + '\n\n')
         fh.write(f'const DrvEntry g_drv{cid:02d}_fns[] = {{\n')
         for lin in sorted(known):

@@ -272,6 +272,17 @@ class Finder:
                 elif m == 'call' and o and o.type == OpType.FAR:
                     calls.add(self.far_lin(o.far_seg, o.disp))
                 ip = nxt
+        # `mov dx, imm16 ... mov ah, 25h / int 21h`: an interrupt handler being
+        # installed (the sound drivers hook their IRQ that way). Every
+        # `mov dx, imm` in a function that calls DOS is seeded if it decodes.
+        if any(i.mnemonic == 'int' and i.op1 and i.op1.disp == 0x21 for i in seen.values()):
+            for i in seen.values():
+                if (i.mnemonic == 'mov' and i.op1 and repr(i.op1) == 'dx' and i.op2
+                        and i.op2.type == OpType.IMM16):
+                    t = i.op2.disp & 0xFFFF
+                    ins = self.img.decode_at(cs, t)
+                    if ins and ins.mnemonic not in ('db', 'add') and t < 0xFFF0:
+                        calls.add(cs * 16 + t)
         # `mov reg, imm16 ... call reg` / `jmp reg`: the immediate is a routine
         # in this segment (Borland's run-time picks helpers that way). Only
         # immediates that decode as code, and only when the function calls or

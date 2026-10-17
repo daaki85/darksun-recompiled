@@ -47,6 +47,10 @@ static void render(int16_t *out, int frames)
             g_qr = (g_qr + 1) % QUEUE;
         }
         OPL3_Generate(&g_chip, out + 2 * i);
+        { extern int16_t sb_sample(unsigned); int16_t d = sb_sample(RATE);
+          int l = out[2 * i] + d, r = out[2 * i + 1] + d;
+          out[2 * i] = (int16_t)(l > 32767 ? 32767 : l < -32768 ? -32768 : l);
+          out[2 * i + 1] = (int16_t)(r > 32767 ? 32767 : r < -32768 ? -32768 : r); }
     }
     g_render_t += (uint64_t)frames * 1000000u / RATE;
     /* never fall further behind than two latencies: skip ahead */
@@ -86,7 +90,8 @@ int audio_wav_open(const char *path)
 
 void audio_pump(void)
 {
-    if (!g_wav || g_on != 2) return;             /* a device renders on its own */
+    if (g_on == 1) return;                       /* a device renders on its own */
+    if (!g_on) { OPL3_Reset(&g_chip, RATE); g_on = 2; }   /* no device: render anyway, for the DMA clock */
     uint64_t now = host_us();
     if (!g_render_t) g_render_t = now > LATENCY_US ? now - LATENCY_US : 0;
     int64_t behind = (int64_t)now - (int64_t)LATENCY_US - (int64_t)g_render_t;
@@ -97,8 +102,7 @@ void audio_pump(void)
         if (g_dev) SDL_LockAudioDevice(g_dev);
         render(buf, n);
         if (g_dev) SDL_UnlockAudioDevice(g_dev);
-        fwrite(buf, 4, (size_t)n, g_wav);
-        g_wav_bytes += (uint32_t)n * 4;
+        if (g_wav) { fwrite(buf, 4, (size_t)n, g_wav); g_wav_bytes += (uint32_t)n * 4; }
         due -= n;
     }
 }

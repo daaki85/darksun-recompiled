@@ -25,11 +25,13 @@ it.
 - Start-up: Borland's run-time, SSI's VMEM on XMS, the GFF files, the save
   copy (DARKSAVE.GFF to DARKRUN.GFF), mode 13h, the keyboard and mouse hooks.
 - Sound: the 16 Miles AIL 2 drivers in RESOURCE.GFF are translated too and run
-  where the game loads them. The music driver (Sound Blaster Pro FM) runs
+  where the game loads them. Music: the Sound Blaster Pro FM driver runs
   against an emulated FM chip at its 120 Hz, and its register writes go to
-  Nuked OPL3 and out through SDL (or to a file with `--wav`). The output is
-  music: a drum intro, then the theme's melody and bass from the title card
-  on (checked from the note log, not yet by ear). The digital driver answers natively and plays nothing yet.
+  Nuked OPL3 and out through SDL (or to a file with `--wav`); the note log
+  shows a drum intro and then the theme's melody and bass (not yet checked by
+  ear). Digital sound: the Sound Blaster Pro digital driver runs against an
+  emulated DSP, DMA channel 1 and IRQ 5, and streams the game's 8 kHz speech
+  and effects into the mix.
 - The runtime supplies its own SOUND.CFG (GOG's selects an MT-32, whose
   instrument file GOG does not ship).
 
@@ -37,8 +39,8 @@ it.
 
 - Through the first fight, out of the pens; character creation; saving and
   loading.
-- FM synthesis (an OPL3 emulator fed with the register writes), then the
-  Sound Blaster DSP and DMA for digital sound.
+- Listen to the output on a machine with a sound device; compare timing
+  against DOSBox.
 - Clean up misses.txt handling (only real entry points should be kept).
 - Windows build (MinGW cross-compile).
 

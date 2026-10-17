@@ -81,7 +81,7 @@ static uint16_t g_pit_load;
 static uint8_t g_port61;
 static unsigned long g_ticks_delivered;
 
-void irq_raise(int irq) { g_irq_pending |= 1u << irq; }
+void irq_raise(int irq) { __atomic_fetch_or(&g_irq_pending, 1u << irq, __ATOMIC_SEQ_CST); }
 
 void pit_write(uint16_t port, uint8_t val)
 {
@@ -144,14 +144,13 @@ void irq_poll(CPU *cpu)
 {
     pit_update();
     if (g_in_irq || !(cpu->flags & FLAG_IF)) return;
-    if ((g_irq_pending & 1) && !(g_pic_mask & 1)) {
-        g_irq_pending &= ~1u;
-        g_ticks_delivered++;
-        hw_interrupt(cpu, 0x08);
-    }
-    if ((g_irq_pending & 2) && !(g_pic_mask & 2)) {
-        g_irq_pending &= ~2u;
-        kbd_irq(cpu);
+    for (int irq = 0; irq < 8; irq++) {
+        unsigned bit = 1u << irq;
+        if (!(g_irq_pending & bit) || (g_pic_mask & bit)) continue;
+        __atomic_fetch_and(&g_irq_pending, ~bit, __ATOMIC_SEQ_CST);
+        if (irq == 0) { g_ticks_delivered++; hw_interrupt(cpu, 0x08); }
+        else if (irq == 1) kbd_irq(cpu);
+        else hw_interrupt(cpu, 0x08 + irq);
     }
     mouse_poll(cpu);
 }
@@ -188,12 +187,14 @@ void kbd_irq(CPU *cpu)
 /* ---- ports ---------------------------------------------------------------------- */
 int opl_port_in(uint16_t port, uint8_t *v);
 int opl_port_out(uint16_t port, uint8_t v);
+int sb_port_in(uint16_t port, uint8_t *v);
+int sb_port_out(uint16_t port, uint8_t v);
 
 uint8_t port_in8(CPU *cpu, uint16_t port)
 {
     (void)cpu;
     if (port >= 0x3B0 && port <= 0x3DF) return vga_port_in(port);
-    { uint8_t v; if (opl_port_in(port, &v)) return v; }
+    { uint8_t v; if (opl_port_in(port, &v)) return v; if (sb_port_in(port, &v)) return v; }
     switch (port) {
     case 0x20: return 0;
     case 0x21: return g_pic_mask;
@@ -213,6 +214,7 @@ void port_out8(CPU *cpu, uint16_t port, uint8_t val)
     (void)cpu;
     if (port >= 0x3B0 && port <= 0x3DF) { vga_port_out(port, val); return; }
     if (opl_port_out(port, val)) return;
+    if (sb_port_out(port, val)) return;
     switch (port) {
     case 0x20: case 0xA0: return;                 /* EOI */
     case 0x21: g_pic_mask = val; return;

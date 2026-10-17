@@ -18,7 +18,7 @@ find_package(SDL2 REQUIRED)
 file(GLOB GEN_SOURCES "${GAME_BUILD}/gen/recomp_*.c" "${GAME_BUILD}/gen/drv_*.c")
 add_executable(dsun
     runtime/main.c runtime/host.c runtime/bios.c runtime/dos.c runtime/vga.c
-    runtime/dispatch.c runtime/aildrv.c runtime/opl.c runtime/audio.c
+    runtime/dispatch.c runtime/aildrv.c runtime/opl.c runtime/audio.c runtime/sb.c
     third_party/nuked-opl3/opl3.c ${GEN_SOURCES})
 target_include_directories(dsun PRIVATE
     runtime third_party/pcrecomp/runtime/recomp16 third_party/nuked-opl3 "${GAME_BUILD}/gen")
