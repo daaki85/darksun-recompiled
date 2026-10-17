@@ -42,7 +42,8 @@ it.
 - Listen to the output on a machine with a sound device; compare timing
   against DOSBox.
 - Clean up misses.txt handling (only real entry points should be kept).
-- Windows build (MinGW cross-compile).
+- Run the Windows build on a Windows machine (it cross-compiles; untested
+  there).
 
 ## Wake of the Ravager
 

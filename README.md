@@ -38,6 +38,11 @@ cmake --build build/cmake
 ./build/cmake/dsun --game game/ds1 --build build/ds1
 ```
 
+**Windows** (cross-built from Linux): `tools/setup_mingw_sdl.sh` once, then
+`tools/package_windows.sh` makes `build/darksun-recompiled-windows-x64.zip`
+with `dsun.exe` and `SDL2.dll`. The translated code is the same; only the
+runtime is compiled for Windows.
+
 `--headless --seconds 20 --shots build/shots` runs it without a window and
 saves the screen once a second; `--input "3:key=ESC 5:click=160,100"`
 scripts keys and clicks. Addresses the game reached that no translated
