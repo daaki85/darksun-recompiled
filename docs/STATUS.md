@@ -10,7 +10,7 @@ combat view, turn by turn), and the party at the gate waiting to be moved: all
 with no misses and no stack faults.
 
 Clicking on the sand walks the party into the arena, the map scrolling with
-it.
+it. CREATE CHARACTERS opens the roster (VIEW CHARACTER).
 
 ![The scripted fight](img/arena-fight.png)
 ![Walking into the arena](img/arena-walk.png)
