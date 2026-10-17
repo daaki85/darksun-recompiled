@@ -1,7 +1,8 @@
 # START GAME, through the scripted fight, then walk the party into the arena.
+# The fight's length depends on the dice, so only the end is compared, loosely.
 seconds = 150
 input = "20:key=ESC 24:key=ESC 28:key=ESC 32:key=ESC 40:move=160,76 41:click=160,76 90:click=160,40 100:click=160,160 115:click=160,170 130:click=170,150"
 screen = [
-  { at = 95,  ref = "gate",  min_colours = 100 },
-  { at = 145, ref = "arena", min_colours = 90 },
+  { at = 95,  min_colours = 90 },
+  { at = 145, ref = "arena", min_colours = 90, tolerance = 0.35 },
 ]

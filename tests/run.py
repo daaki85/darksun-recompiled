@@ -38,7 +38,7 @@ def differs(a, b, tolerance):
     if ia.size != ib.size:
         return 1.0
     d = ImageChops.difference(ia, ib).convert('L').point(lambda v: 255 if v > 24 else 0)
-    n = sum(1 for v in d.getdata() if v)
+    n = d.histogram()[255]
     return n / (ia.size[0] * ia.size[1])
 
 

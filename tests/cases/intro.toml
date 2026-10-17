@@ -1,8 +1,9 @@
-# The intro: SSI logo, AD&D screen, title card, the cinematic.
+# The intro: SSI logo, AD&D screen, title card, the cinematic. The checks are
+# at moments when a screen stands still (fades and scrolls move with time).
 seconds = 60
 screen = [
-  { at = 3,  ref = "ssi",   min_colours = 60 },
-  { at = 10, ref = "add",   min_colours = 200 },
-  { at = 20, ref = "title", min_colours = 140 },
+  { at = 5,  ref = "ssi",   min_colours = 60,  tolerance = 0.05 },
+  { at = 11, ref = "add",   min_colours = 200, tolerance = 0.05 },
+  { at = 24, ref = "title", min_colours = 140, tolerance = 0.05 },
   { at = 50, min_colours = 150 },          # somewhere in the cinematic
 ]

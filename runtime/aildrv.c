@@ -1,4 +1,3 @@
-#define _GNU_SOURCE
 /*
  * aildrv.c - calls into a Miles AIL 2 driver (.ADV) the game loaded.
  *
@@ -19,7 +18,6 @@
 #include "runtime.h"
 #include "drivers.h"
 #include <string.h>
-#include <zlib.h>
 
 uint16_t g_drv_seg[64];
 
@@ -34,12 +32,23 @@ static int lifted_ok(int id)
     return 1;
 }
 
+/* CRC-32 (IEEE), the same polynomial zlib's crc32 and tools/lift_drivers.py use */
+static uint32_t crc32_of(const uint8_t *p, size_t n)
+{
+    uint32_t c = 0xFFFFFFFFu;
+    for (size_t i = 0; i < n; i++) {
+        c ^= p[i];
+        for (int k = 0; k < 8; k++) c = (c >> 1) ^ (0xEDB88320u & (0u - (c & 1)));
+    }
+    return ~c;
+}
+
 static const DrvImage *which_driver(CPU *cpu, uint32_t base)
 {
     static uint32_t cache_base[8]; static const DrvImage *cache_img[8]; static int ncache;
     for (int i = 0; i < ncache; i++) if (cache_base[i] == base) return cache_img[i];
     if (base + SIG_LEN > 0xA0000) return NULL;
-    uint32_t crc = (uint32_t)crc32(0, cpu->mem + base, SIG_LEN);
+    uint32_t crc = crc32_of(cpu->mem + base, SIG_LEN);
     for (size_t i = 0; i < sizeof g_drivers / sizeof *g_drivers; i++)
         if (g_drivers[i].crc == crc) {
             if (ncache < 8) { cache_base[ncache] = base; cache_img[ncache++] = &g_drivers[i]; }
@@ -93,8 +102,10 @@ static int run_lifted(CPU *cpu, unsigned seg, unsigned off)
 
 static int is_driver(CPU *cpu, uint32_t base)
 {
-    return base + 0x40 < 0xA0000 && !memcmp(cpu->mem + base + 2, "Copyright (C) 199", 17)
-        && memmem(cpu->mem + base + 2, 0x40, "Miles Design", 12);
+    if (base + 0x40 >= 0xA0000 || memcmp(cpu->mem + base + 2, "Copyright (C) 199", 17)) return 0;
+    for (int i = 2; i < 0x40 - 12; i++)                  /* MinGW has no memmem */
+        if (!memcmp(cpu->mem + base + i, "Miles Design", 12)) return 1;
+    return 0;
 }
 
 /* 1 if (seg, off) is a function of a loaded AIL driver, which is then done */

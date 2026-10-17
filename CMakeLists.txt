@@ -22,8 +22,7 @@ add_executable(dsun
     third_party/nuked-opl3/opl3.c ${GEN_SOURCES})
 target_include_directories(dsun PRIVATE
     runtime third_party/pcrecomp/runtime/recomp16 third_party/nuked-opl3 "${GAME_BUILD}/gen")
-find_package(ZLIB REQUIRED)
-target_link_libraries(dsun PRIVATE SDL2::SDL2 ZLIB::ZLIB m)
+target_link_libraries(dsun PRIVATE SDL2::SDL2 m)
 # Generated code is machine-written: labels go unused, temporaries shadow.
 set_source_files_properties(${GEN_SOURCES} PROPERTIES COMPILE_OPTIONS
     "-w;-fno-strict-aliasing")
