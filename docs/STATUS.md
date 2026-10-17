@@ -26,11 +26,10 @@ it.
   copy (DARKSAVE.GFF to DARKRUN.GFF), mode 13h, the keyboard and mouse hooks.
 - Sound: the 16 Miles AIL 2 drivers in RESOURCE.GFF are translated too and run
   where the game loads them. The music driver (Sound Blaster Pro FM) runs
-  against an emulated FM chip (timers, status, the SB Pro mixer) at its 120 Hz,
-  and its register writes go to Nuked OPL3 and out through SDL (or to a file
-  with `--wav`). Whether what comes out is the right music is being checked
-  (the first 14 s hold only short notes of one pitch, which may be a drum
-  intro). The digital driver answers natively and plays nothing yet.
+  against an emulated FM chip at its 120 Hz, and its register writes go to
+  Nuked OPL3 and out through SDL (or to a file with `--wav`). The output is
+  music: a drum intro, then the theme's melody and bass from the title card
+  on (checked from the note log, not yet by ear). The digital driver answers natively and plays nothing yet.
 - The runtime supplies its own SOUND.CFG (GOG's selects an MT-32, whose
   instrument file GOG does not ship).
 
