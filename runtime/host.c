@@ -147,7 +147,7 @@ void host_mouse(int *x, int *y, int *b) { *x = g_mx; *y = g_my; *b = g_mb; }
 void host_mouse_set(int x, int y) { g_mx = x; g_my = y; }
 
 /* ---- scripted input ---------------------------------------------------------------- */
-typedef struct { double t; char what[32]; int a, b; } Act;
+typedef struct { double t; char what[64]; int a, b; } Act;
 static Act g_acts[256]; static int g_nacts, g_next_act;
 
 static void parse_input(const char *s)
@@ -174,11 +174,20 @@ static void run_actions(double now)
             g_mx = a->a; g_my = a->b; g_mb = 1; SDL_Delay(120); g_mb = 0;
         } else if (!strcmp(a->what, "@move")) { g_mx = a->a; g_my = a->b; }
         else {
-            SDL_Scancode s = SDL_GetScancodeFromName(a->what);
-            if (!strcmp(a->what, "ESC")) s = SDL_SCANCODE_ESCAPE;
-            if (!strcmp(a->what, "RET")) s = SDL_SCANCODE_RETURN;
-            if (!strcmp(a->what, "SPC")) s = SDL_SCANCODE_SPACE;
-            key(s, 1); SDL_Delay(60); key(s, 0);
+            /* key=NAME[/HOLD_MS]: SDL's key names, and a few short ones */
+            char nm[32]; int hold = 60;
+            snprintf(nm, sizeof nm, "%s", a->what);
+            char *sl = strchr(nm, '/');
+            if (sl) { *sl = 0; hold = atoi(sl + 1); }
+            SDL_Scancode s = SDL_GetScancodeFromName(nm);
+            if (!strcmp(nm, "ESC")) s = SDL_SCANCODE_ESCAPE;
+            if (!strcmp(nm, "RET")) s = SDL_SCANCODE_RETURN;
+            if (!strcmp(nm, "SPC")) s = SDL_SCANCODE_SPACE;
+            if (!strcmp(nm, "LSHIFT")) s = SDL_SCANCODE_LSHIFT;
+            if (!strcmp(nm, "RSHIFT")) s = SDL_SCANCODE_RSHIFT;
+            if (!strcmp(nm, "CTRL")) s = SDL_SCANCODE_LCTRL;
+            if (!strcmp(nm, "ALT")) s = SDL_SCANCODE_LALT;
+            key(s, 1); SDL_Delay(hold); key(s, 0);
         }
     }
 }

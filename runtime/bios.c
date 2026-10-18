@@ -337,8 +337,13 @@ void bios_service(CPU *cpu, int vec)
     switch (vec) {
     case 0x08: bda_tick(cpu); run_guest_interrupt(cpu, 0x1C); break;
     case 0x09: {
-        uint16_t w;
-        (void)w;               /* host already queued the BIOS word with the scancode */
+        /* The host already queued the BIOS word with the scancode; keep the
+         * shift state at 0040:0017 (right shift, left shift, ctrl, alt), which
+         * programs poll through INT 16h AH=02 -- Wake of the Ravager's intro
+         * skips while a Shift key is down. */
+        uint8_t sc = g_port60 & 0x7F, bit = 0;
+        if (sc == 0x36) bit = 1; else if (sc == 0x2A) bit = 2; else if (sc == 0x1D) bit = 4; else if (sc == 0x38) bit = 8;
+        if (bit) { if (g_port60 & 0x80) cpu->mem[BDA(0x17)] &= ~bit; else cpu->mem[BDA(0x17)] |= bit; }
         extern void host_key_commit(void);
         host_key_commit();
         break; }
