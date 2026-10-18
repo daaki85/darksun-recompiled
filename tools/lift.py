@@ -170,7 +170,8 @@ def main(argv=None):
             fixed.append(j)
             overlaps += 1
         insns = fixed
-        sites_here = {ip for ip in f['ips'] if (cs * 16 + ip) in img.int_sites}
+        # every INT of the mod's gets the resume check: any handler may move the return address
+        sites_here = {i.address for i in insns if i.mnemonic == 'int' and i.op1 and i.op1.disp in img.mod_vectors}
         lf = SiteLifter(known, sites_here, cs, real_returns=(cs == img.tsr_cs))
         lf.dispatch = True
         lf.far_base = 0

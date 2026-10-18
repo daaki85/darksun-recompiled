@@ -27,6 +27,7 @@ class Image:
         self.segs = segs
         self.int_sites = {int(k, 16): v['skip'] for k, v in (self.layout.get('int_sites') or {}).items()}
         tsr = self.layout.get('tsr') or {}
+        self.mod_vectors = set((self.layout.get('mod') or {}).get('vectors') or [])
         self.inline_args = {int(k, 16): v for k, v in (tsr.get('inline_args') or {}).items()}
         self.tsr_cs = tsr.get('cs')
         self._starts = [s['seg'] * 16 for s in segs]

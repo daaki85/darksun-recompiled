@@ -29,6 +29,8 @@ void dispatch_backtrace(void);
 void recomp_trace_last(int n);
 
 static int inside_function(unsigned lin);
+/* the game's own code: below the video memory, or an overlay above it (the helper sits in B000) */
+static int game_code(unsigned lin) { return lin < 0xA0000 || lin >= 0xC0000; }
 
 static void note_miss(unsigned lin)
 {
@@ -37,7 +39,7 @@ static void note_miss(unsigned lin)
     /* With the mod's helper, a return into the middle of the game's code is
      * the helper sending the game on (recomp_return), not an entry point:
      * recorded, it would be lifted as a function and called as one. */
-    if (g_game->tsr_cs && lin < 0xA0000 && inside_function(lin)) return;
+    if (g_game->tsr_cs && game_code(lin) && inside_function(lin)) return;
     for (int i = 0; i < g_nmiss; i++)
         if (g_miss[i] == lin) return;
     if (g_nmiss < MAXMISS) g_miss[g_nmiss++] = lin;
@@ -207,7 +209,7 @@ void recomp_return(CPU *cpu, unsigned seg, unsigned off)
     /* Only into the game's own code (below the video memory): a return into
      * the middle of the helper is a continuation the finder has not seen,
      * which the miss list turns into an entry on the next build. */
-    if (!lookup(lin) && g_in_int && g_game->tsr_cs && lin < 0xA0000 && inside_function(lin)) {
+    if (!lookup(lin) && g_in_int && g_game->tsr_cs && game_code(lin) && inside_function(lin)) {
         static int shown;
         if (shown++ < 10 && getenv("DS_TRACE_INT")) trace("[dispatch] a handler sends the game on to %04X:%04X\n", seg, off);
         cpu->cs = (uint16_t)seg; cpu->ip = (uint16_t)off;
