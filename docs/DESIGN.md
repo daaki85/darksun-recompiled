@@ -47,6 +47,19 @@
    - `dispatch.c`: calls through addresses known only at run time, by linear
      address; misses are written out for the next build.
 
+### Both games in one program
+
+`tools/lift.py` names every function with its game's tag (`ds1_fn_08100`)
+and ends `recomp_dispatch.c` with a `GameDesc`: title, EXE name and size,
+load segment, entry point, stack, the dispatch table, the drivers
+(`lift_drivers.py` writes `drv_table.c` with `ds1_drivers`), and whether
+the game has a CD. CMake collects every `build/<tag>/gen` it finds
+(`GAME_BUILDS`) and writes `games.c` with the table of them; the runtime
+only ever looks at `g_game`. A game folder is recognised by the size of its
+`DSUN.EXE`, so `--game` is all a player gives; without it the program
+looks for `game/ds1` and `game/ds2` beside itself and asks when both are
+there (SDL's message box, which needs no drawing code of our own).
+
 ## Things the game does that needed handling
 
 - **The overlay manager** still has its init in Borland's `_INIT_` table and

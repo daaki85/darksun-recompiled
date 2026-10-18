@@ -16,7 +16,6 @@
  * hardware, or AIL 2.14's drivers in C (Exhume's runtime/port/sound, MIT).
  */
 #include "runtime.h"
-#include "drivers.h"
 #include <string.h>
 
 uint16_t g_drv_seg[64];
@@ -49,11 +48,12 @@ static const DrvImage *which_driver(CPU *cpu, uint32_t base)
     for (int i = 0; i < ncache; i++) if (cache_base[i] == base) return cache_img[i];
     if (base + SIG_LEN > 0xA0000) return NULL;
     uint32_t crc = crc32_of(cpu->mem + base, SIG_LEN);
-    for (size_t i = 0; i < sizeof g_drivers / sizeof *g_drivers; i++)
-        if (g_drivers[i].crc == crc) {
-            if (ncache < 8) { cache_base[ncache] = base; cache_img[ncache++] = &g_drivers[i]; }
-            trace("[ail] ADV %d is loaded at %04X:0000\n", g_drivers[i].id, base >> 4);
-            return &g_drivers[i];
+    const DrvImage *drivers = g_game->drivers;
+    for (int i = 0; i < *g_game->ndrivers; i++)
+        if (drivers[i].crc == crc) {
+            if (ncache < 8) { cache_base[ncache] = base; cache_img[ncache++] = &drivers[i]; }
+            trace("[ail] ADV %d is loaded at %04X:0000\n", drivers[i].id, base >> 4);
+            return &drivers[i];
         }
     return NULL;
 }

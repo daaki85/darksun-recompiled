@@ -20,6 +20,14 @@ from lift16 import Lifter
 
 CHUNK = 80
 
+# One program holds both games, so every generated symbol carries the game's
+# tag; the runtime picks a game by the size of the DSUN.EXE it is pointed at.
+GAMES = {
+    611408: ('ds1', 'Dark Sun: Shattered Lands'),
+    634416: ('ds2', 'Dark Sun: Wake of the Ravager'),
+}
+TAG = 'ds1'
+
 # Routines answered by a few lines of C instead of being lifted, by linear
 # entry and by the EXE's size (one table per game). Each is
 # (C body, why). Far routines end in `cpu->sp += 4`: the caller pushed CS:IP.
@@ -52,7 +60,7 @@ SP_OK = {
 
 
 def name_of(lin):
-    return f'fn_{lin:05X}'
+    return f'{TAG}_fn_{lin:05X}'
 
 
 def main(argv=None):
@@ -65,7 +73,10 @@ def main(argv=None):
     funcs = {int(k, 16): v for k, v in
              json.load(open(os.path.join(a.build, 'functions.json'))).items()}
 
-    native = NATIVE.get(img.layout['exe_size'], {})
+    global TAG
+    exe_size = img.layout['exe_size']
+    TAG, title = GAMES.get(exe_size, (f'x{exe_size}', os.path.basename(img.layout['exe'])))
+    native = NATIVE.get(exe_size, {})
     known = {lin: name_of(lin) for lin in funcs}
     for stub, target in img.stub_target.items():
         if target in known:
@@ -150,7 +161,10 @@ def main(argv=None):
             fh.write(f'#define SEG_{s:04X} 0x{s:04X}\n')
         for n in names + stubs:
             fh.write(f'void {n}(CPU *cpu);\n')
+        fh.write(f'extern const DrvImage {TAG}_drivers[];\nextern const int {TAG}_ndrivers;\n')
         fh.write('#endif\n')
+    with open(os.path.join(out, 'tag.txt'), 'w') as fh:     # read by CMakeLists.txt
+        fh.write(TAG + '\n')
 
     lay = img.layout
     with open(os.path.join(out, 'layout.h'), 'w') as fh:
@@ -165,11 +179,17 @@ def main(argv=None):
     with open(os.path.join(out, 'recomp_dispatch.c'), 'w') as fh:
         fh.write('#include "recomp_all.h"\n\n')
         entries = sorted(known.items())
-        fh.write(f'const DispEntry g_dispatch[{len(entries)}] = {{\n')
+        fh.write(f'static const DispEntry dispatch[{len(entries)}] = {{\n')
         for lin, n in entries:
             fh.write(f'  {{0x{lin:05X}, {n}}},\n')
-        fh.write('};\n')
-        fh.write(f'const int g_dispatch_n = {len(entries)};\n\n')
+        fh.write('};\n\n')
+        cd = 'cd' if TAG == 'ds2' else ''
+        fh.write(f'const GameDesc {TAG}_game = {{\n'
+                 f'    "{TAG}", "{title}", "{lay["exe"]}", {exe_size},\n'
+                 f'    0x{lay["psp_seg"]:04X}, 0x{lay["entry"]["cs"]:04X}, 0x{lay["entry"]["ip"]:04X}, '
+                 f'0x{lay["stack"]["ss"]:04X}, 0x{lay["stack"]["sp"]:04X},\n'
+                 f'    dispatch, {len(entries)}, {TAG}_drivers, &{TAG}_ndrivers, "{cd}",\n'
+                 f'}};\n\n')
         for s in stubs:
             # A call to something no function covers: say so at run time,
             # and keep the stack balanced the way the call site expects.

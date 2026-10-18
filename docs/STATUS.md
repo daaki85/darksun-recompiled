@@ -55,6 +55,16 @@ it. CREATE CHARACTERS opens the roster (VIEW CHARACTER).
   there).
 - Wake of the Ravager: further into Tyr; CD volume through the mixer.
 
+## One program
+
+Both games are built into the one `dsun`: every generated symbol carries
+its game's tag (`ds1_fn_...`, `ds2_drv01_...`), each game is described by
+a `GameDesc` (entry point, dispatch table, drivers, whether it has a CD) and
+CMake writes the table of the games it found lifts for. The program
+recognises a game folder by the size of its `DSUN.EXE`, finds `game/ds1`
+and `game/ds2` on its own, and asks with a message box when both are
+there. The Windows zip now carries both memory images.
+
 ## Wake of the Ravager (GOG 1.1, DSUN.EXE 634,416 bytes)
 
 The same pipeline, pointed at `game/ds2` with `--args "-W0 -L"` and the CD

@@ -39,8 +39,26 @@ void recomp_unlifted(CPU *cpu, unsigned lin);
 
 typedef void (*recomp_fn)(CPU *);
 typedef struct { unsigned addr; recomp_fn fn; } DispEntry;
-extern const DispEntry g_dispatch[];
-extern const int g_dispatch_n;
+
+/* A translated Miles driver: recognised in memory by the CRC of its first
+ * SIG_LEN bytes, its functions by offset (tools/lift_drivers.py). */
+typedef struct { unsigned off; recomp_fn fn; } DrvEntry;
+typedef struct { int id; uint32_t crc; unsigned size; const DrvEntry *fns; } DrvImage;
+#define SIG_LEN 256
+extern uint16_t g_drv_seg[64];
+
+/* One translated game (tools/lift.py writes one of these per game). */
+typedef struct {
+    const char *tag, *title, *exe;
+    unsigned exe_size;
+    uint16_t psp, entry_cs, entry_ip, ss, sp;
+    const DispEntry *dispatch; int ndispatch;
+    const DrvImage *drivers; const int *ndrivers;
+    const char *cd_sub;          /* folder under the game's with the CD's files, if it has a CD */
+} GameDesc;
+extern const GameDesc *g_game;                /* the one running */
+extern const GameDesc *const g_games[];       /* the ones built in (games.c, written by CMake) */
+extern const int g_ngames;
 
 /* ---- the machine ---------------------------------------------------------- */
 extern CPU *g_cpu;

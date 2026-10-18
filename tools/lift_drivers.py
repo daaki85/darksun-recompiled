@@ -13,6 +13,7 @@ these images, byte for byte, runs the lifted function at that offset.
 Output: build/<game>/gen/drv_NN.c and drivers.h
 """
 import argparse
+import json
 import os
 import sys
 import zlib
@@ -52,6 +53,9 @@ class DriverImage:
 
     def u16(self, lin):
         return self.mem[lin] | (self.mem[lin + 1] << 8)
+
+
+TAG = 'ds1'
 
 
 def lift_driver(cid, blob, out):
@@ -99,7 +103,7 @@ def lift_driver(cid, blob, out):
     seg = f'{pseg:04X}'
     base = pseg * 16
     lift16._CODE_SEG = seg
-    known = {base + lin: f'drv{cid:02d}_{lin:04X}' for lin in funcs}
+    known = {base + lin: f'{TAG}_drv{cid:02d}_{lin:04X}' for lin in funcs}
     bodies = []
     unresolved = set()
     for lin in sorted(funcs):
@@ -125,7 +129,7 @@ def lift_driver(cid, blob, out):
         for u in sorted(unresolved):      # a call to nothing: keep the stack balanced
             fh.write(f'static void {u}(CPU *cpu) {{ recomp_missing(cpu, "{u}"); cpu->sp += {4 if u.startswith("far_") else 2}; }}\n')
         fh.write('\n' + '\n\n'.join(bodies) + '\n\n')
-        fh.write(f'const DrvEntry g_drv{cid:02d}_fns[] = {{\n')
+        fh.write(f'const DrvEntry {TAG}_drv{cid:02d}_fns[] = {{\n')
         for lin in sorted(known):
             fh.write(f'  {{0x{lin - base:04X}, {known[lin]}}},\n')
         fh.write('  {0xFFFF, 0}\n};\n')
@@ -137,6 +141,8 @@ def main(argv=None):
     ap.add_argument('resource', help="the game's RESOURCE.GFF (read only)")
     ap.add_argument('build', nargs='?', default='build/ds1')
     a = ap.parse_args(argv)
+    global TAG
+    TAG = open(os.path.join(a.build, 'gen', 'tag.txt')).read().strip()   # written by lift.py
     out = os.path.join(a.build, 'gen')
     os.makedirs(out, exist_ok=True)
     for name in os.listdir(out):
@@ -156,16 +162,17 @@ def main(argv=None):
     with open(os.path.join(out, 'drivers.h'), 'w') as fh:
         fh.write('/* written by tools/lift_drivers.py */\n#ifndef DRIVERS_H\n#define DRIVERS_H\n')
         fh.write('#include "runtime.h"\n')
-        fh.write('typedef struct { unsigned off; recomp_fn fn; } DrvEntry;\n')
-        fh.write('extern uint16_t g_drv_seg[64];\n')
         for cid, _, _, _ in done:
-            fh.write(f'extern const DrvEntry g_drv{cid:02d}_fns[];\n')
-        fh.write('typedef struct { int id; uint32_t crc; unsigned size; const DrvEntry *fns; } DrvImage;\n')
-        fh.write(f'#define SIG_LEN {SIG_LEN}\n')
-        fh.write('static const DrvImage g_drivers[] = {\n')
+            fh.write(f'extern const DrvEntry {TAG}_drv{cid:02d}_fns[];\n')
+        fh.write('#endif\n')
+    with open(os.path.join(out, 'drv_table.c'), 'w') as fh:
+        fh.write('/* written by tools/lift_drivers.py: the drivers the runtime recognises, by CRC */\n')
+        fh.write('#include "drivers.h"\n\n')
+        fh.write(f'const DrvImage {TAG}_drivers[] = {{\n')
         for cid, crc, size, _ in done:
-            fh.write(f'  {{{cid}, 0x{crc:08X}u, {size}, g_drv{cid:02d}_fns}},\n')
-        fh.write('};\n#endif\n')
+            fh.write(f'  {{{cid}, 0x{crc:08X}u, {size}, {TAG}_drv{cid:02d}_fns}},\n')
+        fh.write('  {0, 0, 0, 0}\n};\n')
+        fh.write(f'const int {TAG}_ndrivers = {len(done)};\n')
     print(f'{len(done)} drivers lifted: ' + ', '.join(f'ADV {c} ({n} functions)' for c, _, _, n in done))
 
 

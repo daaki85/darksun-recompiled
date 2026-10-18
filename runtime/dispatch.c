@@ -63,7 +63,7 @@ void dispatch_backtrace(void)
         char **sym = backtrace_symbols(bt, n);
         fprintf(stderr, "           called from:");
         for (int i = 2; i < n && sym; i++) {
-            char *p = strstr(sym[i], "(fn_");
+            char *p = strstr(sym[i], "_fn_");
             if (p) { char *e = strchr(p, '+'); fprintf(stderr, " %.*s", (int)(e ? e - p - 4 : 8), p + 4); }
         }
         fprintf(stderr, "\n");
@@ -98,11 +98,12 @@ void dispatch_dump_misses(const char *path)
 
 static recomp_fn lookup(unsigned lin)
 {
-    int lo = 0, hi = g_dispatch_n - 1;
+    const DispEntry *d = g_game->dispatch;
+    int lo = 0, hi = g_game->ndispatch - 1;
     while (lo <= hi) {
         int mid = (lo + hi) / 2;
-        if (g_dispatch[mid].addr == lin) return g_dispatch[mid].fn;
-        if (g_dispatch[mid].addr < lin) lo = mid + 1; else hi = mid - 1;
+        if (d[mid].addr == lin) return d[mid].fn;
+        if (d[mid].addr < lin) lo = mid + 1; else hi = mid - 1;
     }
     return NULL;
 }
@@ -214,7 +215,7 @@ void recomp_trace_last(int n)
 {
     fprintf(stderr, "           after:");
     for (int k = n; k >= 1; k--)
-        if (g_ring_i >= (unsigned)k) fprintf(stderr, " %s", g_ring[(g_ring_i - k) & (RING - 1)] + 3);
+        if (g_ring_i >= (unsigned)k) { const char *n = g_ring[(g_ring_i - k) & (RING - 1)], *f = strstr(n, "fn_"); fprintf(stderr, " %s", f ? f + 3 : n); }
     fprintf(stderr, "\n");
 }
 

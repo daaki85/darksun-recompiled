@@ -37,28 +37,34 @@ python3 tools/lift.py build/ds1
 python3 tools/lift_drivers.py game/ds1/RESOURCE.GFF build/ds1
 cmake -S . -B build/cmake -G Ninja -DCMAKE_BUILD_TYPE=Release
 cmake --build build/cmake
-./build/cmake/dsun --game game/ds1 --build build/ds1
+./build/cmake/dsun                      # finds game/ds1 (and game/ds2) itself
 ```
 
 **Wake of the Ravager** goes through the same steps with `game/ds2` and
 `build/ds2`, plus its command line and its CD: GOG starts it as `DSUN -W0 -L`,
 and its data CD is `game.gog`, a raw MODE2/2352 track (2,048 data bytes at
-offset 24 of each 2,352-byte sector; `tools/cd_extract.py` turns it into a
-folder). Build with `-DGAME_BUILD=$PWD/build/ds2` into another CMake folder
-and run with `--game game/ds2 --build build/ds2 --cd game/ds2/cd`.
+offset 24 of each 2,352-byte sector; `tools/cd_extract.py` turns it into
+`game/ds2/cd`, which the program uses as drive D: when it is there).
 
 ```sh
 python3 tools/build_image.py game/ds2/DSUN.EXE --out build/ds2 --args "-W0 -L"
 python3 tools/cd_extract.py game/ds2/game.gog game/ds2/cd
-tools/converge.sh build/ds2 build/cmake-ds2 game/ds2 60 --cd game/ds2/cd
+tools/converge.sh build/ds2 build/cmake game/ds2 60
 ```
+
+**One program, both games.** CMake builds every game whose `build/<tag>/gen`
+exists into the one `dsun` (the list is `GAME_BUILDS`; each game's symbols
+carry its tag, `ds1_` or `ds2_`). The program recognises a game folder by
+the size of its `DSUN.EXE`: `--game <folder>` names one; without it, the
+program looks for `game/ds1` and `game/ds2` beside the current folder and
+beside itself, and asks with a message box when it finds both (or takes
+`DS_GAME=ds1|ds2`). `--build` defaults to `build/<tag>` in the same places.
 
 Its music is CD audio, read from GOG's `MUSIC/TrackNN.ogg` files in the
 game folder through an emulated MSCDEX drive (`runtime/cd.c`).
 
 Its regression cases (`tests/cases/wotr-*.toml`) run with the rest under
-`python3 tests/run.py`; they expect that program at `build/cmake-ds2/dsun`
-(or `$DSUN2`).
+`python3 tests/run.py`.
 
 **Windows** (cross-built from Linux): `tools/setup_mingw_sdl.sh` once, then
 `tools/package_windows.sh` makes `build/darksun-recompiled-windows-x64.zip`

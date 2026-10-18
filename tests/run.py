@@ -23,9 +23,8 @@ import tomllib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DSUN = os.environ.get('DSUN', os.path.join(ROOT, 'build', 'cmake', 'dsun'))
-# A case with `game = "ds2"` is Wake of the Ravager: its own program (built
-# with -DGAME_BUILD=build/ds2 into build/cmake-ds2, or $DSUN2), data, and CD.
-DSUN2 = os.environ.get('DSUN2', os.path.join(ROOT, 'build', 'cmake-ds2', 'dsun'))
+# A case with `game = "ds2"` is Wake of the Ravager: the same program, its
+# data folder and its CD.
 
 
 def colours(path):
@@ -53,9 +52,8 @@ def run_case(path, update):
     for f in glob.glob(os.path.join(shots, '*')):
         os.remove(f)
     cmd = [DSUN, '--headless', '--seconds', str(case['seconds']), '--shots', shots]
-    if case.get('game') == 'ds2':
-        cmd[0] = DSUN2
-        cmd += ['--game', 'game/ds2', '--build', 'build/ds2', '--cd', 'game/ds2/cd']
+    game = case.get('game', 'ds1')
+    cmd += ['--game', f'game/{game}', '--build', f'build/{game}']
     if case.get('input'):
         cmd += ['--input', case['input']]
     env = dict(os.environ, DS_QUIET='')
