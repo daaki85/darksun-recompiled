@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#define SDL_MAIN_HANDLED          /* our main stays main; SDL must not rename it */
 #include <SDL.h>
 
 CPU *g_cpu;
