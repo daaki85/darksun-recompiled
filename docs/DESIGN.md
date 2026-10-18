@@ -137,6 +137,26 @@ program of their own:
   `CS:IP`.
 - `--cd <mod>/dos` makes that folder drive D:, where the helper's DOS hook
   sends the opens of the data files it replaced.
+- The helper's `SEG_MOVE`: at the game's first file open it points two
+  entries of the game's segment table (a small stack, the monster kinds'
+  table) at a block of its own and copies them there, so the new spells'
+  records can take the old place; under DOS every overlay loaded after that
+  is relocated with the changed table. The overlays here are relocated at
+  build time, so `build_image.py` gives those two selectors the helper's
+  segments from the start (the copy still happens at run time).
+- Three of the helper's routines are called as `call X / db ARG`: they read
+  the byte after the call through their return address and return past it,
+  and one recognises its caller by that address. The decoder lengthens
+  such calls by the argument, and every near call in the helper pushes its
+  real return address instead of the lifter's sentinel.
+- A far return to an address that is not a function's entry goes through
+  `recomp_return`: inside an interrupt handler, into the middle of lifted
+  game code (below the video memory or in an overlay), it is the helper
+  sending the game on, and only CS:IP move; anywhere else it is a miss. The
+  resume check follows every one of the mod's INTs, since any handler may
+  move the return address. `DS_TRACE_INT=all` prints the registers around
+  every user-vector interrupt, which is how a handler that leaves the stack
+  off is found.
 
 The helper's ring buffer is what the Loader reads; the runtime plants
 DOSBox's BIOS date at `F000:FFF5`, which the Loader's memory search looks
