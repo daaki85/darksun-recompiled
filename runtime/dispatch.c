@@ -128,12 +128,23 @@ int recomp_dispatch(CPU *cpu, unsigned seg, unsigned off)
     /* Borland's int86x builds `int nn / retf [2]` on the stack and far-calls
      * it, so the interrupt comes with a real return address. Run the
      * interrupt and the return. */
-    if (cpu->mem[lin] == 0xCD && (cpu->mem[lin + 2] == 0xCB || cpu->mem[lin + 2] == 0xCA)) {
-        int vec = cpu->mem[lin + 1];
-        unsigned extra = cpu->mem[lin + 2] == 0xCA ? (cpu->mem[lin + 3] | (cpu->mem[lin + 4] << 8)) : 0;
-        run_guest_interrupt(cpu, vec);
-        cpu->sp += 4 + extra;
-        return 1;
+    {
+        unsigned at = lin;
+        int moved_bp = 0;
+        /* Wake of the Ravager's version first reloads BP from the frame:
+         * `mov bp,[bp+d8] / int nn / retf n`. */
+        if (cpu->mem[at] == 0x8B && cpu->mem[at + 1] == 0x6E) { moved_bp = 1; at += 3; }
+        if (cpu->mem[at] == 0xCD && (cpu->mem[at + 2] == 0xCB || cpu->mem[at + 2] == 0xCA)) {
+            if (moved_bp) {
+                unsigned a = ((cpu->ss & 0xFFFF) << 4) + ((cpu->bp + (int8_t)cpu->mem[lin + 2]) & 0xFFFF);
+                cpu->bp = cpu->mem[a] | (cpu->mem[a + 1] << 8);
+            }
+            int vec = cpu->mem[at + 1];
+            unsigned extra = cpu->mem[at + 2] == 0xCA ? (cpu->mem[at + 3] | (cpu->mem[at + 4] << 8)) : 0;
+            run_guest_interrupt(cpu, vec);
+            cpu->sp += 4 + extra;
+            return 1;
+        }
     }
     /* Offset FFFF is the return address every lifted call site pushes. Code
      * that pops its own return address and later jumps to it (Borland's
