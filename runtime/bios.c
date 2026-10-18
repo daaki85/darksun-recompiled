@@ -254,7 +254,11 @@ void bios_init(CPU *cpu)
         mem_write16(cpu, 0, (uint16_t)(v * 4 + 2), BIOS_SEG);
         cpu->mem[BIOS_LIN(BIOS_VEC_OFF) + v] = 0xCF;     /* iret, for anyone who looks */
     }
-    memcpy(cpu->mem + 0xFFFF5, "01/01/92", 8);           /* the BIOS date DOSBox shows; the mod's Loader looks for it */
+    /* Marks the mod's Loader can find this memory by: DOSBox's BIOS date at
+     * F000:FFF5 (the helper's ring, in the HMA, overwrites it) and our own
+     * name at F000:FFC0, which stays. */
+    memcpy(cpu->mem + 0xFFFF5, "01/01/92", 8);
+    memcpy(cpu->mem + 0xFFFC0, "DARKSUN-RECOMPILED", 19);
     cpu->mem[BIOS_LIN(XMS_ENTRY_OFF)] = 0xCB;            /* retf */
     uint8_t *m = cpu->mem;
     m[BDA(0x10)] = 0x26; m[BDA(0x11)] = 0x00;            /* equipment: VGA, mouse port */
