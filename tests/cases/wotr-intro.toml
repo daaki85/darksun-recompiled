@@ -1,0 +1,10 @@
+# Wake of the Ravager's intro: SSI logo, title, the opening cinematic, and the
+# main menu it ends in. The cinematic cannot be skipped yet, so this is long.
+game = "ds2"
+seconds = 136
+screen = [
+  { at = 5,   ref = "ssi",   min_colours = 60,  tolerance = 0.05 },
+  { at = 19,  ref = "title", min_colours = 140, tolerance = 0.05 },
+  { at = 55,  min_colours = 50 },          # somewhere in the cinematic
+  { at = 134, ref = "menu",  min_colours = 40, tolerance = 0.05 },
+]
