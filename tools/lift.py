@@ -63,6 +63,32 @@ def name_of(lin):
     return f'{TAG}_fn_{lin:05X}'
 
 
+class SiteLifter(Lifter):
+    """The mod's INT sites: the helper's handler may step over data after the
+    INT, or send the game on elsewhere by changing the return address in the
+    interrupt frame. The lifted iret records where it returned to (cpu->cs:ip);
+    after the INT the code compares that with the address it expects and, when
+    they differ, jumps there through a switch over the function's labels (or
+    dispatches, for an address outside the function)."""
+
+    def __init__(self, known_funcs, sites, seg):
+        super().__init__(known_funcs=known_funcs)
+        self.sites = sites          # function-relative IPs of the INT sites
+        self.seg = seg
+        self.used = False
+
+    def lift_instruction(self, inst, func_start):
+        if inst.address in self.sites and inst.mnemonic == 'int':
+            nxt = (inst.address + inst.length) & 0xFFFF
+            self._emit(f'cpu->cs = SEG_{self.seg:04X}; cpu->ip = 0x{nxt:04X};', 'where the handler returns to, unless it says otherwise')
+            super().lift_instruction(inst, func_start)
+            self._emit(f'if (cpu->ip != 0x{nxt:04X} || cpu->cs != SEG_{self.seg:04X}) goto resume_{self.func_name};',
+                       'the handler moved the return address')
+            self.used = True
+        else:
+            super().lift_instruction(inst, func_start)
+
+
 def main(argv=None):
     ap = argparse.ArgumentParser(description=__doc__.split('\n')[0])
     ap.add_argument('build', nargs='?', default='build/ds1')
@@ -122,7 +148,8 @@ def main(argv=None):
             fixed.append(j)
             overlaps += 1
         insns = fixed
-        lf = Lifter(known_funcs=known)
+        sites_here = {ip for ip in f['ips'] if (cs * 16 + ip) in img.int_sites}
+        lf = SiteLifter(known, sites_here, cs) if sites_here else Lifter(known_funcs=known)
         lf.dispatch = True
         lf.far_base = 0
         lf.iret_frame = True
@@ -130,6 +157,8 @@ def main(argv=None):
         lift16._CODE_SEG = f'{cs:04X}'
         lf.jump_tables = {int(ip): [cs * 16 + arm for arm in arms]
                           for ip, arms in f['tables'].items()}
+        if sites_here:              # every instruction gets a label: the resume switch needs them
+            lf.jump_tables[-1] = [cs * 16 + ip for ip in f['ips']]
         entry_ip = lin - cs * 16
         try:
             body = lf.lift_function(name, insns, cs * 16, is_far=True,
@@ -140,6 +169,16 @@ def main(argv=None):
                     f'void {name}(CPU *cpu) {{ recomp_unlifted(cpu, 0x{lin:05X}); }}')
         unhandled += body.count('UNHANDLED') + body.count('/* FPU:')
         body = body.replace('(CPU *cpu)\n{', f'(CPU *cpu)\n{{\n    cpu->cs = 0x{cs:04X};', 1)
+        # an iret says where it went back to (the mod's handlers move it)
+        body = body.replace('cpu->sp += 4; cpu->flags = pop16(cpu); return; /* iret */',
+                            'cpu->ip = pop16(cpu); cpu->cs = pop16(cpu); cpu->flags = pop16(cpu); return; /* iret */')
+        if sites_here and getattr(lf, 'used', False):
+            cases = ''.join(f'        case 0x{ip:04X}: goto L_{name}_{ip:06X};\n' for ip in f['ips'])
+            block = (f'resume_{name}:\n'
+                     f'    if (cpu->cs == SEG_{cs:04X}) switch (cpu->ip) {{\n{cases}        default: break;\n    }}\n'
+                     f'    recomp_dispatch(cpu, cpu->cs, cpu->ip); return;   /* sent outside this function */\n')
+            k = body.rfind('\n}')
+            body = body[:k + 1] + block + body[k + 1:]
         if a.spcheck and lin not in SP_OK.get(img.layout['exe_size'], ()):
             body = body.replace(f'void {name}(CPU *cpu)', f'static void {name}__body(CPU *cpu)', 1)
             body += (f'\nvoid {name}(CPU *cpu) {{ uint16_t _s = cpu->sp, _ss = cpu->ss, _bp = cpu->bp; '
@@ -184,11 +223,17 @@ def main(argv=None):
             fh.write(f'  {{0x{lin:05X}, {n}}},\n')
         fh.write('};\n\n')
         cd = 'cd' if TAG == 'ds2' else ''
+        mod = lay.get('mod')
+        tsr = lay.get('tsr') or dict(psp=0, cs=0, ip=0, ss=0, sp=0)
+        if mod:
+            title += ' (Obsidian Edition)'
         fh.write(f'const GameDesc {TAG}_game = {{\n'
                  f'    "{TAG}", "{title}", "{lay["exe"]}", {exe_size},\n'
                  f'    0x{lay["psp_seg"]:04X}, 0x{lay["entry"]["cs"]:04X}, 0x{lay["entry"]["ip"]:04X}, '
                  f'0x{lay["stack"]["ss"]:04X}, 0x{lay["stack"]["sp"]:04X},\n'
                  f'    dispatch, {len(entries)}, {TAG}_drivers, &{TAG}_ndrivers, "{cd}",\n'
+                 f'    "{os.path.basename(os.path.abspath(a.build))}", "{"obsidian" if mod else ""}",\n'
+                 f'    0x{tsr["psp"]:04X}, 0x{tsr["cs"]:04X}, 0x{tsr["ip"]:04X}, 0x{tsr["ss"]:04X}, 0x{tsr["sp"]:04X},\n'
                  f'}};\n\n')
         for s in stubs:
             # A call to something no function covers: say so at run time,

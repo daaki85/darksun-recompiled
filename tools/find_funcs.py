@@ -77,6 +77,9 @@ class Finder:
         lay = self.img.layout
         e = lay['entry']
         self.seed(e['cs'] * 16 + e['ip'], e['cs'], 'entry')
+        if lay.get('tsr'):
+            t = lay['tsr']
+            self.seed(t['cs'] * 16 + t['ip'], t['cs'], 'tsr-entry')
         for m in lay['modules']:
             for s in m['stubs']:
                 self.seed(s['target'], m['seg'], 'stub')

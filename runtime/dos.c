@@ -23,6 +23,14 @@ static int g_files[MAXF];          /* host descriptors, -1 = free */
 static char g_dta_seg_off_set;
 static uint16_t g_dta_seg, g_dta_off;
 static uint16_t g_psp;
+void dos_set_psp(uint16_t psp) { g_psp = psp; }
+
+/* Upper memory for the mod's helper: it links the upper memory blocks in,
+ * asks for "high only", and allocates its ring there. There is one block to
+ * give: the HMA, segment FFFF (the overlays take the rest above the video
+ * memory). The strategy and link are remembered as DOS would. */
+static uint8_t g_strategy, g_umb_link;
+static uint16_t g_umb_seg = 0xFFFF, g_umb_paras = 0x0FFF;
 static uint8_t g_last_error;
 
 static void set_cf(CPU *cpu, int on)
@@ -419,10 +427,33 @@ void dos_service(CPU *cpu)
         cpu->ax = (uint16_t)nh; set_cf(cpu, 0);
         break; }
     case 0x47: mem_write8(cpu, cpu->ds, cpu->si, 0); set_cf(cpu, 0); break;
-    case 0x48: { uint16_t want = cpu->bx; mem_alloc(cpu);
+    case 0x31:                                       /* keep resident: back to the host */
+        fprintf(stderr, "[dos] %04X stays resident (%u paragraphs)\n", g_psp, cpu->dx);
+        { extern void host_tsr_done(void); host_tsr_done(); }
+        break;
+    case 0x58:
+        if (cpu->al == 0) { cpu->ax = g_strategy; set_cf(cpu, 0); }
+        else if (cpu->al == 1) { g_strategy = cpu->bl; set_cf(cpu, 0); }
+        else if (cpu->al == 2) { cpu->al = g_umb_link; set_cf(cpu, 0); }
+        else if (cpu->al == 3) { g_umb_link = (uint8_t)(cpu->bx != 0); set_cf(cpu, 0); }
+        else fail(cpu, 1);
+        break;
+    case 0x48:
+        if ((g_strategy & 0xC0) && g_umb_link) {       /* high only / high first: the one upper block */
+            if (g_umb_paras && cpu->bx <= g_umb_paras) {
+                cpu->ax = g_umb_seg; g_umb_paras = 0; set_cf(cpu, 0);
+                trace("[dos] alloc %04X paragraphs in upper memory -> seg %04X\n", cpu->bx, cpu->ax);
+                break;
+            }
+            if (g_strategy & 0x40) { cpu->bx = g_umb_paras; trace("[dos] alloc in upper memory: none left\n"); fail(cpu, 8); break; }
+        }
+        { uint16_t want = cpu->bx; mem_alloc(cpu);
         trace("[dos] alloc %04X paragraphs -> %s %04X\n", want, (cpu->flags & FLAG_CF) ? "fail, largest" : "seg",
               (cpu->flags & FLAG_CF) ? cpu->bx : cpu->ax); break; }
-    case 0x49: trace("[dos] free %04X\n", cpu->es); mem_free(cpu, cpu->es); break;
+    case 0x49: trace("[dos] free %04X\n", cpu->es);
+        { char sig = (char)cpu->mem[(uint16_t)(cpu->es - 1) * 16];
+          if (sig == 'M' || sig == 'Z') mem_free(cpu, cpu->es); else set_cf(cpu, 0); }   /* not ours (the helper's environment) */
+        break;
     case 0x4A: { uint16_t want = cpu->bx; mem_resize(cpu);
         trace("[dos] resize %04X to %04X paragraphs -> %s %04X\n", cpu->es, want,
               (cpu->flags & FLAG_CF) ? "fail, largest" : "ok", cpu->bx); break; }
@@ -452,7 +483,6 @@ void dos_service(CPU *cpu)
         if (rename(path, pto)) fail(cpu, 5); else set_cf(cpu, 0);
         break; }
     case 0x57: if (cpu->al == 0) { cpu->cx = 0; cpu->dx = 0x2121; } set_cf(cpu, 0); break;
-    case 0x58: cpu->ax = 0; set_cf(cpu, 0); break;
     case 0x59: cpu->ax = g_last_error; cpu->bh = 1; cpu->bl = 4; cpu->ch = 1; break;
     case 0x68: set_cf(cpu, 0); break;
     default:

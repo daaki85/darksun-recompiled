@@ -37,6 +37,15 @@ PSP_SEG = 0x0800             # program segment prefix; the image follows it
 ENV_SEG = 0x07E0             # the environment block, just below the PSP
 OVL_FIRST_SEG = 0xC000       # overlay modules from here up (no EMS page frame)
 TOP_OF_DOS = 0xA000          # end of conventional memory
+TSR_PSP_SEG = 0xB000         # a resident helper (the mod's DSCLOG.EXE) lives in B000-BFFF,
+                             # which nothing else uses in mode 13h
+TSR_ENV_SEG = 0xBF00
+
+# The mod's patches that put data after the INT, which the helper's handler
+# steps over: how many bytes, so the decoder does too. VEC_CR_SPELLS sites
+# carry a site number; "scroll" replaces the first 3 bytes of a far call and
+# the helper returns past the segment that stays.
+MOD_SITE_SKIP = {'scroll': 3}
 
 
 class ImageError(Exception):
@@ -63,7 +72,70 @@ def parse_mz(exe):
                 relocs=relocs)
 
 
-def build(exe_path, out_dir, game_args=''):
+def load_tsr(mem, path):
+    """Load a resident helper's EXE at TSR_PSP_SEG the way DOS would (PSP,
+    environment, image at PSP+10h), and return where it starts."""
+    exe = open(path, 'rb').read()
+    mz = parse_mz(exe)
+    load = TSR_PSP_SEG + 0x10
+    image = exe[mz['hdr']:mz['image_end']]
+    base = load * 16
+    if base + len(image) + 0x1000 > TSR_ENV_SEG * 16:
+        raise ImageError(f'{path} is too big for the B000 window')
+    mem[base:base + len(image)] = image
+    for off, seg in mz['relocs']:
+        lin = base + seg * 16 + off
+        struct.pack_into('<H', mem, lin, (u16(mem, lin) + load) & 0xFFFF)
+    env = b'COMSPEC=C:\\COMMAND.COM\0\0' + b'\x01\x00' + b'D:\\DSCLOG.EXE\0'
+    mem[TSR_ENV_SEG * 16:TSR_ENV_SEG * 16 + len(env)] = env
+    p = TSR_PSP_SEG * 16
+    mem[p:p + 2] = b'\xCD\x20'
+    struct.pack_into('<H', mem, p + 2, TSR_ENV_SEG)        # first segment past ours
+    struct.pack_into('<H', mem, p + 0x2C, TSR_ENV_SEG)
+    mem[p + 0x80] = 0
+    mem[p + 0x81] = 0x0D
+    for k in range(20):
+        mem[p + 0x18 + k] = k if k < 5 else 0xFF
+    return dict(exe=os.path.basename(path), psp=TSR_PSP_SEG, load=load, env=TSR_ENV_SEG,
+                cs=(mz['cs'] + load) & 0xFFFF, ip=mz['ip'], ss=(mz['ss'] + load) & 0xFFFF, sp=mz['sp'],
+                image=[base, base + len(image)])
+
+
+def mod_sites(mod_dir, exe, hdr, base, modules):
+    """The mod's INT sites in the patched EXE as linear addresses, with the
+    bytes after each INT its handler steps over, and the vectors it uses."""
+    sys.path.insert(0, mod_dir)
+    from dsloader import gamepatch                      # noqa: E402
+    area = min(m['file'] for m in modules if m['size']) if modules else len(exe)
+
+    def linear(off):
+        if off < area:
+            return base + off - hdr
+        for m in modules:
+            if m['seg'] is not None and m['file'] <= off < m['file'] + m['size']:
+                return m['seg'] * 16 + off - m['file']
+        return None
+
+    sites, vectors, applied = {}, set(), 0
+    for pt in gamepatch.PATCHES:
+        here = exe[pt.offset:pt.offset + len(pt.original)]
+        if here == pt.replacement and pt.replacement != pt.original:
+            applied += 1
+        if pt.replacement[:1] != b'\xCD' or here != pt.replacement:
+            continue
+        vectors.add(pt.replacement[1])
+        skip = MOD_SITE_SKIP.get(pt.name, 1 if pt.replacement[1] == gamepatch.VEC_CR_SPELLS else 0)
+        lin = linear(pt.offset)
+        if lin is None:
+            raise ImageError(f'patch {pt.name} at {pt.offset:X} is outside the loaded code')
+        if skip:
+            sites[f'{lin:05X}'] = dict(skip=skip, vector=pt.replacement[1], name=pt.name)
+    if not applied:
+        raise ImageError(f'{mod_dir}: none of the mod\'s patches is in this EXE (give DSUNLOG.EXE)')
+    return sites, sorted(vectors), applied
+
+
+def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None):
     exe = open(exe_path, 'rb').read()
     mz = parse_mz(exe)
     hdr, image_end = mz['hdr'], mz['image_end']
@@ -157,8 +229,15 @@ def build(exe_path, out_dir, game_args=''):
     code_segs += [dict(seg=m['seg'], size=m['size'], module=m['index'])
                   for m in modules if m['seg'] is not None]
 
+    tsr = load_tsr(mem, tsr_path) if tsr_path else None
+    if tsr:
+        code_segs.append(dict(seg=tsr['cs'], size=tsr['image'][1] - tsr['image'][0], tsr=True))
+    sites, vectors, applied = mod_sites(mod_dir, exe, hdr, base, modules) if mod_dir else ({}, [], 0)
+
     layout = dict(
         exe=os.path.basename(exe_path), exe_size=len(exe),
+        tsr=tsr, mod=dict(dir=os.path.abspath(mod_dir), patches=applied, vectors=vectors) if mod_dir else None,
+        int_sites=sites,
         psp_seg=PSP_SEG, load_seg=load, env_seg=ENV_SEG, top_of_dos=TOP_OF_DOS,
         resident=[base, res_end],
         entry=dict(cs=(mz['cs'] + load) & 0xFFFF, ip=mz['ip']),
@@ -182,9 +261,11 @@ def main(argv=None):
     ap.add_argument('exe', help="the game's DSUN.EXE (read only)")
     ap.add_argument('--out', default='build/ds1', help='output folder')
     ap.add_argument('--args', default='', help='command tail for the PSP')
+    ap.add_argument('--tsr', help='a resident helper to load first (the mod\'s DSCLOG.EXE)')
+    ap.add_argument('--mod', help="the mod's obsidian-edition folder (its dsloader/gamepatch.py names the INT sites)")
     a = ap.parse_args(argv)
     try:
-        lay = build(a.exe, a.out, a.args)
+        lay = build(a.exe, a.out, a.args, a.tsr, a.mod)
     except ImageError as e:
         sys.exit(f'build_image: {e}')
     live = [m for m in lay['modules'] if m['seg'] is not None]
@@ -194,6 +275,12 @@ def main(argv=None):
     print(f"  {len(live)} overlay modules at {OVL_FIRST_SEG:04X}0-{lay['overlay_top']:05X}, "
           f"{sum(m['nstubs'] for m in live)} stubs patched")
     print(f"  {len(lay['code_segments'])} code segments")
+    if lay['tsr']:
+        t = lay['tsr']
+        print(f"  helper {t['exe']} at {t['psp']:04X}, entry {t['cs']:04X}:{t['ip']:04X}")
+    if lay['mod']:
+        print(f"  mod: {lay['mod']['patches']} patches in the EXE, {len(lay['int_sites'])} INT sites with data after them, "
+              f"{len(lay['mod']['vectors'])} vectors")
 
 
 if __name__ == '__main__':

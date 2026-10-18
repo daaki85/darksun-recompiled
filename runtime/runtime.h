@@ -55,10 +55,16 @@ typedef struct {
     const DispEntry *dispatch; int ndispatch;
     const DrvImage *drivers; const int *ndrivers;
     const char *cd_sub;          /* folder under the game's with the CD's files, if it has a CD */
+    const char *build;           /* name of the build folder (build/<build>) */
+    const char *variant;         /* "" or "obsidian": the mod's patched game with its helper */
+    uint16_t tsr_psp, tsr_cs, tsr_ip, tsr_ss, tsr_sp;   /* the resident helper to run first, if any */
 } GameDesc;
 extern const GameDesc *g_game;                /* the one running */
 extern const GameDesc *const g_games[];       /* the ones built in (games.c, written by CMake) */
 extern const int g_ngames;
+extern int g_in_int;                          /* depth of guest interrupt handlers running */
+void dispatch_reset_depth(void);
+void dos_set_psp(uint16_t psp);
 
 /* ---- the machine ---------------------------------------------------------- */
 extern CPU *g_cpu;

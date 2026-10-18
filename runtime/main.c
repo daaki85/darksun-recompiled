@@ -16,6 +16,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+#include <setjmp.h>
 #define SDL_MAIN_HANDLED          /* our main stays main; SDL must not rename it */
 #include <SDL.h>
 
@@ -28,10 +29,38 @@ int host_run(int headless, double seconds, const char *shots, const char *input)
 
 static CPU g_cpu_state;
 
+static jmp_buf g_tsr_jmp;
+static int g_tsr_running;
+
+void host_tsr_done(void)                   /* INT 21h AH=31h: the helper stays, the game may start */
+{
+    if (g_tsr_running) longjmp(g_tsr_jmp, 1);
+    extern void host_exit(int);
+    host_exit(0);
+}
+
 int game_main(void *arg)
 {
     (void)arg;
     CPU *cpu = g_cpu;
+    if (g_game->tsr_cs) {
+        /* the mod's helper first, as `lh dsclog.exe` would run it */
+        g_tsr_running = 1;
+        dos_set_psp(g_game->tsr_psp);
+        if (setjmp(g_tsr_jmp) == 0) {
+            cpu->ds = cpu->es = g_game->tsr_psp;
+            cpu->ss = g_game->tsr_ss; cpu->sp = g_game->tsr_sp;
+            cpu->cs = g_game->tsr_cs; cpu->ip = g_game->tsr_ip;
+            cpu->flags = 0x0202;
+            trace("[main] helper from %04X:%04X\n", cpu->cs, cpu->ip);
+            if (!recomp_dispatch(cpu, g_game->tsr_cs, g_game->tsr_ip))
+                fatal("no function at the helper's entry point");
+            fprintf(stderr, "[main] the helper returned without staying resident\n");
+        }
+        g_tsr_running = 0;
+        dispatch_reset_depth();
+        dos_set_psp(g_game->psp);
+    }
     cpu->ds = cpu->es = g_game->psp;
     cpu->ss = g_game->ss; cpu->sp = g_game->sp;
     cpu->cs = g_game->entry_cs; cpu->ip = g_game->entry_ip;
@@ -146,7 +175,7 @@ int main(int argc, char **argv)
     if (!g_game) return 1;
     char build_rel[64], cd_rel[1200];
     if (!g_build_dir) {
-        snprintf(build_rel, sizeof build_rel, "build/%s", g_game->tag);
+        snprintf(build_rel, sizeof build_rel, "build/%s", g_game->build);
         g_build_dir = find_dir(build_rel);
         if (!g_build_dir) { fprintf(stderr, "cannot find %s (the folder with image.bin from tools/build_image.py)\n", build_rel); return 1; }
     }

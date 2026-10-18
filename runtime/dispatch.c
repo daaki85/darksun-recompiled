@@ -163,6 +163,14 @@ int recomp_dispatch(CPU *cpu, unsigned seg, unsigned off)
     if (!fn) {
         extern int ail_driver_call(CPU *, unsigned, unsigned);
         if (ail_driver_call(cpu, seg, off)) return 1;
+        /* Inside an interrupt handler, a jump into the middle of the game's
+         * code is the mod's helper sending the game on from the INT it came
+         * from: leave the address in CS:IP, and the code after that INT
+         * continues there (tools/lift.py, SiteLifter). */
+        if (g_in_int && lin < 0xA0000) {
+            cpu->cs = (uint16_t)seg; cpu->ip = (uint16_t)off;
+            return 1;
+        }
         note_miss(lin);
         return 0;
     }
@@ -171,6 +179,8 @@ int recomp_dispatch(CPU *cpu, unsigned seg, unsigned off)
     g_depth--;
     return 1;
 }
+
+void dispatch_reset_depth(void) { g_depth = 0; }
 
 void dispatch_near(CPU *cpu, unsigned seg, unsigned off)
 {

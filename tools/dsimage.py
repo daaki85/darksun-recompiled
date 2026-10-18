@@ -25,6 +25,7 @@ class Image:
         self.layout = json.load(open(os.path.join(build_dir, 'layout.json')))
         segs = sorted(self.layout['code_segments'], key=lambda s: s['seg'])
         self.segs = segs
+        self.int_sites = {int(k, 16): v['skip'] for k, v in (self.layout.get('int_sites') or {}).items()}
         self._starts = [s['seg'] * 16 for s in segs]
         self._dec = {}
         # stub linear address -> the entry it jumps to (linear)
@@ -56,9 +57,15 @@ class Image:
         d = self.decoder(cs)
         d.pos = ip
         try:
-            return d.decode_one()
+            ins = d.decode_one()
         except (IndexError, KeyError):
             return None
+        # The mod's INT sites carry data after the INT that the handler steps
+        # over: the instruction is that much longer.
+        skip = self.int_sites.get(cs * 16 + ip)
+        if skip and ins is not None and ins.mnemonic == 'int':
+            ins.length += skip
+        return ins
 
     def u16(self, lin):
         return self.mem[lin] | (self.mem[lin + 1] << 8)

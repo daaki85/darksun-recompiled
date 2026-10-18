@@ -35,17 +35,25 @@ void run_guest_interrupt(CPU *cpu, int vec)
 {
     if (ivt_is_default(cpu, vec)) { bios_service(cpu, vec); return; }
     uint32_t v = ivt_get(cpu, vec);
+    /* The frame carries CS:IP as the code keeps them: the mod's helper reads
+     * the byte after the INT through it and moves it to send the game on
+     * (tools/lift.py sets them before each such INT). The lifted iret pops
+     * them back into cpu->cs:ip and returns to C. */
     push16(cpu, cpu->flags);
-    push16(cpu, BIOS_SEG);
-    push16(cpu, 0xFFFF);                       /* a return to C, not an IP */
+    push16(cpu, cpu->cs);
+    push16(cpu, cpu->ip);
     cpu->flags &= ~(FLAG_IF | FLAG_TF);
     uint16_t sp = cpu->sp;
-    if (!recomp_dispatch(cpu, v >> 16, v & 0xFFFF)) {
+    g_in_int++;
+    int ok = recomp_dispatch(cpu, v >> 16, v & 0xFFFF);
+    g_in_int--;
+    if (!ok) {
         trace("[int] vector %02X -> %04X:%04X is not code\n", vec, v >> 16, v & 0xFFFF);
         cpu->sp = sp;
         cpu->sp += 4; cpu->flags = pop16(cpu);
     }
 }
+int g_in_int;
 
 void int_handler(CPU *cpu, int vec)
 {
@@ -246,6 +254,7 @@ void bios_init(CPU *cpu)
         mem_write16(cpu, 0, (uint16_t)(v * 4 + 2), BIOS_SEG);
         cpu->mem[BIOS_LIN(BIOS_VEC_OFF) + v] = 0xCF;     /* iret, for anyone who looks */
     }
+    memcpy(cpu->mem + 0xFFFF5, "01/01/92", 8);           /* the BIOS date DOSBox shows; the mod's Loader looks for it */
     cpu->mem[BIOS_LIN(XMS_ENTRY_OFF)] = 0xCB;            /* retf */
     uint8_t *m = cpu->mem;
     m[BDA(0x10)] = 0x26; m[BDA(0x11)] = 0x00;            /* equipment: VGA, mouse port */
