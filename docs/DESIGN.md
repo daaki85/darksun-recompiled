@@ -86,6 +86,15 @@
 - **DOS files** are raw descriptors, not stdio: the game interleaves reads
   and writes on one handle without seeking, which stdio does not allow.
 
+## Checking the translation
+
+`tools/difftest.py` runs pcrecomp's `difftest16` over every code segment of
+the built image: each distinct instruction is lifted alone, compiled, run on
+random registers and memory, and compared with Unicorn's x86 on the eight
+registers, the five arithmetic flags and a hash of memory. (`mov r, cs` is
+reported because the probe has no code segment; in a real build CS is a
+per-function constant.)
+
 ## Debugging aids
 
 - `--headless --seconds N --shots DIR` and scripted `--input`.
