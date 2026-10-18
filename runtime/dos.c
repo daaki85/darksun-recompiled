@@ -313,6 +313,7 @@ void dos_service(CPU *cpu)
         if (strstr(txt, "overflow") || strstr(txt, "rror")) {
             fprintf(stderr, "[dos] the game says \"%s\" (ss:sp=%04X:%04X ds=%04X)\n", txt, cpu->ss, cpu->sp, cpu->ds);
             extern void dispatch_backtrace(void); dispatch_backtrace();
+            extern void recomp_trace_last(int); recomp_trace_last(120);
         }
         break; }
     case 0x0B: { uint16_t w; cpu->al = host_key_pop(&w, 1) ? 0xFF : 0; break; }

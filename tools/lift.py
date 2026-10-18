@@ -78,13 +78,18 @@ class SiteLifter(Lifter):
         self.used = False
 
     def lift_instruction(self, inst, func_start):
-        if inst.address in self.sites and inst.mnemonic == 'int':
+        if inst.mnemonic == 'int' and inst.op1 and inst.op1.disp != 0x3F:
+            # Every INT's frame carries the real return address: a handler
+            # that returns with `retf 2` instead of iret (the mod's pointer
+            # probe does) dispatches to it, and a stale IP there is a jump
+            # into whatever happens to be at that address.
             nxt = (inst.address + inst.length) & 0xFFFF
-            self._emit(f'cpu->cs = SEG_{self.seg:04X}; cpu->ip = 0x{nxt:04X};', 'where the handler returns to, unless it says otherwise')
+            self._emit(f'cpu->cs = SEG_{self.seg:04X}; cpu->ip = 0x{nxt:04X};', 'the return address the frame carries')
             super().lift_instruction(inst, func_start)
-            self._emit(f'if (cpu->ip != 0x{nxt:04X} || cpu->cs != SEG_{self.seg:04X}) goto resume_{self.func_name};',
-                       'the handler moved the return address')
-            self.used = True
+            if inst.address in self.sites:
+                self._emit(f'if (cpu->ip != 0x{nxt:04X} || cpu->cs != SEG_{self.seg:04X}) goto resume_{self.func_name};',
+                           'the handler moved the return address')
+                self.used = True
         else:
             super().lift_instruction(inst, func_start)
 
@@ -149,7 +154,7 @@ def main(argv=None):
             overlaps += 1
         insns = fixed
         sites_here = {ip for ip in f['ips'] if (cs * 16 + ip) in img.int_sites}
-        lf = SiteLifter(known, sites_here, cs) if sites_here else Lifter(known_funcs=known)
+        lf = SiteLifter(known, sites_here, cs)
         lf.dispatch = True
         lf.far_base = 0
         lf.iret_frame = True

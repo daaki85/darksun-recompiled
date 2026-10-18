@@ -44,9 +44,17 @@ void run_guest_interrupt(CPU *cpu, int vec)
     push16(cpu, cpu->ip);
     cpu->flags &= ~(FLAG_IF | FLAG_TF);
     uint16_t sp = cpu->sp;
+    static int watch = -2;                     /* DS_TRACE_INT=<vector hex>: registers around each one */
+    if (watch == -2) { const char *w = getenv("DS_TRACE_INT"); watch = w ? (int)strtol(w, NULL, 16) : -1; }
+    if (vec == watch)
+        fprintf(stderr, "[int %02X] in  cs:ip=%04X:%04X ds=%04X ss:sp=%04X:%04X ax=%04X bx=%04X [ds:9C]=%04X\n", vec,
+                cpu->cs, cpu->ip, cpu->ds, cpu->ss, cpu->sp, cpu->ax, cpu->bx, mem_read16(cpu, cpu->ds, 0x9C));
     g_in_int++;
     int ok = recomp_dispatch(cpu, v >> 16, v & 0xFFFF);
     g_in_int--;
+    if (vec == watch)
+        fprintf(stderr, "[int %02X] out cs:ip=%04X:%04X ds=%04X ss:sp=%04X:%04X ax=%04X flags=%04X\n", vec,
+                cpu->cs, cpu->ip, cpu->ds, cpu->ss, cpu->sp, cpu->ax, cpu->flags);
     if (!ok) {
         trace("[int] vector %02X -> %04X:%04X is not code\n", vec, v >> 16, v & 0xFFFF);
         cpu->sp = sp;
