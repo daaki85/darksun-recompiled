@@ -26,6 +26,7 @@ static int g_nmiss;
 static int g_depth;
 
 void dispatch_backtrace(void);
+void recomp_trace_last(int n);
 
 static int inside_function(unsigned lin);
 
@@ -42,7 +43,7 @@ static void note_miss(unsigned lin)
     if (g_nmiss < MAXMISS) g_miss[g_nmiss++] = lin;
     trace("[dispatch] no function at %05X (ds=%04X ss:sp=%04X:%04X)\n",
           lin, g_cpu->ds, g_cpu->ss, g_cpu->sp);
-    if (g_nmiss <= 12) dispatch_backtrace();
+    if (g_nmiss <= 12) { dispatch_backtrace(); recomp_trace_last(40); }
     const char *dump = getenv("DS_DUMP");            /* DS_DUMP=<linear>:<bytes> shown at each miss */
     if (dump && g_nmiss <= 12) {
         unsigned at = (unsigned)strtoul(dump, NULL, 16), n = 32;
