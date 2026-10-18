@@ -86,6 +86,7 @@ class SiteLifter(Lifter):
                 and (func_start + (inst.op1.disp & 0xFFFF)) in self.known_funcs):
             target = self.known_funcs[func_start + (inst.op1.disp & 0xFFFF)]
             ret = (inst.address + 3) & 0xFFFF           # the byte after the call itself
+            self._emit_label(inst.address)
             self._emit(f'push16(cpu, 0x{ret:04X});', 'near call: the real return address')
             self._emit(f'{target}(cpu);', f'call {inst.op1!r}')
             self.func_calls.add(target)
