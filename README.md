@@ -28,6 +28,7 @@ Needs Python 3, GCC (or MinGW-w64 for Windows), CMake, Ninja and SDL2.
 ```sh
 git clone --recursive https://github.com/daaki85/darksun-recompiled
 cd darksun-recompiled
+tools/apply_patches.sh        # this project's fixes to pcrecomp (patches/pcrecomp)
 # the game: innoextract the GOG installer, or copy an installed game folder
 innoextract -s -d game/ds1 setup_dark_sun_shattered_lands_1.1_cs_\(28043\).exe
 python3 tools/build_image.py game/ds1/DSUN.EXE --out build/ds1

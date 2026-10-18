@@ -1,0 +1,23 @@
+diff --git a/tools/lift/lift16.py b/tools/lift/lift16.py
+index 2ddf16c..9639229 100644
+--- a/tools/lift/lift16.py
++++ b/tools/lift/lift16.py
+@@ -481,8 +481,17 @@ class Lifter:
+             src = op3 if op3 is not None else op1
+             sz = _wsz(op1)
+             st = {'8': 'int8_t', '16': 'int16_t', '32': 'int32_t'}[sz]
++            # An immediate narrower than the operand is sign-extended by the
++            # CPU: `imul eax, -1` arrives as IMM16 0xFFFF (or as IMM8), and
++            # cast straight to int32_t that is 65535.
++            if op2.type == OpType.IMM16 and sz == '32':
++                rhs = f'(int32_t)(int16_t)({_read(op2)})'
++            elif op2.type == OpType.IMM8:
++                rhs = f'({st})(int8_t)({_read(op2)})'
++            else:
++                rhs = f'({st})({_read(op2)})'
+             self._emit(f'{{ long long _r = (long long)({st})({_read(src)}) * '
+-                       f'({st})({_read(op2)}); '
++                       f'{rhs}; '
+                        f'{_write(op1, f"(uint{sz}_t)_r")} '
+                        f'cpu->flags = (cpu->flags & ~(FLAG_CF|FLAG_OF)) | '
+                        f'((_r != ({st})_r) ? (FLAG_CF|FLAG_OF) : 0); }}', orig)
