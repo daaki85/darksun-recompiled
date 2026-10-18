@@ -197,7 +197,10 @@ static int inside_function(unsigned lin)       /* in the middle of a lifted func
 void recomp_return(CPU *cpu, unsigned seg, unsigned off)
 {
     unsigned lin = ((seg & 0xFFFF) << 4) + (off & 0xFFFF);
-    if (!lookup(lin) && g_in_int && g_game->tsr_cs && inside_function(lin)) {
+    /* Only into the game's own code (below the video memory): a return into
+     * the middle of the helper is a continuation the finder has not seen,
+     * which the miss list turns into an entry on the next build. */
+    if (!lookup(lin) && g_in_int && g_game->tsr_cs && lin < 0xA0000 && inside_function(lin)) {
         static int shown;
         if (shown++ < 10 && getenv("DS_TRACE_INT")) trace("[dispatch] a handler sends the game on to %04X:%04X\n", seg, off);
         cpu->cs = (uint16_t)seg; cpu->ip = (uint16_t)off;
