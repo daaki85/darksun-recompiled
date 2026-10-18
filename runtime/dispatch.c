@@ -167,18 +167,6 @@ int recomp_dispatch(CPU *cpu, unsigned seg, unsigned off)
          * code is the mod's helper sending the game on from the INT it came
          * from: leave the address in CS:IP, and the code after that INT
          * continues there (tools/lift.py, SiteLifter). */
-        if (g_in_int && lin < 0xA0000 && g_game->tsr_cs) {
-            /* Only for a jump or a return: a lifted far call has just pushed
-             * its sentinel return address (SEG, FFFF), and skipping the
-             * callee would leave it there. */
-            unsigned top = mem_read16(cpu, cpu->ss, cpu->sp);
-            if (top != 0xFFFF) {
-                static int shown;
-                if (shown++ < 20) trace("[dispatch] a handler sends the game on to %04X:%04X\n", seg, off);
-                cpu->cs = (uint16_t)seg; cpu->ip = (uint16_t)off;
-                return 1;
-            }
-        }
         note_miss(lin);
         return 0;
     }
@@ -189,6 +177,23 @@ int recomp_dispatch(CPU *cpu, unsigned seg, unsigned off)
 }
 
 void dispatch_reset_depth(void) { g_depth = 0; }
+
+/* A far return to an address that is not the sentinel: to a function's entry
+ * it is a tail call; to the middle of the game's code, from inside an
+ * interrupt handler, it is the mod's helper returning with `retf 2` or to
+ * the address it put in the frame -- CS:IP are left for the code after the
+ * INT to act on (tools/lift.py, SiteLifter). */
+void recomp_return(CPU *cpu, unsigned seg, unsigned off)
+{
+    unsigned lin = ((seg & 0xFFFF) << 4) + (off & 0xFFFF);
+    if (!lookup(lin) && g_in_int && lin < 0xA0000 && g_game->tsr_cs) {
+        static int shown;
+        if (shown++ < 10 && getenv("DS_TRACE_INT")) trace("[dispatch] a handler sends the game on to %04X:%04X\n", seg, off);
+        cpu->cs = (uint16_t)seg; cpu->ip = (uint16_t)off;
+        return;
+    }
+    recomp_dispatch(cpu, seg, off);
+}
 
 void dispatch_near(CPU *cpu, unsigned seg, unsigned off)
 {

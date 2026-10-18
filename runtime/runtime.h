@@ -64,6 +64,7 @@ extern const GameDesc *const g_games[];       /* the ones built in (games.c, wri
 extern const int g_ngames;
 extern int g_in_int;                          /* depth of guest interrupt handlers running */
 void dispatch_reset_depth(void);
+void recomp_return(CPU *cpu, unsigned seg, unsigned off);
 void dos_set_psp(uint16_t psp);
 
 /* ---- the machine ---------------------------------------------------------- */

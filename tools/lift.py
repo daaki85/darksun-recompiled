@@ -174,6 +174,9 @@ def main(argv=None):
                     f'void {name}(CPU *cpu) {{ recomp_unlifted(cpu, 0x{lin:05X}); }}')
         unhandled += body.count('UNHANDLED') + body.count('/* FPU:')
         body = body.replace('(CPU *cpu)\n{', f'(CPU *cpu)\n{{\n    cpu->cs = 0x{cs:04X};', 1)
+        # a far return to a real address goes through recomp_return (a tail
+        # call, or the mod's helper sending the game on)
+        body = body.replace('recomp_dispatch(cpu,_cs,_ip); return; } /* retf', 'recomp_return(cpu,_cs,_ip); return; } /* retf')
         # an iret says where it went back to (the mod's handlers move it)
         body = body.replace('cpu->sp += 4; cpu->flags = pop16(cpu); return; /* iret */',
                             'cpu->ip = pop16(cpu); cpu->cs = pop16(cpu); cpu->flags = pop16(cpu); return; /* iret */')
