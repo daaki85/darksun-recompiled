@@ -40,6 +40,19 @@ cmake --build build/cmake
 ./build/cmake/dsun --game game/ds1 --build build/ds1
 ```
 
+**Wake of the Ravager** goes through the same steps with `game/ds2` and
+`build/ds2`, plus its command line and its CD: GOG starts it as `DSUN -W0 -L`,
+and its data CD is `game.gog`, a raw MODE2/2352 track (2,048 data bytes at
+offset 24 of each 2,352-byte sector; `tools/cd_extract.py` turns it into a
+folder). Build with `-DGAME_BUILD=$PWD/build/ds2` into another CMake folder
+and run with `--game game/ds2 --build build/ds2 --cd game/ds2/cd`.
+
+```sh
+python3 tools/build_image.py game/ds2/DSUN.EXE --out build/ds2 --args "-W0 -L"
+python3 tools/cd_extract.py game/ds2/game.gog game/ds2/cd
+tools/converge.sh build/ds2 build/cmake-ds2 game/ds2 60 --cd game/ds2/cd
+```
+
 **Windows** (cross-built from Linux): `tools/setup_mingw_sdl.sh` once, then
 `tools/package_windows.sh` makes `build/darksun-recompiled-windows-x64.zip`
 with `dsun.exe` and `SDL2.dll`. The translated code is the same; only the
