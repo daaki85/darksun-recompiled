@@ -99,6 +99,7 @@ class SiteLifter(Lifter):
             # probe does) dispatches to it, and a stale IP there is a jump
             # into whatever happens to be at that address.
             nxt = (inst.address + inst.length) & 0xFFFF
+            self._emit_label(inst.address)              # (before the assignment: a jump here must set them too)
             self._emit(f'cpu->cs = SEG_{self.seg:04X}; cpu->ip = 0x{nxt:04X};', 'the return address the frame carries')
             super().lift_instruction(inst, func_start)
             if inst.address in self.sites:
