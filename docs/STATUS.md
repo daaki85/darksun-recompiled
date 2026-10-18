@@ -53,7 +53,30 @@ it. CREATE CHARACTERS opens the roster (VIEW CHARACTER).
 - Clean up misses.txt handling (only real entry points should be kept).
 - Run the Windows build on a Windows machine (it cross-compiles; untested
   there).
+- Wake of the Ravager: past the intro into its menu; CD audio.
 
-## Wake of the Ravager
+## Wake of the Ravager (GOG 1.1, DSUN.EXE 634,416 bytes)
 
-Not started.
+The same pipeline, pointed at `game/ds2` with `--args "-W0 -L"` and the CD
+folder from `tools/cd_extract.py` on `D:`. 49 overlay modules, ~2,540
+functions, 16 Miles drivers. It boots: SSI logo, title screen, and the
+opening cinematic from `1.FLI` play through with the Sound Blaster
+streaming the voice-over (the OPL is silent because the music is CD audio,
+not yet played).
+
+![title](img/wotr-title.png) ![intro](img/wotr-intro.png)
+
+What it needed beyond Shattered Lands:
+
+- Its `int86x` builds its interrupt stub on the stack in more shapes
+  (`push bp / int / pop bp / retf`, `mov bp,[bp+d8] / int / retf n`);
+  dispatch recognises all of them and no longer records stack addresses
+  as missing functions.
+- Its timer handler (installed through a register, not an immediate) was
+  only found by the run-time miss list.
+- Its own `_INIT_` table, GPL handler table (DGROUP:30A) and overlay
+  manager addresses in `tools/find_funcs.py` and `tools/lift.py`.
+
+Not yet: the menu after the intro (the intro does not react to Escape yet,
+to be checked against DOSBox), CD audio tracks from GOG's OGG files, and the
+regression tests for this game.
