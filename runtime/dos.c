@@ -307,7 +307,13 @@ void dos_service(CPU *cpu)
     case 0x06: if (cpu->dl != 0xFF) fputc(cpu->dl, stderr); else { cpu->flags |= FLAG_ZF; cpu->al = 0; } break;
     case 0x07: case 0x08: { uint16_t w; while (!host_key_pop(&w, 0)) { irq_poll(cpu); host_sleep_us(2000); } cpu->al = (uint8_t)w; break; }
     case 0x09: {
-        for (uint16_t o = cpu->dx; ; o++) { char c = (char)mem_read8(cpu, cpu->ds, o); if (c == '$') break; fputc(c, stderr); }
+        char txt[201]; int k = 0;
+        for (uint16_t o = cpu->dx; ; o++) { char c = (char)mem_read8(cpu, cpu->ds, o); if (c == '$') break; fputc(c, stderr); if (k < 200) txt[k++] = c; }
+        txt[k] = 0;
+        if (strstr(txt, "overflow") || strstr(txt, "rror")) {
+            fprintf(stderr, "[dos] the game says \"%s\" (ss:sp=%04X:%04X ds=%04X)\n", txt, cpu->ss, cpu->sp, cpu->ds);
+            extern void dispatch_backtrace(void); dispatch_backtrace();
+        }
         break; }
     case 0x0B: { uint16_t w; cpu->al = host_key_pop(&w, 1) ? 0xFF : 0; break; }
     case 0x0C: { uint8_t f = cpu->al; uint16_t w; while (host_key_pop(&w, 1)) host_key_pop(&w, 0);
@@ -386,6 +392,13 @@ void dos_service(CPU *cpu)
             off_t at = lseek(g_files[h], 0, SEEK_CUR);
             if (at >= 0) ftruncate(g_files[h], at);
             cpu->ax = 0; set_cf(cpu, 0); break;
+        }
+        if (h <= 2 && cpu->cx < 200) {                   /* the game's own last words: say where from */
+            char txt[201]; memcpy(txt, cpu->mem + lin, cpu->cx); txt[cpu->cx] = 0;
+            if (strstr(txt, "overflow") || strstr(txt, "Null pointer") || strstr(txt, "rror")) {
+                fprintf(stderr, "[dos] the game writes \"%s\" (ss:sp=%04X:%04X)\n", txt, cpu->ss, cpu->sp);
+                extern void dispatch_backtrace(void); dispatch_backtrace();
+            }
         }
         ssize_t n = write(g_files[h], cpu->mem + lin, cpu->cx);
         if (n < 0) { fail(cpu, 5); break; }
