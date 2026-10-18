@@ -234,8 +234,8 @@ def main(argv=None):
         fh.write('};\n\n')
         ranges.sort()
         fh.write(f'static const unsigned ranges[{len(ranges)}][2] = {{\n')
-        for a, b in ranges:
-            fh.write(f'  {{0x{a:05X}, 0x{b:05X}}},\n')
+        for start, end in ranges:
+            fh.write(f'  {{0x{start:05X}, 0x{end:05X}}},\n')
         fh.write('};\n\n')
         cd = 'cd' if TAG == 'ds2' else ''
         mod = lay.get('mod')
