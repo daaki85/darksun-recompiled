@@ -285,7 +285,9 @@ class Finder:
                         and i.op2.type == OpType.IMM16):
                     t = i.op2.disp & 0xFFFF
                     ins = self.img.decode_at(cs, t)
-                    if ins and ins.mnemonic not in ('db', 'add') and t < 0xFFF0:
+                    # (`00 00`, add [bx+si],al, is how zeroed data decodes; a
+                    # real add is code: the mod's helper opens a handler with one)
+                    if ins and ins.mnemonic != 'db' and not (ins.mnemonic == 'add' and ins.raw[:1] == b'\x00') and t < 0xFFF0:
                         calls.add(cs * 16 + t)
         # `mov reg, imm16 ... call reg` / `jmp reg`: the immediate is a routine
         # in this segment (Borland's run-time picks helpers that way). Only
@@ -298,7 +300,9 @@ class Finder:
                         and i.op2.type == OpType.IMM16 and repr(i.op1) in ('bx', 'ax', 'si', 'di', 'dx', 'cx')):
                     t = i.op2.disp & 0xFFFF
                     ins = self.img.decode_at(cs, t)
-                    if ins and ins.mnemonic not in ('db', 'add') and t < 0xFFF0:
+                    # (`00 00`, add [bx+si],al, is how zeroed data decodes; a
+                    # real add is code: the mod's helper opens a handler with one)
+                    if ins and ins.mnemonic != 'db' and not (ins.mnemonic == 'add' and ins.raw[:1] == b'\x00') and t < 0xFFF0:
                         calls.add(cs * 16 + t)
         return dict(cs=cs, ips=sorted(seen), tables=tables), calls
 
