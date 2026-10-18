@@ -27,10 +27,16 @@ static int g_depth;
 
 void dispatch_backtrace(void);
 
+static int inside_function(unsigned lin);
+
 static void note_miss(unsigned lin)
 {
     unsigned stack = (g_cpu->ss & 0xFFFF) << 4;
     if (lin >= stack && lin < stack + 0x10000) return;   /* something built on the stack: not a function */
+    /* With the mod's helper, a return into the middle of the game's code is
+     * the helper sending the game on (recomp_return), not an entry point:
+     * recorded, it would be lifted as a function and called as one. */
+    if (g_game->tsr_cs && lin < 0xA0000 && inside_function(lin)) return;
     for (int i = 0; i < g_nmiss; i++)
         if (g_miss[i] == lin) return;
     if (g_nmiss < MAXMISS) g_miss[g_nmiss++] = lin;
