@@ -18,10 +18,10 @@ find_package(SDL2 REQUIRED)
 file(GLOB GEN_SOURCES "${GAME_BUILD}/gen/recomp_*.c" "${GAME_BUILD}/gen/drv_*.c")
 add_executable(dsun
     runtime/main.c runtime/host.c runtime/bios.c runtime/dos.c runtime/vga.c
-    runtime/dispatch.c runtime/aildrv.c runtime/opl.c runtime/audio.c runtime/sb.c
+    runtime/dispatch.c runtime/aildrv.c runtime/opl.c runtime/audio.c runtime/sb.c runtime/cd.c
     third_party/nuked-opl3/opl3.c ${GEN_SOURCES})
 target_include_directories(dsun PRIVATE
-    runtime third_party/pcrecomp/runtime/recomp16 third_party/nuked-opl3 "${GAME_BUILD}/gen")
+    runtime third_party/pcrecomp/runtime/recomp16 third_party/nuked-opl3 third_party/stb "${GAME_BUILD}/gen")
 target_link_libraries(dsun PRIVATE SDL2::SDL2 m)
 # Generated code is machine-written: labels go unused, temporaries shadow.
 set_source_files_properties(${GEN_SOURCES} PROPERTIES COMPILE_OPTIONS

@@ -142,6 +142,15 @@ the card:
   (`--wav`), and always rendered even without a device, since the DMA clock
   and its interrupts live in that rendering.
 
+- `cd.c`: the CD-ROM's audio side for Wake of the Ravager. MSCDEX's "send
+  device request" (INT 2Fh AX=1510h) arrives with a device request block;
+  IOCTL reads answer the table of contents (built from the lengths of GOG's
+  `MUSIC/TrackNN.ogg`, with the data image as track 1 and the two-second
+  Red Book offset), the Q-channel position and the audio status; PLAY,
+  STOP and RESUME drive a stb_vorbis decoder whose output `audio.c` mixes in
+  at the OPL's rate. HSG sector numbers count from the data, Red Book
+  addresses from two seconds before it. `DS_TRACE_CD` prints every request.
+
 `DS_OPL_LOG=file` writes every FM register write with its time, and a replay
 through the chip offline tells whether a problem is in the stream or in the
 rendering.

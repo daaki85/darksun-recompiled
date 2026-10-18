@@ -138,7 +138,9 @@ static void guest_str(CPU *cpu, uint16_t seg, uint16_t off, char *out, int n)
 /* "C:\\DIR\\File.ext" -> a host path inside the game folder, matching case. */
 const char *g_cd_dir;          /* --cd: the folder D: shows (the CD-ROM's files) */
 
-static int host_path(const char *dos, char *out, size_t n, int must_exist)
+int dos_host_path(const char *dos, char *out, size_t n, int must_exist);
+#define host_path dos_host_path
+int dos_host_path(const char *dos, char *out, size_t n, int must_exist)
 {
     const char *p = dos;
     const char *root = g_game_dir;

@@ -330,6 +330,13 @@ static void int2f(CPU *cpu)
     if (cpu->ax == 0x150C) { cpu->bx = 0x0215; return; }         /* MSCDEX 2.21 */
     if (cpu->ax == 0x150D) { if (g_cd_dir) mem_write8(cpu, cpu->es, cpu->bx, 3); return; }
     if (cpu->ax == 0x1600) { cpu->al = 0; return; }              /* not Windows */
+    if (cpu->ax == 0x1510 && g_cd_dir && cpu->cx == 3) {       /* send a device request to D: */
+        extern void cd_device_request(CPU *);
+        cd_device_request(cpu);
+        set_cf(cpu, 0);
+        return;
+    }
+    if (cpu->ah == 0x15) { set_cf(cpu, 1); cpu->ax = 1; return; }  /* other MSCDEX calls: not there */
 }
 
 void bios_service(CPU *cpu, int vec)

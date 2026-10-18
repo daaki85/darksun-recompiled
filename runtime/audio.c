@@ -48,7 +48,8 @@ static void render(int16_t *out, int frames)
         }
         OPL3_Generate(&g_chip, out + 2 * i);
         { extern int16_t sb_sample(unsigned); int16_t d = sb_sample(RATE);
-          int l = out[2 * i] + d, r = out[2 * i + 1] + d;
+          extern void cd_sample(unsigned, int *, int *); int cl, cr; cd_sample(RATE, &cl, &cr);
+          int l = out[2 * i] + d + cl, r = out[2 * i + 1] + d + cr;
           out[2 * i] = (int16_t)(l > 32767 ? 32767 : l < -32768 ? -32768 : l);
           out[2 * i + 1] = (int16_t)(r > 32767 ? 32767 : r < -32768 ? -32768 : r); }
     }

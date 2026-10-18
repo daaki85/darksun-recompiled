@@ -53,6 +53,9 @@ python3 tools/cd_extract.py game/ds2/game.gog game/ds2/cd
 tools/converge.sh build/ds2 build/cmake-ds2 game/ds2 60 --cd game/ds2/cd
 ```
 
+Its music is CD audio, read from GOG's `MUSIC/TrackNN.ogg` files in the
+game folder through an emulated MSCDEX drive (`runtime/cd.c`).
+
 Its regression cases (`tests/cases/wotr-*.toml`) run with the rest under
 `python3 tests/run.py`; they expect that program at `build/cmake-ds2/dsun`
 (or `$DSUN2`).

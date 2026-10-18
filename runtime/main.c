@@ -77,6 +77,7 @@ int main(int argc, char **argv)
     bios_init(g_cpu);
     dos_init(g_cpu);
     vga_init();
+    { extern void cd_init(void); cd_init(); }
     { extern int audio_init(void); extern int audio_wav_open(const char *);
       if (!getenv("DS_NO_AUDIO")) audio_init();
       if (wav && !audio_wav_open(wav)) fprintf(stderr, "cannot write %s\n", wav); }

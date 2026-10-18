@@ -168,7 +168,7 @@ int16_t sb_sample(unsigned out_rate)
         g_pos -= 1.0;
         if (dma.left[SB_DMA] <= 0) {
             if (dma.mode[SB_DMA] & 0x10) dma_reload(SB_DMA);     /* auto-initialize */
-            else { dsp.playing = 0; break; }
+            else { dsp.playing = 0; g_last = 0; break; }
         }
         uint32_t a = dma.cur[SB_DMA] & 0xFFFFF;
         g_last = ((int)g_cpu->mem[a] - 128) << 6;
@@ -178,7 +178,7 @@ int16_t sb_sample(unsigned out_rate)
             dsp.irq_pending = 1;
             irq_raise(SB_IRQ);
             if (dsp.autoinit) dsp.block_left = dsp.block + 1;
-            else dsp.playing = 0;
+            else { dsp.playing = 0; g_last = 0; }      /* back to silence, not the last level */
         }
     }
     return (int16_t)(dsp.speaker ? g_last : 0);

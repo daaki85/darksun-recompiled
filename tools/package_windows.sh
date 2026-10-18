@@ -21,6 +21,7 @@ cp /usr/x86_64-w64-mingw32/bin/SDL2.dll "$OUT/"
 cp README.md "$OUT/README.md"
 cp third_party/nuked-opl3/LICENSE "$OUT/LICENSE-nuked-opl3.txt"
 cp third_party/licenses/SDL2.txt "$OUT/LICENSE-SDL2.txt"
+cp third_party/licenses/stb_vorbis.txt "$OUT/LICENSE-stb_vorbis.txt"
 # The memory image made from the owner's own DSUN.EXE, for the owner's own
 # use: it is the game's code, as the program itself is.
 mkdir -p "$OUT/build/ds1" && cp "$B/image.bin" "$OUT/build/ds1/image.bin"

@@ -53,7 +53,7 @@ it. CREATE CHARACTERS opens the roster (VIEW CHARACTER).
 - Clean up misses.txt handling (only real entry points should be kept).
 - Run the Windows build on a Windows machine (it cross-compiles; untested
   there).
-- Wake of the Ravager: CD audio; further into Tyr.
+- Wake of the Ravager: further into Tyr; CD volume through the mixer.
 
 ## Wake of the Ravager (GOG 1.1, DSUN.EXE 634,416 bytes)
 
@@ -64,7 +64,11 @@ cinematic from `1.FLI`, the main menu, START GAME, the narrated cinematic,
 and the first scene in Tyr with its opening conversation, the speech
 streaming through the Sound Blaster. Holding Shift skips the intro (the
 game polls the BIOS shift state), so the menu is reachable in 8 seconds.
-The OPL is silent because the music is CD audio, not played yet.
+Its music is CD audio: `runtime/cd.c` answers MSCDEX's device requests
+(table of contents from the lengths of GOG's `MUSIC/TrackNN.ogg`, PLAY,
+STOP, RESUME, Q-channel position) and decodes the track being played
+with stb_vorbis into the mix. A recording of the title screen matches
+the decoded track 37 sample for sample (correlation 0.99).
 
 ![title](img/wotr-title.png) ![intro](img/wotr-intro.png)
 ![menu](img/wotr-menu.png) ![Tyr](img/wotr-tyr.png)
@@ -85,6 +89,5 @@ What it needed beyond Shattered Lands:
 Two regression cases: `wotr-intro` (logo, title, cinematic, menu) and
 `wotr-start` (Shift, START GAME, Tyr).
 
-Not yet: CD audio tracks from GOG's OGG files; play beyond the first
-conversation; the save-game folder (it writes `darkrun.gff` and reads
+Not yet: play beyond the first conversation; the save-game folder (it writes `darkrun.gff` and reads
 `CHARSAVE.GFF` in the game folder, as DOS did).
