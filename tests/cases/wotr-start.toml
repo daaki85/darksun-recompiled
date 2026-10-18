@@ -1,0 +1,11 @@
+# Wake of the Ravager: Shift skips the intro, START GAME from the menu, the
+# narrated cinematic (not skippable) and the first scene in Tyr with its
+# opening conversation.
+game = "ds2"
+seconds = 74
+input = "6:key=LSHIFT/500 12:move=150,75 13:click=150,75"
+screen = [
+  { at = 9,  ref = "menu", min_colours = 40, tolerance = 0.05 },
+  { at = 30, min_colours = 60 },                       # the narrated cinematic
+  { at = 72, ref = "tyr",  min_colours = 90, tolerance = 0.12 },
+]

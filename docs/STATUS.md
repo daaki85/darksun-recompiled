@@ -53,18 +53,21 @@ it. CREATE CHARACTERS opens the roster (VIEW CHARACTER).
 - Clean up misses.txt handling (only real entry points should be kept).
 - Run the Windows build on a Windows machine (it cross-compiles; untested
   there).
-- Wake of the Ravager: past the intro into its menu; CD audio.
+- Wake of the Ravager: CD audio; further into Tyr.
 
 ## Wake of the Ravager (GOG 1.1, DSUN.EXE 634,416 bytes)
 
 The same pipeline, pointed at `game/ds2` with `--args "-W0 -L"` and the CD
 folder from `tools/cd_extract.py` on `D:`. 49 overlay modules, ~2,540
-functions, 16 Miles drivers. It boots: SSI logo, title screen, and the
-opening cinematic from `1.FLI` play through with the Sound Blaster
-streaming the voice-over (the OPL is silent because the music is CD audio,
-not yet played).
+functions, 16 Miles drivers. It plays: SSI logo, title, the opening
+cinematic from `1.FLI`, the main menu, START GAME, the narrated cinematic,
+and the first scene in Tyr with its opening conversation, the speech
+streaming through the Sound Blaster. Holding Shift skips the intro (the
+game polls the BIOS shift state), so the menu is reachable in 8 seconds.
+The OPL is silent because the music is CD audio, not played yet.
 
 ![title](img/wotr-title.png) ![intro](img/wotr-intro.png)
+![menu](img/wotr-menu.png) ![Tyr](img/wotr-tyr.png)
 
 What it needed beyond Shattered Lands:
 
@@ -72,11 +75,16 @@ What it needed beyond Shattered Lands:
   (`push bp / int / pop bp / retf`, `mov bp,[bp+d8] / int / retf n`);
   dispatch recognises all of them and no longer records stack addresses
   as missing functions.
-- Its timer handler (installed through a register, not an immediate) was
-  only found by the run-time miss list.
+- Its timer and keyboard handlers (installed through registers, not
+  immediates) and a few pointer-called helpers were only found by the
+  run-time miss list; four converge rounds in all.
+- The BIOS keyboard handler keeps the shift state at 0040:0017.
 - Its own `_INIT_` table, GPL handler table (DGROUP:30A) and overlay
   manager addresses in `tools/find_funcs.py` and `tools/lift.py`.
 
-Not yet: the menu after the intro (the intro does not react to Escape yet,
-to be checked against DOSBox), CD audio tracks from GOG's OGG files, and the
-regression tests for this game.
+Two regression cases: `wotr-intro` (logo, title, cinematic, menu) and
+`wotr-start` (Shift, START GAME, Tyr).
+
+Not yet: CD audio tracks from GOG's OGG files; play beyond the first
+conversation; the save-game folder (it writes `darkrun.gff` and reads
+`CHARSAVE.GFF` in the game folder, as DOS did).
