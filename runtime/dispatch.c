@@ -29,6 +29,8 @@ void dispatch_backtrace(void);
 
 static void note_miss(unsigned lin)
 {
+    unsigned stack = (g_cpu->ss & 0xFFFF) << 4;
+    if (lin >= stack && lin < stack + 0x10000) return;   /* something built on the stack: not a function */
     for (int i = 0; i < g_nmiss; i++)
         if (g_miss[i] == lin) return;
     if (g_nmiss < MAXMISS) g_miss[g_nmiss++] = lin;
@@ -125,25 +127,31 @@ int recomp_dispatch(CPU *cpu, unsigned seg, unsigned off)
         return 1;
     }
     if (lin == 0) return 0;
-    /* Borland's int86x builds `int nn / retf [2]` on the stack and far-calls
-     * it, so the interrupt comes with a real return address. Run the
-     * interrupt and the return. */
+    /* Borland's int86x builds `int nn / retf [n]` on the stack and far-calls
+     * it, so the interrupt comes with a real return address. The game's
+     * builds vary: `push bp` before, `mov bp,[bp+d8]` before, `pop bp` after.
+     * Run the pieces and the return. */
     {
         unsigned at = lin;
-        int moved_bp = 0;
-        /* Wake of the Ravager's version first reloads BP from the frame:
-         * `mov bp,[bp+d8] / int nn / retf n`. */
-        if (cpu->mem[at] == 0x8B && cpu->mem[at + 1] == 0x6E) { moved_bp = 1; at += 3; }
-        if (cpu->mem[at] == 0xCD && (cpu->mem[at + 2] == 0xCB || cpu->mem[at + 2] == 0xCA)) {
-            if (moved_bp) {
-                unsigned a = ((cpu->ss & 0xFFFF) << 4) + ((cpu->bp + (int8_t)cpu->mem[lin + 2]) & 0xFFFF);
-                cpu->bp = cpu->mem[a] | (cpu->mem[a + 1] << 8);
+        int pushed_bp = 0, moved_bp = -1;
+        if (cpu->mem[at] == 0x55) { pushed_bp = 1; at++; }
+        if (cpu->mem[at] == 0x8B && cpu->mem[at + 1] == 0x6E) { moved_bp = (int8_t)cpu->mem[at + 2]; at += 3; }
+        if (cpu->mem[at] == 0xCD) {
+            unsigned after = at + 2;
+            int pops_bp = cpu->mem[after] == 0x5D;
+            if (pops_bp) after++;
+            if (cpu->mem[after] == 0xCB || cpu->mem[after] == 0xCA) {
+                if (pushed_bp) push16(cpu, cpu->bp);
+                if (moved_bp != -1) {
+                    unsigned a = ((cpu->ss & 0xFFFF) << 4) + ((cpu->bp + moved_bp) & 0xFFFF);
+                    cpu->bp = cpu->mem[a] | (cpu->mem[a + 1] << 8);
+                }
+                run_guest_interrupt(cpu, cpu->mem[at + 1]);
+                if (pops_bp) cpu->bp = pop16(cpu);
+                unsigned extra = cpu->mem[after] == 0xCA ? (cpu->mem[after + 1] | (cpu->mem[after + 2] << 8)) : 0;
+                cpu->sp += 4 + extra;
+                return 1;
             }
-            int vec = cpu->mem[at + 1];
-            unsigned extra = cpu->mem[at + 2] == 0xCA ? (cpu->mem[at + 3] | (cpu->mem[at + 4] << 8)) : 0;
-            run_guest_interrupt(cpu, vec);
-            cpu->sp += 4 + extra;
-            return 1;
         }
     }
     /* Offset FFFF is the return address every lifted call site pushes. Code
