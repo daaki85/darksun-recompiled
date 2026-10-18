@@ -56,6 +56,7 @@ int main(int argc, char **argv)
         else if (!strcmp(argv[i], "--shots") && i + 1 < argc) shots = argv[++i];
         else if (!strcmp(argv[i], "--input") && i + 1 < argc) input = argv[++i];
         else if (!strcmp(argv[i], "--wav") && i + 1 < argc) wav = argv[++i];
+        else if (!strcmp(argv[i], "--cd") && i + 1 < argc) { extern const char *g_cd_dir; g_cd_dir = argv[++i]; }
         else { fprintf(stderr, "unknown argument %s\n", argv[i]); return 2; }
     }
     if (!getenv("DISPLAY") && !getenv("WAYLAND_DISPLAY")) {

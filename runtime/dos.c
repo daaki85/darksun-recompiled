@@ -136,12 +136,18 @@ static void guest_str(CPU *cpu, uint16_t seg, uint16_t off, char *out, int n)
 }
 
 /* "C:\\DIR\\File.ext" -> a host path inside the game folder, matching case. */
+const char *g_cd_dir;          /* --cd: the folder D: shows (the CD-ROM's files) */
+
 static int host_path(const char *dos, char *out, size_t n, int must_exist)
 {
     const char *p = dos;
-    if (p[0] && p[1] == ':') p += 2;
+    const char *root = g_game_dir;
+    if (p[0] && p[1] == ':') {
+        if ((p[0] == 'D' || p[0] == 'd') && g_cd_dir) root = g_cd_dir;
+        p += 2;
+    }
     while (*p == '\\' || *p == '/') p++;
-    snprintf(out, n, "%s", g_game_dir);
+    snprintf(out, n, "%s", root);
     while (*p) {
         char part[128]; int k = 0;
         while (*p && *p != '\\' && *p != '/' && k < 127) part[k++] = *p++;

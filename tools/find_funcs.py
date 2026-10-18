@@ -37,6 +37,7 @@ STOP = {'ret', 'retf', 'iret', 'hlt'}
 # GPL script interpreter's opcode handlers (OpenDS, dispatch-table-ds1.md).
 NEAR_TABLES = {
     611408: [(0xC0, 0x81, 0x0C4D)],
+    634416: [(0x30A, 0x81, 0x0F3C)],     # DS2: DGROUP:30A, handlers in paragraph 72C + load
 }
 
 

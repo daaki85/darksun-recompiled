@@ -34,6 +34,11 @@ NATIVE = {
         0x3F0E8: ('cpu->ax = 0; cpu->sp += 4;',
                   'VROOMM: the other memory-cache set-up, same reason'),
     },
+    634416: {   # Wake of the Ravager, GOG 1.1: the same three routines, found by their bytes
+        0x43C77: ('cpu->ax = 0; cpu->sp += 4;', 'VROOMM init (from _INIT_)'),
+        0x4383B: ('cpu->ax = 0; cpu->sp += 4;', 'VROOMM: cache overlays in EMS/XMS'),
+        0x43A05: ('cpu->ax = 0; cpu->sp += 4;', 'VROOMM: the other memory-cache set-up'),
+    },
 }
 
 
