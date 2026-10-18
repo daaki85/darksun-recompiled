@@ -56,6 +56,11 @@ MOD_SITE_SKIP = {'scroll': 3}
 # get the helper's segments from the start (the copy still happens at run
 # time, as the helper does it).
 HELPER_SEG_SPACE = 0xD680
+# Routines of the helper called as `call X / db ARG`: they read the byte after
+# the call through their return address and return past it (kit_is_b and
+# cb_is directly; cr_is through kit_is_b, which knows cr_is's return address).
+# Image offset -> bytes after the call; the decoder lengthens such calls.
+HELPER_INLINE_ARGS = {0x30FF: 1, 0x30F4: 1, 0x38FE: 1}
 HELPER_MOVED = {0x3B8: 0, 0x3C0: 6}       # selector -> paragraphs into seg_space
 
 
@@ -252,6 +257,7 @@ def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None):
     tsr = load_tsr(mem, tsr_path) if tsr_path else None
     if tsr:
         tsr['moved_relocs'] = moved
+        tsr['inline_args'] = {f'{tsr["load"] * 16 + off:05X}': n for off, n in HELPER_INLINE_ARGS.items()}
     if tsr:
         code_segs.append(dict(seg=tsr['cs'], size=tsr['image'][1] - tsr['image'][0], tsr=True))
     sites, vectors, applied = mod_sites(mod_dir, exe, hdr, base, modules) if mod_dir else ({}, [], 0)

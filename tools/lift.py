@@ -71,13 +71,27 @@ class SiteLifter(Lifter):
     they differ, jumps there through a switch over the function's labels (or
     dispatches, for an address outside the function)."""
 
-    def __init__(self, known_funcs, sites, seg):
+    def __init__(self, known_funcs, sites, seg, real_returns=False):
         super().__init__(known_funcs=known_funcs)
         self.sites = sites          # function-relative IPs of the INT sites
         self.seg = seg
         self.used = False
+        # The helper's near calls push their real return address: some of its
+        # routines read an argument byte after the call through it (and one
+        # recognises its caller by it) before returning past it.
+        self.real_returns = real_returns
 
     def lift_instruction(self, inst, func_start):
+        if (self.real_returns and inst.mnemonic == 'call' and inst.op1 and inst.op1.type == OpType.REL16
+                and (func_start + (inst.op1.disp & 0xFFFF)) in self.known_funcs):
+            target = self.known_funcs[func_start + (inst.op1.disp & 0xFFFF)]
+            ret = (inst.address + 3) & 0xFFFF           # the byte after the call itself
+            self._emit(f'push16(cpu, 0x{ret:04X});', 'near call: the real return address')
+            self._emit(f'{target}(cpu);', f'call {inst.op1!r}')
+            self.func_calls.add(target)
+            if getattr(self, 'unwind_sp', False):
+                self._emit('if (cpu->ss == _ss0 && (int16_t)(cpu->sp - _sp0) > 0) return;', 'a callee unwound past this frame')
+            return
         if inst.mnemonic == 'int' and inst.op1 and inst.op1.disp != 0x3F:
             # Every INT's frame carries the real return address: a handler
             # that returns with `retf 2` instead of iret (the mod's pointer
@@ -156,7 +170,7 @@ def main(argv=None):
             overlaps += 1
         insns = fixed
         sites_here = {ip for ip in f['ips'] if (cs * 16 + ip) in img.int_sites}
-        lf = SiteLifter(known, sites_here, cs)
+        lf = SiteLifter(known, sites_here, cs, real_returns=(cs == img.tsr_cs))
         lf.dispatch = True
         lf.far_base = 0
         lf.iret_frame = True

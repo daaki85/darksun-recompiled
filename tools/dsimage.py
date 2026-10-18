@@ -26,6 +26,9 @@ class Image:
         segs = sorted(self.layout['code_segments'], key=lambda s: s['seg'])
         self.segs = segs
         self.int_sites = {int(k, 16): v['skip'] for k, v in (self.layout.get('int_sites') or {}).items()}
+        tsr = self.layout.get('tsr') or {}
+        self.inline_args = {int(k, 16): v for k, v in (tsr.get('inline_args') or {}).items()}
+        self.tsr_cs = tsr.get('cs')
         self._starts = [s['seg'] * 16 for s in segs]
         self._dec = {}
         # stub linear address -> the entry it jumps to (linear)
@@ -65,6 +68,12 @@ class Image:
         skip = self.int_sites.get(cs * 16 + ip)
         if skip and ins is not None and ins.mnemonic == 'int':
             ins.length += skip
+        # `call X / db ARG` in the helper: the argument is data, not code
+        if (self.inline_args and ins is not None and ins.mnemonic == 'call' and ins.op1
+                and ins.op1.type == OpType.REL16):
+            n = self.inline_args.get(cs * 16 + (ins.op1.disp & 0xFFFF))
+            if n:
+                ins.length += n
         return ins
 
     def u16(self, lin):
