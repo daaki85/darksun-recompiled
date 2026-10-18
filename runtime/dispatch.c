@@ -251,17 +251,24 @@ void recomp_div0(const char *kind)
  * ends by timeout -- which turns "it hangs" into the loop it hangs in. */
 static unsigned long g_entered;
 
+static uint16_t g_ring_sp[RING];                 /* SP as each was entered: where the stack goes */
+
 void recomp_enter(const char *fn)
 {
+    g_ring_sp[g_ring_i & (RING - 1)] = g_cpu->sp;
     g_ring[g_ring_i++ & (RING - 1)] = fn;
     g_entered++;
 }
 
 void recomp_trace_last(int n)
 {
-    fprintf(stderr, "           after:");
+    fprintf(stderr, "           after (name:sp):");
     for (int k = n; k >= 1; k--)
-        if (g_ring_i >= (unsigned)k) { const char *n = g_ring[(g_ring_i - k) & (RING - 1)], *f = strstr(n, "fn_"); fprintf(stderr, " %s", f ? f + 3 : n); }
+        if (g_ring_i >= (unsigned)k) {
+            unsigned i = (g_ring_i - k) & (RING - 1);
+            const char *nm = g_ring[i], *f = strstr(nm, "fn_");
+            fprintf(stderr, " %s:%04X", f ? f + 3 : nm, g_ring_sp[i]);
+        }
     fprintf(stderr, "\n");
 }
 
