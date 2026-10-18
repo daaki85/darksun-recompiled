@@ -125,6 +125,16 @@ int recomp_dispatch(CPU *cpu, unsigned seg, unsigned off)
         return 1;
     }
     if (lin == 0) return 0;
+    /* Borland's int86x builds `int nn / retf [2]` on the stack and far-calls
+     * it, so the interrupt comes with a real return address. Run the
+     * interrupt and the return. */
+    if (cpu->mem[lin] == 0xCD && (cpu->mem[lin + 2] == 0xCB || cpu->mem[lin + 2] == 0xCA)) {
+        int vec = cpu->mem[lin + 1];
+        unsigned extra = cpu->mem[lin + 2] == 0xCA ? (cpu->mem[lin + 3] | (cpu->mem[lin + 4] << 8)) : 0;
+        run_guest_interrupt(cpu, vec);
+        cpu->sp += 4 + extra;
+        return 1;
+    }
     /* Offset FFFF is the return address every lifted call site pushes. Code
      * that pops its own return address and later jumps to it (Borland's
      * _setargv does: `pop [x] ... jmp [x]`) is returning to its C caller. */
