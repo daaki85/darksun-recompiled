@@ -53,6 +53,10 @@ python3 tools/cd_extract.py game/ds2/game.gog game/ds2/cd
 tools/converge.sh build/ds2 build/cmake-ds2 game/ds2 60 --cd game/ds2/cd
 ```
 
+Its regression cases (`tests/cases/wotr-*.toml`) run with the rest under
+`python3 tests/run.py`; they expect that program at `build/cmake-ds2/dsun`
+(or `$DSUN2`).
+
 **Windows** (cross-built from Linux): `tools/setup_mingw_sdl.sh` once, then
 `tools/package_windows.sh` makes `build/darksun-recompiled-windows-x64.zip`
 with `dsun.exe` and `SDL2.dll`. The translated code is the same; only the
