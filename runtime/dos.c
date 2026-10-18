@@ -330,7 +330,11 @@ void dos_service(CPU *cpu)
     case 0x30: cpu->ax = 0x0005; cpu->bx = 0; cpu->cx = 0; break;   /* DOS 5.0 */
     case 0x33: if (cpu->al == 0 || cpu->al == 2) cpu->dl = 0; else if (cpu->al == 5) cpu->dl = 3; break;
     case 0x35: cpu->bx = mem_read16(cpu, 0, (uint16_t)(cpu->al * 4));
-               cpu->es = mem_read16(cpu, 0, (uint16_t)(cpu->al * 4 + 2)); break;
+               cpu->es = mem_read16(cpu, 0, (uint16_t)(cpu->al * 4 + 2));
+               /* A user vector (60h up) nobody took is free: DOS leaves those
+                * null, and the mod's helper refuses to load otherwise. */
+               if (cpu->al >= 0x60 && cpu->es == BIOS_SEG && cpu->bx == BIOS_VEC_OFF + cpu->al) { cpu->es = 0; cpu->bx = 0; }
+               break;
     case 0x36: cpu->ax = 64; cpu->bx = 0x7FFF; cpu->cx = 512; cpu->dx = 0xFFFF; break;
     case 0x1B: case 0x1C:                          /* allocation info: 64 sectors a cluster */
         cpu->al = 64; cpu->cx = 512; cpu->dx = 0xFFFF;

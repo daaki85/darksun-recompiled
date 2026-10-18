@@ -66,6 +66,11 @@ game folder through an emulated MSCDEX drive (`runtime/cd.c`).
 Its regression cases (`tests/cases/wotr-*.toml`) run with the rest under
 `python3 tests/run.py`.
 
+**The Obsidian Edition mod.** `tools/build_mod.sh <mod>/obsidian-edition`
+builds Shattered Lands with the mod's patched EXE and its resident helper
+into `build/cmake-mod/dsun` (see docs/DESIGN.md, "The mod"); run it with
+`--game game/ds1 --build build/ds1mod --cd <mod>/obsidian-edition/dos`.
+
 **Windows** (cross-built from Linux): `tools/setup_mingw_sdl.sh` once, then
 `tools/package_windows.sh` makes `build/darksun-recompiled-windows-x64.zip`
 with `dsun.exe` and `SDL2.dll`. The translated code is the same; only the

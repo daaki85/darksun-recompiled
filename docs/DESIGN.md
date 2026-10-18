@@ -99,6 +99,50 @@ there (SDL's message box, which needs no drawing code of our own).
 - **DOS files** are raw descriptors, not stdio: the game interleaves reads
   and writes on one handle without seeking, which stdio does not allow.
 
+## The mod (Obsidian Edition)
+
+The mod is three things: a patched `DSUN.EXE` (`DSUNLOG.EXE`: 253 small
+changes, most replacing a few bytes of code with an `INT` the helper
+answers), the helper `DSCLOG.EXE` (a resident DOS program, source in
+`dos/dsclog.asm`, that answers those interrupts, hooks DOS's file opens,
+the keyboard and the mouse, and keeps a ring of dice rolls), and the
+Python Loader, which prepares the files, starts DOSBox and reads the
+ring out of its memory. `tools/build_mod.sh` turns the first two into a
+program of their own:
+
+- The Loader's own `prepare_patched_game` writes `DSUNLOG.EXE` and the
+  mod's copies of the data files into `<mod>/dos`, exactly as it does
+  before starting DOSBox.
+- `tools/build_image.py --mod <mod> --tsr <mod>/dos/DSCLOG.EXE` builds the
+  image from the patched EXE and loads the helper at `B000` the way DOS's
+  `lh` would (PSP, environment, image at PSP+10h); `B000-BFFF` is free in
+  mode 13h. The runtime runs the helper's entry first; its `INT 21h AH=31h`
+  (stay resident) comes back to the host through a `longjmp`, and the game
+  starts. The helper links upper memory in and asks for a block "high
+  only" for its ring: the one block DOS has to give is the HMA (`FFFF:0000`).
+- The patched code's `INT`s go through the interrupt vector table to the
+  helper's lifted handlers like any other. Two things about them need the
+  lifter's help. Some sites carry data after the `INT` (a site number the
+  handler steps over, or the segment of a far call it replaced), so
+  `build_image.py` records those sites from `gamepatch.PATCHES` and the
+  decoder lengthens the `INT` by that much. And a handler may send the game
+  on elsewhere by changing the return address in the interrupt frame, so
+  the frame carries the real `CS:IP` (the lifter sets them before each such
+  `INT`), the lifted `iret` pops them back into `cpu->cs:ip`, and the code
+  after the `INT` compares: when they differ it jumps there through a
+  switch over the function's labels, or dispatches outside it. A handler
+  that jumps straight into the middle of the game's code instead (one
+  does, after a far call it replaced) finds no function there; inside an
+  interrupt handler dispatch takes that as the same thing and only moves
+  `CS:IP`.
+- `--cd <mod>/dos` makes that folder drive D:, where the helper's DOS hook
+  sends the opens of the data files it replaced.
+
+The helper's ring buffer is what the Loader reads; the runtime plants
+DOSBox's BIOS date at `F000:FFF5`, which the Loader's memory search looks
+for, so the same Loader can read this program once it accepts its process
+name.
+
 ## Checking the translation
 
 `tools/difftest.py` runs pcrecomp's `difftest16` over every code segment of
