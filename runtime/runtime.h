@@ -58,6 +58,7 @@ typedef struct {
     const char *build;           /* name of the build folder (build/<build>) */
     const char *variant;         /* "" or "obsidian": the mod's patched game with its helper */
     uint16_t tsr_psp, tsr_cs, tsr_ip, tsr_ss, tsr_sp;   /* the resident helper to run first, if any */
+    const unsigned (*ranges)[2]; int nranges;           /* [start, end) of every lifted function, by start */
 } GameDesc;
 extern const GameDesc *g_game;                /* the one running */
 extern const GameDesc *const g_games[];       /* the ones built in (games.c, written by CMake) */

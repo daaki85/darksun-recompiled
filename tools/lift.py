@@ -121,6 +121,7 @@ def main(argv=None):
 
     lift16.DIV0_FN = 'recomp_div0'
     bodies, calls, segs, failed, unhandled, overlaps = [], set(), set(), 0, 0, 0
+    ranges = []                                 # [start, end) of each function's code
     for lin in sorted(funcs):
         f = funcs[lin]
         cs = f['cs']
@@ -136,6 +137,7 @@ def main(argv=None):
             ins.address = ip
             ins.offset = cs * 16 + ip
             insns.append(ins)
+        ranges.append((lin, cs * 16 + max(i.address + i.length for i in insns)))
         # Every instruction that can fall through must be followed by the one
         # it falls into: the lifter emits them in order and C falls through.
         # Where it does not (code that jumps into the middle of an instruction,
@@ -230,6 +232,11 @@ def main(argv=None):
         for lin, n in entries:
             fh.write(f'  {{0x{lin:05X}, {n}}},\n')
         fh.write('};\n\n')
+        ranges.sort()
+        fh.write(f'static const unsigned ranges[{len(ranges)}][2] = {{\n')
+        for a, b in ranges:
+            fh.write(f'  {{0x{a:05X}, 0x{b:05X}}},\n')
+        fh.write('};\n\n')
         cd = 'cd' if TAG == 'ds2' else ''
         mod = lay.get('mod')
         tsr = lay.get('tsr') or dict(psp=0, cs=0, ip=0, ss=0, sp=0)
@@ -242,6 +249,7 @@ def main(argv=None):
                  f'    dispatch, {len(entries)}, {TAG}_drivers, &{TAG}_ndrivers, "{cd}",\n'
                  f'    "{os.path.basename(os.path.abspath(a.build))}", "{"obsidian" if mod else ""}",\n'
                  f'    0x{tsr["psp"]:04X}, 0x{tsr["cs"]:04X}, 0x{tsr["ip"]:04X}, 0x{tsr["ss"]:04X}, 0x{tsr["sp"]:04X},\n'
+                 f'    ranges, {len(ranges)},\n'
                  f'}};\n\n')
         for s in stubs:
             # A call to something no function covers: say so at run time,

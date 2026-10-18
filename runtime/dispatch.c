@@ -183,10 +183,21 @@ void dispatch_reset_depth(void) { g_depth = 0; }
  * interrupt handler, it is the mod's helper returning with `retf 2` or to
  * the address it put in the frame -- CS:IP are left for the code after the
  * INT to act on (tools/lift.py, SiteLifter). */
+static int inside_function(unsigned lin)       /* in the middle of a lifted function's code? */
+{
+    int lo = 0, hi = g_game->nranges - 1;
+    while (lo <= hi) {
+        int mid = (lo + hi) / 2;
+        if (g_game->ranges[mid][0] <= lin && lin < g_game->ranges[mid][1]) return 1;
+        if (g_game->ranges[mid][0] < lin) lo = mid + 1; else hi = mid - 1;
+    }
+    return 0;
+}
+
 void recomp_return(CPU *cpu, unsigned seg, unsigned off)
 {
     unsigned lin = ((seg & 0xFFFF) << 4) + (off & 0xFFFF);
-    if (!lookup(lin) && g_in_int && lin < 0xA0000 && g_game->tsr_cs) {
+    if (!lookup(lin) && g_in_int && g_game->tsr_cs && inside_function(lin)) {
         static int shown;
         if (shown++ < 10 && getenv("DS_TRACE_INT")) trace("[dispatch] a handler sends the game on to %04X:%04X\n", seg, off);
         cpu->cs = (uint16_t)seg; cpu->ip = (uint16_t)off;
