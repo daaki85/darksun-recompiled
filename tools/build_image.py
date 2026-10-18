@@ -47,6 +47,17 @@ TSR_ENV_SEG = 0xBF00
 # the helper returns past the segment that stays.
 MOD_SITE_SKIP = {'scroll': 3}
 
+# The helper's SEG_MOVE: at the game's first file open it points two entries
+# of the game's segment table (selector 3B8h, a small stack; 3C0h, the
+# monster kinds' table) at a block of its own (seg_space, image offset D680h)
+# and copies the 200h bytes there, so the new spells' records can take the
+# old place. Under DOS every overlay loaded afterwards is relocated with the
+# changed table; here the overlays are relocated now, so those two selectors
+# get the helper's segments from the start (the copy still happens at run
+# time, as the helper does it).
+HELPER_SEG_SPACE = 0xD680
+HELPER_MOVED = {0x3B8: 0, 0x3C0: 6}       # selector -> paragraphs into seg_space
+
 
 class ImageError(Exception):
     pass
@@ -166,6 +177,11 @@ def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None):
     # Class-3 records are the overlay stub blocks; each begins with its
     # module's 32-byte descriptor, then 5-byte stubs. They pair 1:1, in order,
     # with the modules.
+    seg_override = {}
+    if tsr_path and mod_dir:
+        for sel, paras in HELPER_MOVED.items():
+            seg_override[sel] = TSR_PSP_SEG + 0x10 + HELPER_SEG_SPACE // 16 + paras
+    moved = 0
     modules = []
     seg_next = OVL_FIRST_SEG
     for r in (r for r in records if r['cls'] == 3):
@@ -195,7 +211,11 @@ def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None):
             v = u16(mem, lin + e)
             if v & 1:
                 raise ImageError(f'module {m["index"]}: marker-form relocation at +{e:X}')
-            struct.pack_into('<H', mem, lin + e, u16(mem, segtab_lin + (v & ~7)))
+            if (v & ~7) in seg_override:
+                struct.pack_into('<H', mem, lin + e, seg_override[v & ~7])
+                moved += 1
+            else:
+                struct.pack_into('<H', mem, lin + e, u16(mem, segtab_lin + (v & ~7)))
         for j in range(nstubs):
             s = d + 0x20 + 5 * j
             if mem[s:s + 2] != b'\xCD\x3F':
@@ -230,6 +250,8 @@ def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None):
                   for m in modules if m['seg'] is not None]
 
     tsr = load_tsr(mem, tsr_path) if tsr_path else None
+    if tsr:
+        tsr['moved_relocs'] = moved
     if tsr:
         code_segs.append(dict(seg=tsr['cs'], size=tsr['image'][1] - tsr['image'][0], tsr=True))
     sites, vectors, applied = mod_sites(mod_dir, exe, hdr, base, modules) if mod_dir else ({}, [], 0)
@@ -277,7 +299,8 @@ def main(argv=None):
     print(f"  {len(lay['code_segments'])} code segments")
     if lay['tsr']:
         t = lay['tsr']
-        print(f"  helper {t['exe']} at {t['psp']:04X}, entry {t['cs']:04X}:{t['ip']:04X}")
+        print(f"  helper {t['exe']} at {t['psp']:04X}, entry {t['cs']:04X}:{t['ip']:04X}; "
+              f"{t['moved_relocs']} overlay references moved to its seg_space")
     if lay['mod']:
         print(f"  mod: {lay['mod']['patches']} patches in the EXE, {len(lay['int_sites'])} INT sites with data after them, "
               f"{len(lay['mod']['vectors'])} vectors")
