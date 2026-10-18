@@ -35,6 +35,15 @@ it. CREATE CHARACTERS opens the roster (VIEW CHARACTER).
 - The runtime supplies its own SOUND.CFG (GOG's selects an MT-32, whose
   instrument file GOG does not ship).
 
+## Checks
+
+- `tools/difftest.py` over all 128 code segments: 28,894 distinct
+  instructions, each lifted alone and run against Unicorn's x86 on two
+  random register sets. One real disagreement (`imul r32, imm` with a
+  sign-extended immediate), fixed by `patches/pcrecomp/0001`; the rest are
+  the `mov r, cs` probe artefact.
+- Four scripted regression tests (`tests/run.py`): intro, menu, start, walk.
+
 ## Next
 
 - Through the first fight, out of the pens; character creation; saving and
