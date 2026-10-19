@@ -140,7 +140,10 @@ def mod_sites(mod_dir, exe, hdr, base, modules):
         if pt.replacement[:1] != b'\xCD' or here != pt.replacement:
             continue
         vectors.add(pt.replacement[1])
-        skip = MOD_SITE_SKIP.get(pt.name, 1 if pt.replacement[1] == gamepatch.VEC_CR_SPELLS else 0)
+        # a VEC_CR_SPELLS site carries a site number only when the byte after the INT is not a NOP
+        # (the handler steps over that byte either way: a NOP needs no help)
+        skip = MOD_SITE_SKIP.get(pt.name, 1 if pt.replacement[1] == gamepatch.VEC_CR_SPELLS
+                                 and len(pt.replacement) > 2 and pt.replacement[2] != 0x90 else 0)
         lin = linear(pt.offset)
         if lin is None:
             raise ImageError(f'patch {pt.name} at {pt.offset:X} is outside the loaded code')
