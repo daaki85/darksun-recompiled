@@ -202,6 +202,7 @@ def main(argv=None):
         if sites_here and getattr(lf, 'used', False):
             cases = ''.join(f'        case 0x{ip:04X}: goto L_{name}_{ip:06X};\n' for ip in f['ips'])
             block = (f'resume_{name}:\n'
+                     f'    trace("[resume] {name} -> %04X:%04X (ss:sp %04X:%04X)\\n", cpu->cs, cpu->ip, cpu->ss, cpu->sp);\n'
                      f'    if (cpu->cs == SEG_{cs:04X}) switch (cpu->ip) {{\n{cases}        default: break;\n    }}\n'
                      f'    recomp_dispatch(cpu, cpu->cs, cpu->ip); return;   /* sent outside this function */\n')
             k = body.rfind('\n}')
