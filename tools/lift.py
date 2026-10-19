@@ -178,7 +178,11 @@ def main(argv=None):
         lf.dispatch = True
         lf.far_base = 0
         lf.iret_frame = True
-        lf.unwind_sp = True
+        # The "callee unwound past this frame" check after calls is for the
+        # game's code; the helper's handlers pop their interrupt frame before
+        # calling anything, which puts SP above their entry value and made
+        # the check return from them early.
+        lf.unwind_sp = cs != img.tsr_cs
         lift16._CODE_SEG = f'{cs:04X}'
         lf.jump_tables = {int(ip): [cs * 16 + arm for arm in arms]
                           for ip, arms in f['tables'].items()}
