@@ -65,6 +65,34 @@ recognises a game folder by the size of its `DSUN.EXE`, finds `game/ds1`
 and `game/ds2` on its own, and asks with a message box when both are
 there. The Windows zip now carries both memory images.
 
+## Shattered Lands with the Obsidian Edition mod
+
+`tools/build_mod.sh` builds the mod's patched game (`DSUNLOG.EXE`) and its
+resident helper (`DSCLOG.EXE`) into a program of their own,
+`build/cmake-mod/dsun`, run with `--game game/ds1 --build build/ds1mod --cd
+<mod>/obsidian-edition/dos` (docs/DESIGN.md, "The mod"). The helper loads
+and stays resident, hooks DOS, the keyboard and the mouse, and answers the
+patched game's interrupts; the game boots with the mod's data files
+through its DOS hook, plays its intro, shows the menu, and START GAME
+reaches the arena and the first fight. The converge loop finds no missing
+functions over a 150-second scripted run.
+
+What it took is in the design notes: the frames of the mod's interrupts
+carry the real return address and the code after each interrupt follows
+where the handler sent the game; the helper's segment-table move is done
+to the overlays at build time; its argument-byte calls and its stack-built
+far jumps and returns back into the game are recognised. Most of the time
+went on five ways the frame's address could be off by a byte or a word,
+each of which sent the game into the wrong code with a stack that no
+longer matched.
+
+Not yet: the arena fight stands still after it starts, where the plain
+game's scripted fight plays out (the next thing to look at); the mod's
+Loader reading this program's memory (the Loader-side change is in
+docs/loader-recompiled.patch and on the mod repository's `item-reports`
+branch; not yet confirmed to find the memory); the Loader starting this
+program instead of DOSBox.
+
 ## Wake of the Ravager (GOG 1.1, DSUN.EXE 634,416 bytes)
 
 The same pipeline, pointed at `game/ds2` with `--args "-W0 -L"` and the CD
