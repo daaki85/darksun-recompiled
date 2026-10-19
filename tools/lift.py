@@ -205,10 +205,14 @@ def main(argv=None):
                             'cpu->ip = pop16(cpu); cpu->cs = pop16(cpu); cpu->flags = pop16(cpu); return; /* iret */')
         if sites_here and getattr(lf, 'used', False):
             cases = ''.join(f'        case 0x{ip:04X}: goto L_{name}_{ip:06X};\n' for ip in f['ips'])
+            # Sent outside this function (into the helper, usually): run that code; when it
+            # comes back having moved CS:IP into this function, carry on there.
             block = (f'resume_{name}:\n'
                      f'    trace("[resume] {name} -> %04X:%04X (ss:sp %04X:%04X)\\n", cpu->cs, cpu->ip, cpu->ss, cpu->sp);\n'
                      f'    if (cpu->cs == SEG_{cs:04X}) switch (cpu->ip) {{\n{cases}        default: break;\n    }}\n'
-                     f'    recomp_dispatch(cpu, cpu->cs, cpu->ip); return;   /* sent outside this function */\n')
+                     f'    {{ uint16_t _c = cpu->cs, _i = cpu->ip; recomp_dispatch(cpu, _c, _i);\n'
+                     f'      if ((cpu->cs != _c || cpu->ip != _i) && cpu->cs == SEG_{cs:04X}) goto resume_{name}; }}\n'
+                     f'    return;\n')
             k = body.rfind('\n}')
             body = body[:k + 1] + block + body[k + 1:]
         if a.spcheck and lin not in SP_OK.get(img.layout['exe_size'], ()):
