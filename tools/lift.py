@@ -98,9 +98,10 @@ class SiteLifter(Lifter):
             # that returns with `retf 2` instead of iret (the mod's pointer
             # probe does) dispatches to it, and a stale IP there is a jump
             # into whatever happens to be at that address.
-            nxt = (inst.address + inst.length) & 0xFFFF
+            nxt = (inst.address + inst.length) & 0xFFFF     # after the INT and any data the handler steps over
+            frame_ip = (inst.address + 2) & 0xFFFF           # what the CPU would push: right after the INT itself
             self._emit_label(inst.address)              # (before the assignment: a jump here must set them too)
-            self._emit(f'cpu->cs = SEG_{self.seg:04X}; cpu->ip = 0x{nxt:04X};', 'the return address the frame carries')
+            self._emit(f'cpu->cs = SEG_{self.seg:04X}; cpu->ip = 0x{frame_ip:04X};', 'the return address the frame carries')
             super().lift_instruction(inst, func_start)
             if inst.address in self.sites:
                 self._emit(f'if (cpu->ip != 0x{nxt:04X} || cpu->cs != SEG_{self.seg:04X}) goto resume_{self.func_name};',
