@@ -334,15 +334,16 @@ def main(argv=None):
     mp = os.path.join(a.build, 'misses.txt')
     if os.path.exists(mp):
         misses = [int(x, 16) for x in open(mp).read().split() if x.strip()]
-    f = Finder(img)
-    funcs = f.run(misses)
-    if img.layout.get('tsr'):
+    if img.layout.get('tsr') and misses:
         # With the mod's helper, a miss inside another function's code was a
         # return the helper sent the game on with (recomp_return), not an
-        # entry: lifted as a function it would be called as one.
-        inside = {v['cs'] * 16 + ip for v in funcs.values() for ip in v['ips'][1:]}
-        for k in [k for k in funcs if f.why.get(k) == 'miss' and k in inside]:
-            del funcs[k]
+        # entry: as an entry it would cut that function short and be called
+        # as a function. Find the bodies without the misses first.
+        base = Finder(img).run(())
+        inside = {v['cs'] * 16 + ip for v in base.values() for ip in v['ips'][1:]}
+        misses = [m for m in misses if m not in inside]
+    f = Finder(img)
+    funcs = f.run(misses)
     out = {f'{k:05X}': dict(v, tables={str(i): t for i, t in v['tables'].items()},
                             why=f.why.get(k, '')) for k, v in sorted(funcs.items())}
     json.dump(out, open(os.path.join(a.build, 'functions.json'), 'w'))
