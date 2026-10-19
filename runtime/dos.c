@@ -366,7 +366,7 @@ void dos_service(CPU *cpu)
         if (!host_path(name, path, sizeof path, 1)) { trace("[dos] open %s: not found\n", name); fail(cpu, 2); break; }
         int fd = open(path, mode == 0 ? O_RDONLY : O_RDWR);
         if (fd < 0 && mode) fd = open(path, O_RDONLY);
-        trace("[dos] open %s (mode %d) -> %s\n", name, mode, fd >= 0 ? "ok" : "failed");
+        trace("[dos] open %s (mode %d) -> %s (ss:sp %04X:%04X)\n", name, mode, fd >= 0 ? "ok" : "failed", cpu->ss, cpu->sp);
         int h = fd >= 0 ? new_handle(fd) : -1;
         if (h < 0) { if (fd >= 0) close(fd); fail(cpu, fd >= 0 ? 4 : 5); break; }
         cpu->ax = (uint16_t)h; set_cf(cpu, 0);
