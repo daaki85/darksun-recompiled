@@ -86,12 +86,16 @@ went on five ways the frame's address could be off by a byte or a word,
 each of which sent the game into the wrong code with a stack that no
 longer matched.
 
+The mod's Loader reads this program: with the change on the mod
+repository's `item-reports` branch (also docs/loader-recompiled.patch) it
+finds the memory by the mark at F000:FFC0, attaches to the helper's ring,
+and its dice log prints what the helper records (`python3 -m dsloader
+dicelog --pid <dsun's pid>` printed the arena announcer's lines and the
+party's kit lines from a headless run).
+
 Not yet: the arena fight stands still after it starts, where the plain
-game's scripted fight plays out (the next thing to look at); the mod's
-Loader reading this program's memory (the Loader-side change is in
-docs/loader-recompiled.patch and on the mod repository's `item-reports`
-branch; not yet confirmed to find the memory); the Loader starting this
-program instead of DOSBox.
+game's scripted fight plays out (the next thing to look at); the Loader
+starting this program instead of DOSBox.
 
 ## Wake of the Ravager (GOG 1.1, DSUN.EXE 634,416 bytes)
 
