@@ -86,12 +86,30 @@ class SiteLifter(Lifter):
                 and (func_start + (inst.op1.disp & 0xFFFF)) in self.known_funcs):
             target = self.known_funcs[func_start + (inst.op1.disp & 0xFFFF)]
             ret = (inst.address + 3) & 0xFFFF           # the byte after the call itself
+            back = (inst.address + inst.length) & 0xFFFF  # where the callee comes back to: past any argument byte
             self._emit_label(inst.address)
+            # The callee says where it came back to (its lifted ret pops the
+            # address into cpu->ip): a routine that pops the return address and
+            # jumps through it later (TEXT_ENTER) has run the rest of this
+            # function already, and the iret at the end of that left the game's
+            # address there; carrying on here would run it a second time.
+            self._emit(f'cpu->cs = SEG_{self.seg:04X}; cpu->ip = 0x{back:04X};', 'where a ret comes back to')
             self._emit(f'push16(cpu, 0x{ret:04X});', 'near call: the real return address')
             self._emit(f'{target}(cpu);', f'call {inst.op1!r}')
             self.func_calls.add(target)
             if getattr(self, 'unwind_sp', False):
                 self._emit('if (cpu->ss == _ss0 && (int16_t)(cpu->sp - _sp0) > 0) return;', 'a callee unwound past this frame')
+            # (IP alone: a far call the callee made into the game leaves cpu->cs
+            # the game's, and a near ret cannot change the segment)
+            self._emit(f'if (cpu->ip != 0x{back:04X}) goto resume_{self.func_name}; cpu->cs = SEG_{self.seg:04X};',
+                       'the callee went on elsewhere')
+            self.used = True
+            return
+        if self.real_returns and inst.mnemonic == 'ret':
+            # the real return address popped: the caller checks it
+            self._emit_label(inst.address)
+            extra = f' cpu->sp += 0x{inst.op1.disp:X};' if inst.op1 else ''
+            self._emit(f'cpu->ip = pop16(cpu);{extra} return;', 'ret' + (f' 0x{inst.op1.disp:X}' if inst.op1 else ''))
             return
         if inst.mnemonic == 'int' and inst.op1 and inst.op1.disp != 0x3F:
             # Every INT's frame carries the real return address: a handler
@@ -186,7 +204,8 @@ def main(argv=None):
         lift16._CODE_SEG = f'{cs:04X}'
         lf.jump_tables = {int(ip): [cs * 16 + arm for arm in arms]
                           for ip, arms in f['tables'].items()}
-        if sites_here:              # every instruction gets a label: the resume switch needs them
+        resumes = bool(sites_here) or cs == img.tsr_cs      # (the helper's near calls check their return too)
+        if resumes:                 # every instruction gets a label: the resume switch needs them
             lf.jump_tables[-1] = [cs * 16 + ip for ip in f['ips']]
         entry_ip = lin - cs * 16
         try:
@@ -201,20 +220,28 @@ def main(argv=None):
         # a far return to a real address goes through recomp_return (a tail
         # call, or the mod's helper sending the game on)
         body = body.replace('recomp_dispatch(cpu,_cs,_ip); return; } /* retf', 'recomp_return(cpu,_cs,_ip); return; } /* retf')
+        if cs == img.tsr_cs:
+            # The helper's retf popping the lifter's sentinel: the routine it stands in for
+            # (rand, patched to start with an INT) has returned to its C caller; the game
+            # function the INT is in must return too (recomp_return knows the sentinel).
+            body = body.replace('if (_ip != 0xFFFF && _ip != 0) recomp_return(cpu,_cs,_ip); return; } /* retf',
+                                'if (_ip == 0xFFFF) { cpu->cs = _cs; cpu->ip = 0xFFFF; } else if (_ip != 0) recomp_return(cpu,_cs,_ip); return; } /* retf')
         # an indirect far jump is the same thing (the helper jumps back into the game that way)
         body = '\n'.join(l.replace('recomp_dispatch(cpu, ', 'recomp_return(cpu, ', 1) if '/* jmp far' in l else l
                          for l in body.split('\n'))
         # an iret says where it went back to (the mod's handlers move it)
         body = body.replace('cpu->sp += 4; cpu->flags = pop16(cpu); return; /* iret */',
                             'cpu->ip = pop16(cpu); cpu->cs = pop16(cpu); cpu->flags = pop16(cpu); return; /* iret */')
-        if sites_here and getattr(lf, 'used', False):
+        if resumes and getattr(lf, 'used', False):
             cases = ''.join(f'        case 0x{ip:04X}: goto L_{name}_{ip:06X};\n' for ip in f['ips'])
             # Sent outside this function (into the helper, usually): run that code; when it
-            # comes back having moved CS:IP into this function, carry on there.
+            # comes back having moved CS:IP into this function, carry on there. An address
+            # in the middle of the game's code (an iret's, run on the helper's behalf) is
+            # left for the caller (recomp_return).
             block = (f'resume_{name}:\n'
                      f'    trace("[resume] {name} -> %04X:%04X (ss:sp %04X:%04X)\\n", cpu->cs, cpu->ip, cpu->ss, cpu->sp);\n'
                      f'    if (cpu->cs == SEG_{cs:04X}) switch (cpu->ip) {{\n{cases}        default: break;\n    }}\n'
-                     f'    {{ uint16_t _c = cpu->cs, _i = cpu->ip; recomp_dispatch(cpu, _c, _i);\n'
+                     f'    {{ uint16_t _c = cpu->cs, _i = cpu->ip; recomp_return(cpu, _c, _i);\n'
                      f'      if ((cpu->cs != _c || cpu->ip != _i) && cpu->cs == SEG_{cs:04X}) goto resume_{name}; }}\n'
                      f'    return;\n')
             k = body.rfind('\n}')

@@ -61,6 +61,8 @@ HELPER_SEG_SPACE = 0xD680
 # cb_is directly; cr_is through kit_is_b, which knows cr_is's return address).
 # Image offset -> bytes after the call; the decoder lengthens such calls.
 HELPER_INLINE_ARGS = {0x30FF: 1, 0x30F4: 1, 0x38FE: 1}
+# ... except cr_is's own call to kit_is_b, which takes the argument from cr_is's caller
+HELPER_INLINE_PLAIN_SITES = {0x30F9}      # image offsets of such calls with no argument after them
 HELPER_MOVED = {0x3B8: 0, 0x3C0: 6}       # selector -> paragraphs into seg_space
 
 
@@ -261,6 +263,7 @@ def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None):
     if tsr:
         tsr['moved_relocs'] = moved
         tsr['inline_args'] = {f'{tsr["load"] * 16 + off:05X}': n for off, n in HELPER_INLINE_ARGS.items()}
+        tsr['inline_plain_sites'] = [f'{tsr["load"] * 16 + off:05X}' for off in sorted(HELPER_INLINE_PLAIN_SITES)]
     if tsr:
         code_segs.append(dict(seg=tsr['cs'], size=tsr['image'][1] - tsr['image'][0], tsr=True))
     sites, vectors, applied = mod_sites(mod_dir, exe, hdr, base, modules) if mod_dir else ({}, [], 0)

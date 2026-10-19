@@ -147,8 +147,14 @@ program of their own:
 - Three of the helper's routines are called as `call X / db ARG`: they read
   the byte after the call through their return address and return past it,
   and one recognises its caller by that address. The decoder lengthens
-  such calls by the argument, and every near call in the helper pushes its
-  real return address instead of the lifter's sentinel.
+  such calls by the argument (not the one call the recognised caller makes,
+  which has none), and every near call in the helper pushes its real return
+  address instead of the lifter's sentinel. The helper's lifted `ret` pops
+  that address into `cpu->ip`, and the code after the call compares it with
+  the one it expects, the way the code after an `INT` does: one routine
+  (`text_enter`) pops its return address, saves registers and jumps back
+  through it, so the rest of its caller has already run (to the `iret` at
+  its end) by the time the C call returns, and must not run again.
 - A far return to an address that is not a function's entry goes through
   `recomp_return`: inside an interrupt handler, into the middle of lifted
   game code (below the video memory or in an overlay), it is the helper

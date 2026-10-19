@@ -48,8 +48,9 @@ void run_guest_interrupt(CPU *cpu, int vec)
     if (watch == -2) { const char *w = getenv("DS_TRACE_INT"); watch = !w ? -1 : !strcmp(w, "all") ? -3 : (int)strtol(w, NULL, 16); }
     int watched = vec == watch || (watch == -3 && vec >= 0x60);   /* "all": every user vector (the mod's) */
     if (watched)
-        fprintf(stderr, "[int %02X] in  cs:ip=%04X:%04X ds=%04X ss:sp=%04X:%04X ax=%04X bx=%04X [ds:9C]=%04X\n", vec,
-                cpu->cs, cpu->ip, cpu->ds, cpu->ss, cpu->sp, cpu->ax, cpu->bx, mem_read16(cpu, cpu->ds, 0x9C));
+        fprintf(stderr, "[int %02X] in  cs:ip=%04X:%04X ds=%04X ss:sp=%04X:%04X ax=%04X bx=%04X [ds:9C]=%04X above=%04X:%04X\n", vec,
+                cpu->cs, cpu->ip, cpu->ds, cpu->ss, cpu->sp, cpu->ax, cpu->bx, mem_read16(cpu, cpu->ds, 0x9C),
+                mem_read16(cpu, cpu->ss, cpu->sp + 8), mem_read16(cpu, cpu->ss, cpu->sp + 6));   /* the far return address a handler standing in for a routine's start sees */
     g_in_int++;
     int ok = recomp_dispatch(cpu, v >> 16, v & 0xFFFF);
     g_in_int--;

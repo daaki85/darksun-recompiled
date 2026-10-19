@@ -29,6 +29,7 @@ class Image:
         tsr = self.layout.get('tsr') or {}
         self.mod_vectors = set((self.layout.get('mod') or {}).get('vectors') or [])
         self.inline_args = {int(k, 16): v for k, v in (tsr.get('inline_args') or {}).items()}
+        self.inline_plain_sites = {int(k, 16) for k in (tsr.get('inline_plain_sites') or [])}
         self.tsr_cs = tsr.get('cs')
         self._starts = [s['seg'] * 16 for s in segs]
         self._dec = {}
@@ -73,7 +74,7 @@ class Image:
         if (self.inline_args and ins is not None and ins.mnemonic == 'call' and ins.op1
                 and ins.op1.type == OpType.REL16):
             n = self.inline_args.get(cs * 16 + (ins.op1.disp & 0xFFFF))
-            if n:
+            if n and cs * 16 + ip not in self.inline_plain_sites:
                 ins.length += n
         return ins
 

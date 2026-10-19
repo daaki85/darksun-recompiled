@@ -206,6 +206,11 @@ static int inside_function(unsigned lin)       /* in the middle of a lifted func
 void recomp_return(CPU *cpu, unsigned seg, unsigned off)
 {
     unsigned lin = ((seg & 0xFFFF) << 4) + (off & 0xFFFF);
+    /* The lifter's sentinel return offset: the helper, standing in for a
+     * routine the game called (rand starts with its INT), returned through
+     * that routine's far return to the lifted caller. The function the INT
+     * is in returns too (its resume block returns after this). */
+    if ((off & 0xFFFF) == 0xFFFF) return;
     /* Only into the game's own code (below the video memory): a return into
      * the middle of the helper is a continuation the finder has not seen,
      * which the miss list turns into an entry on the next build. */
