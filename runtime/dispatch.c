@@ -17,7 +17,7 @@
 #include <execinfo.h>
 #endif
 
-#define RING 256
+#define RING 4096
 static const char *g_ring[RING];
 static unsigned g_ring_i;
 #define MAXMISS 4096
