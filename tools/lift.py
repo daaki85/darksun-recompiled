@@ -258,7 +258,15 @@ def main(argv=None):
         for lin, n in entries:
             fh.write(f'  {{0x{lin:05X}, {n}}},\n')
         fh.write('};\n\n')
-        ranges.sort()
+        # merged into non-overlapping stretches (functions nest and overlap),
+        # so the runtime's binary search over them is sound
+        merged = []
+        for start, end in sorted(ranges):
+            if merged and start <= merged[-1][1]:
+                merged[-1][1] = max(merged[-1][1], end)
+            else:
+                merged.append([start, end])
+        ranges = merged
         fh.write(f'static const unsigned ranges[{len(ranges)}][2] = {{\n')
         for start, end in ranges:
             fh.write(f'  {{0x{start:05X}, 0x{end:05X}}},\n')
