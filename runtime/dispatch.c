@@ -258,10 +258,11 @@ void recomp_enter(const char *fn)
     g_ring_sp[g_ring_i & (RING - 1)] = g_cpu->sp;
     g_ring[g_ring_i++ & (RING - 1)] = fn;
     g_entered++;
-    /* DS_SP_WATCH=<hex>: the first time the game's own stack gets below it, say how it got there */
-    static long watch = -2;
-    if (watch == -2) { const char *w = getenv("DS_SP_WATCH"); watch = w ? strtol(w, NULL, 16) : -1; }
-    if (watch >= 0 && g_cpu->ss == g_game->ss && g_cpu->sp < watch) {
+    /* DS_SP_WATCH=<ss>:<sp> (hex): the first time that stack gets below the mark, say how it got there */
+    static long watch = -2, watch_ss;
+    if (watch == -2) { const char *w = getenv("DS_SP_WATCH"), *c = w ? strchr(w, ':') : NULL;
+        watch = c ? strtol(c + 1, NULL, 16) : -1; watch_ss = w ? strtol(w, NULL, 16) : 0; }
+    if (watch >= 0 && g_cpu->ss == watch_ss && g_cpu->sp < watch) {
         watch = -1;
         fprintf(stderr, "[sp] %s entered with ss:sp=%04X:%04X, below the watch\n", fn, g_cpu->ss, g_cpu->sp);
         dispatch_backtrace();
