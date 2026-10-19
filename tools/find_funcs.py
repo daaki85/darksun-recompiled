@@ -341,7 +341,8 @@ def main(argv=None):
         # as a function. Find the bodies without the misses first.
         base = Finder(img).run(())
         inside = {v['cs'] * 16 + ip for v in base.values() for ip in v['ips'][1:]}
-        misses = [m for m in misses if m not in inside]
+        # (the helper's own continuations, reached by far returns, do sit inside its routines)
+        misses = [m for m in misses if m not in inside or not (m < 0xA0000 or m >= 0xC0000)]
     f = Finder(img)
     funcs = f.run(misses)
     out = {f'{k:05X}': dict(v, tables={str(i): t for i, t in v['tables'].items()},
