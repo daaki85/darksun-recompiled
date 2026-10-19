@@ -209,7 +209,10 @@ void recomp_return(CPU *cpu, unsigned seg, unsigned off)
     /* Only into the game's own code (below the video memory): a return into
      * the middle of the helper is a continuation the finder has not seen,
      * which the miss list turns into an entry on the next build. */
-    if (!lookup(lin) && g_in_int && g_game->tsr_cs && game_code(lin) && inside_function(lin)) {
+    /* ... inside a handler, or from the helper's own code later (its floor
+     * probe comes back through a far jump after the game's routine returned
+     * to it). */
+    if (!lookup(lin) && g_game->tsr_cs && (g_in_int || cpu->cs == g_game->tsr_cs) && game_code(lin) && inside_function(lin)) {
         static int shown;
         if (shown++ < 10 && getenv("DS_TRACE_INT")) trace("[dispatch] a handler sends the game on to %04X:%04X\n", seg, off);
         cpu->cs = (uint16_t)seg; cpu->ip = (uint16_t)off;

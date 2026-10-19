@@ -197,6 +197,9 @@ def main(argv=None):
         # a far return to a real address goes through recomp_return (a tail
         # call, or the mod's helper sending the game on)
         body = body.replace('recomp_dispatch(cpu,_cs,_ip); return; } /* retf', 'recomp_return(cpu,_cs,_ip); return; } /* retf')
+        # an indirect far jump is the same thing (the helper jumps back into the game that way)
+        body = '\n'.join(l.replace('recomp_dispatch(cpu, ', 'recomp_return(cpu, ', 1) if '/* jmp far' in l else l
+                         for l in body.split('\n'))
         # an iret says where it went back to (the mod's handlers move it)
         body = body.replace('cpu->sp += 4; cpu->flags = pop16(cpu); return; /* iret */',
                             'cpu->ip = pop16(cpu); cpu->cs = pop16(cpu); cpu->flags = pop16(cpu); return; /* iret */')
