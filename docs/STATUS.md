@@ -74,28 +74,32 @@ resident helper (`DSCLOG.EXE`) into a program of their own,
 and stays resident, hooks DOS, the keyboard and the mouse, and answers the
 patched game's interrupts; the game boots with the mod's data files
 through its DOS hook, plays its intro, shows the menu, and START GAME
-reaches the arena and the first fight. The converge loop finds no missing
-functions over a 150-second scripted run.
+reaches the arena, where the scripted fight plays out and the party walks
+in afterwards (the plain build's `walk` script). The converge loop finds
+no missing functions over that 150-second run.
 
 What it took is in the design notes: the frames of the mod's interrupts
 carry the real return address and the code after each interrupt follows
 where the handler sent the game; the helper's segment-table move is done
 to the overlays at build time; its argument-byte calls and its stack-built
-far jumps and returns back into the game are recognised. Most of the time
-went on five ways the frame's address could be off by a byte or a word,
-each of which sent the game into the wrong code with a stack that no
-longer matched.
+far jumps and returns back into the game are recognised; its near calls
+check where the callee came back to, as one routine pops its return
+address and jumps back through it later. Most of the time went on six ways
+the frame's or a return address could be off, each of which sent the game
+into the wrong code with a stack that no longer matched.
 
 The mod's Loader reads this program: with the change on the mod
 repository's `item-reports` branch (also docs/loader-recompiled.patch) it
 finds the memory by the mark at F000:FFC0, attaches to the helper's ring,
-and its dice log prints what the helper records (`python3 -m dsloader
-dicelog --pid <dsun's pid>` printed the arena announcer's lines and the
-party's kit lines from a headless run).
+and its dice log prints what the helper records: attached to a headless
+run during the arena fight (`python3 -m dsloader dicelog --pid $(pgrep -x
+dsun)`), it printed the announcer's lines, the party's kit lines, and the
+fight's saving throws, damage and hit points as they happened.
 
-Not yet: the arena fight stands still after it starts, where the plain
-game's scripted fight plays out (the next thing to look at); the Loader
-starting this program instead of DOSBox.
+Not yet: the mod's combat-log panel and strip, which need a second block of
+upper memory the runtime's DOS does not give (the helper reports "alloc in
+upper memory: none left" and goes without; the ring gets the one block,
+the HMA); the Loader starting this program instead of DOSBox.
 
 ## Wake of the Ravager (GOG 1.1, DSUN.EXE 634,416 bytes)
 

@@ -239,7 +239,7 @@ def main(argv=None):
             # in the middle of the game's code (an iret's, run on the helper's behalf) is
             # left for the caller (recomp_return).
             block = (f'resume_{name}:\n'
-                     f'    trace("[resume] {name} -> %04X:%04X (ss:sp %04X:%04X)\\n", cpu->cs, cpu->ip, cpu->ss, cpu->sp);\n'
+                     f'    if (cpu->ip != 0xFFFF) trace("[resume] {name} -> %04X:%04X (ss:sp %04X:%04X)\\n", cpu->cs, cpu->ip, cpu->ss, cpu->sp);\n'
                      f'    if (cpu->cs == SEG_{cs:04X}) switch (cpu->ip) {{\n{cases}        default: break;\n    }}\n'
                      f'    {{ uint16_t _c = cpu->cs, _i = cpu->ip; recomp_return(cpu, _c, _i);\n'
                      f'      if ((cpu->cs != _c || cpu->ip != _i) && cpu->cs == SEG_{cs:04X}) goto resume_{name}; }}\n'
