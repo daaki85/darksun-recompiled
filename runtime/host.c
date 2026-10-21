@@ -7,7 +7,7 @@
  * picture 60 times a second.
  *
  * Headless (--headless, or no display): no window, and input can be scripted
- * with --input "2.5:key=ESC 4:click=160,100 6:key=RET" (seconds:action), so a
+ * with --input "2.5:key=ESC 4:click=160,100 6:key=RET" (seconds:action; rclick= for the right button, rdrag=x1,y1,x2,y2 holds it from one point to another), so a
  * run can be tested without anyone at the keyboard. --shots DIR saves the
  * screen once a second.
  */
@@ -147,7 +147,7 @@ void host_mouse(int *x, int *y, int *b) { *x = g_mx; *y = g_my; *b = g_mb; }
 void host_mouse_set(int x, int y) { g_mx = x; g_my = y; }
 
 /* ---- scripted input ---------------------------------------------------------------- */
-typedef struct { double t; char what[64]; int a, b; } Act;
+typedef struct { double t; char what[64]; int a, b, c, d; } Act;
 static Act g_acts[256]; static int g_nacts, g_next_act;
 
 static void parse_input(const char *s)
@@ -159,6 +159,8 @@ static void parse_input(const char *s)
         if (sscanf(s, "%lf:%63[^ ]", &a->t, what) != 2) break;
         if (!strncmp(what, "key=", 4)) { snprintf(a->what, sizeof a->what, "%s", what + 4); a->a = -1; }
         else if (sscanf(what, "click=%d,%d", &a->a, &a->b) == 2) strcpy(a->what, "@click");
+        else if (sscanf(what, "rclick=%d,%d", &a->a, &a->b) == 2) strcpy(a->what, "@rclick");
+        else if (sscanf(what, "rdrag=%d,%d,%d,%d", &a->a, &a->b, &a->c, &a->d) == 4) strcpy(a->what, "@rdrag");
         else if (sscanf(what, "move=%d,%d", &a->a, &a->b) == 2) strcpy(a->what, "@move");
         g_nacts++;
         s = strchr(s, ' ');
@@ -172,6 +174,10 @@ static void run_actions(double now)
         fprintf(stderr, "[input] %.1fs %s\n", now, a->what);
         if (!strcmp(a->what, "@click")) {
             g_mx = a->a; g_my = a->b; g_mb = 1; SDL_Delay(120); g_mb = 0;
+        } else if (!strcmp(a->what, "@rclick")) {
+            g_mx = a->a; g_my = a->b; g_mb = 2; SDL_Delay(120); g_mb = 0;
+        } else if (!strcmp(a->what, "@rdrag")) {         /* the right button held from one point to another: the game's pop-up menus */
+            g_mx = a->a; g_my = a->b; g_mb = 2; SDL_Delay(300); g_mx = a->c; g_my = a->d; SDL_Delay(300); g_mb = 0;
         } else if (!strcmp(a->what, "@move")) { g_mx = a->a; g_my = a->b; }
         else {
             /* key=NAME[/HOLD_MS]: SDL's key names, and a few short ones */

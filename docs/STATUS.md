@@ -42,7 +42,9 @@ it. CREATE CHARACTERS opens the roster (VIEW CHARACTER).
   random register sets. One real disagreement (`imul r32, imm` with a
   sign-extended immediate), fixed by `patches/pcrecomp/0001`; the rest are
   the `mov r, cs` probe artefact.
-- Eight scripted regression tests (`tests/run.py`): intro, menu, start, walk,
+- Nine scripted regression tests (`tests/run.py`): intro, menu, start, walk,
+  create (a character rolled on CREATE CHARACTERS, kept, and the game started
+  with it),
   save1-write and save2-load (Esc at the arena opens "Exit: save game?";
   the save is named and written, the game exits to DOS; the next run
   loads it from the title menu and is back at the arena), and the two
@@ -50,13 +52,20 @@ it. CREATE CHARACTERS opens the roster (VIEW CHARACTER).
 
 ## Next
 
-- Out of the pens; character creation.
+- Out of the pens.
 - Listen to the output on a machine with a sound device; compare timing
   against DOSBox.
 - Clean up misses.txt handling (only real entry points should be kept).
 - Run the Windows build on a Windows machine (it cross-compiles; untested
   there).
 - Wake of the Ravager: further into Tyr; CD volume through the mixer.
+
+Character creation turned up a mouse-driver bug: INT 33h functions 5 and 6
+(button press and release information) answered with the button state
+where the function number was tested, so the roster's pop-up menu (a
+right click on a slot: NEW / ADD / CANCEL) never saw a click. They now
+answer with the count and the position of the last press or release, as
+the driver does. The input script gained `rclick=` and `rdrag=`.
 
 ## One program
 

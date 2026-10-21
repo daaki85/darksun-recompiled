@@ -9,3 +9,4 @@ screen = [
   { at = 99, ref = "arena", min_colours = 90, tolerance = 0.35 },
 ]
 removes = ["SAVE*.SAV"]
+keeps = ["CHARSAVE.GFF"]

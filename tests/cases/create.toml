@@ -1,0 +1,14 @@
+# CREATE CHARACTERS: a right click on the first roster slot opens its menu
+# (NEW / ADD / CANCEL; the rows' hit boxes sit a few pixels above their
+# text), NEW rolls a character, DONE keeps it, the roster shows it, EXIT,
+# then START GAME with that party: the arena's opening scene names the new
+# character. The game writes the roster to CHARSAVE.GFF, put back afterwards.
+seconds = 150
+input = "20:key=ESC 24:key=ESC 28:key=ESC 32:key=ESC 40:move=160,90 41:click=160,90 50:rclick=65,55 53:move=130,57 55:click=130,57 64:click=270,182 72:click=265,172 80:move=160,76 81:click=160,76"
+screen = [
+  { at = 52, ref = "menu",   min_colours = 30, tolerance = 0.05 },
+  { at = 60, min_colours = 90 },
+  { at = 68, ref = "roster", min_colours = 60, tolerance = 0.25 },
+  { at = 149, ref = "arena", min_colours = 90, tolerance = 0.35 },
+]
+keeps = ["CHARSAVE.GFF"]

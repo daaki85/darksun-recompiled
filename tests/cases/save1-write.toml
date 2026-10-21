@@ -9,3 +9,4 @@ screen = [
   { at = 122, ref = "slots", min_colours = 30, tolerance = 0.05 },
 ]
 writes = ["SAVE*.SAV"]
+keeps = ["CHARSAVE.GFF"]

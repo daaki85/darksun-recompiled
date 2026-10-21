@@ -398,6 +398,9 @@ void bios_service(CPU *cpu, int vec)
     case 0x67: cpu->ah = 0x80; break;            /* no EMS */
     case 0x1C: case 0x1B: case 0x23: case 0x28: break;
     case 0x24: cpu->al = 3; break;               /* critical error: fail */
+    case 0x0A: case 0x0B: case 0x0C: case 0x0D: case 0x0E: case 0x0F:
+    case 0x70: case 0x71: case 0x72: case 0x73: case 0x74: case 0x75: case 0x76: case 0x77:
+        break;                                   /* a hardware interrupt nobody has taken yet (IRQ 5 while the card is probed) */
     default:
         trace("[int] unhandled INT %02Xh AX=%04X\n", vec, cpu->ax);
         break;
@@ -409,6 +412,7 @@ static int g_mx_min, g_mx_max = 639, g_my_min, g_my_max = 199;
 static uint16_t g_mhandler_mask, g_mhandler_seg, g_mhandler_off;
 static int g_mouse_last_x = -1, g_mouse_last_y = -1, g_mouse_last_b;
 static int g_press_count[3], g_release_count[3];
+static int g_press_x[2], g_press_y[2], g_release_x[2], g_release_y[2];   /* where the last press / release was */
 static int g_mouse_shown;
 
 static void mouse_pos(int *x, int *y, int *b)
@@ -428,13 +432,14 @@ void mouse_service(CPU *cpu)
     case 0x03: mouse_pos(&x, &y, &b); cpu->bx = (uint16_t)b; cpu->cx = (uint16_t)x; cpu->dx = (uint16_t)y; break;
     case 0x04: host_mouse_set((cpu->cx - g_mx_min) * 320 / (g_mx_max - g_mx_min + 1),
                               (cpu->dx - g_my_min) * 200 / (g_my_max - g_my_min + 1)); break;
-    case 0x05: case 0x06: {
-        int k = cpu->bx < 3 ? cpu->bx : 0;
+    case 0x05: case 0x06: {                 /* button press / release information (the game's pop-up menus) */
+        int press = cpu->ax == 5;
+        int k = cpu->bx < 2 ? cpu->bx : 0;
         mouse_pos(&x, &y, &b);
         cpu->ax = (uint16_t)b;
-        cpu->bx = (uint16_t)(cpu->ax == 5 ? g_press_count[k] : g_release_count[k]);
-        if (cpu->ax == 5) g_press_count[k] = 0; else g_release_count[k] = 0;
-        cpu->cx = (uint16_t)x; cpu->dx = (uint16_t)y;
+        cpu->bx = (uint16_t)(press ? g_press_count[k] : g_release_count[k]);
+        if (press) g_press_count[k] = 0; else g_release_count[k] = 0;
+        cpu->cx = (uint16_t)(press ? g_press_x[k] : g_release_x[k]); cpu->dx = (uint16_t)(press ? g_press_y[k] : g_release_y[k]);
         break; }
     case 0x07: g_mx_min = cpu->cx; g_mx_max = cpu->dx; break;
     case 0x08: g_my_min = cpu->cx; g_my_max = cpu->dx; break;
@@ -459,8 +464,8 @@ void mouse_poll(CPU *cpu)
     if (x != g_mouse_last_x || y != g_mouse_last_y) ev |= 1;
     for (int k = 0; k < 2; k++) {
         int was = (g_mouse_last_b >> k) & 1, is = (b >> k) & 1;
-        if (is && !was) { ev |= 2 << (2 * k); g_press_count[k]++; }
-        if (!is && was) { ev |= 4 << (2 * k); g_release_count[k]++; }
+        if (is && !was) { ev |= 2 << (2 * k); g_press_count[k]++; g_press_x[k] = x; g_press_y[k] = y; }
+        if (!is && was) { ev |= 4 << (2 * k); g_release_count[k]++; g_release_x[k] = x; g_release_y[k] = y; }
     }
     g_mouse_last_x = x; g_mouse_last_y = y; g_mouse_last_b = b;
     if (!(ev & g_mhandler_mask) || !g_mhandler_seg) return;

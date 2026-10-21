@@ -6,8 +6,9 @@ timeline, how long to run, and what must be true at the end: the screen must
 have changed since a given second, a screenshot must be close to a reference
 (tests/ref/<name>.png, written with --update), files the game must have
 written must be there (`writes`, globs in the game folder; `removes` names
-the ones to delete afterwards), and the log must not report misses, stack
-faults or unhandled calls.
+the ones to delete afterwards, `keeps` the game's own files to put back as
+they were), and the log must not report misses, stack faults or unhandled
+calls.
 
     python3 tests/run.py             # every case
     python3 tests/run.py intro       # one
@@ -55,6 +56,11 @@ def run_case(path, update):
         os.remove(f)
     cmd = [DSUN, '--headless', '--seconds', str(case['seconds']), '--shots', shots]
     game = case.get('game', 'ds1')
+    game_dir = os.path.join(ROOT, 'game', game)
+    kept = {}
+    for pattern in case.get('keeps', []):         # the game rewrites these (its roster, CHARSAVE.GFF)
+        for f in glob.glob(os.path.join(game_dir, pattern)):
+            kept[f] = open(f, 'rb').read()
     cmd += ['--game', f'game/{game}', '--build', f'build/{game}']
     if case.get('input'):
         cmd += ['--input', case['input']]
@@ -85,13 +91,14 @@ def run_case(path, update):
                 d = differs(shot, ref, 24)
                 if d > chk.get('tolerance', 0.02):
                     problems.append(f'{chk["at"]} s: {d:.1%} of the screen differs from {os.path.basename(ref)}')
-    game_dir = os.path.join(ROOT, 'game', game)
     for pattern in case.get('writes', []):
         if not glob.glob(os.path.join(game_dir, pattern)):
             problems.append(f'the game did not write {pattern}')
     for pattern in case.get('removes', []):
         for f in glob.glob(os.path.join(game_dir, pattern)):
             os.remove(f)
+    for f, data in kept.items():
+        open(f, 'wb').write(data)
     return name, problems
 
 
