@@ -470,6 +470,7 @@ void dos_service(CPU *cpu)
             int best = -1; uint16_t largest = 0;
             for (int i = 0; i < g_game->numb && i < 8; i++) {
                 uint16_t left = g_game->umb[i][1] - g_umb_used[i];
+                if (g_game->umb[i][0] + g_umb_used[i] > 0xFFFF) continue;   /* the HMA: one block, at FFFF, is all a segment can name */
                 if (left > largest) largest = left;
                 if (cpu->bx <= left && (best < 0 || left < g_game->umb[best][1] - g_umb_used[best])) best = i;
             }
@@ -487,7 +488,10 @@ void dos_service(CPU *cpu)
         { char sig = (char)cpu->mem[(uint16_t)(cpu->es - 1) * 16];
           if (umb_block(cpu->es) < 0 && (sig == 'M' || sig == 'Z')) mem_free(cpu, cpu->es); else set_cf(cpu, 0); }   /* not ours (the helper's environment, an upper block) */
         break;
-    case 0x4A: { uint16_t want = cpu->bx; mem_resize(cpu);
+    case 0x4A: { uint16_t want = cpu->bx;
+        char sig = (char)cpu->mem[(uint16_t)(cpu->es - 1) * 16];
+        if (sig != 'M' && sig != 'Z') { set_cf(cpu, 0); trace("[dos] resize %04X to %04X paragraphs: not a block of ours (the helper's), ok\n", cpu->es, want); break; }
+        mem_resize(cpu);
         trace("[dos] resize %04X to %04X paragraphs -> %s %04X\n", cpu->es, want,
               (cpu->flags & FLAG_CF) ? "fail, largest" : "ok", cpu->bx); break; }
     case 0x4C: case 0x00:

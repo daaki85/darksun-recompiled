@@ -150,6 +150,12 @@ program of their own:
   is relocated with the changed table. The overlays here are relocated at
   build time, so `build_image.py` gives those two selectors the helper's
   segments from the start (the copy still happens at run time).
+- Where the helper keeps the routines the builder has to know about (the
+  three below, and `seg_space`) comes from its source: `build_image.py`
+  assembles `dsclog.asm` with nasm and reads the listing
+  (`tools/helper_symbols.py`), after checking the assembled bytes equal the
+  EXE, so a new helper moves nothing out from under the build; without nasm
+  it falls back to a built-in table (helper 2.5.0's offsets).
 - Three of the helper's routines are called as `call X / db ARG`: they read
   the byte after the call through their return address and return past it,
   and one recognises its caller by that address. The decoder lengthens

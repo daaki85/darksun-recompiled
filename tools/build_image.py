@@ -32,6 +32,9 @@ import os
 import struct
 import sys
 
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+import helper_symbols  # noqa: E402
+
 MEM_SIZE = 0x110000          # 1 MB + the HMA, as runtime/cpu.h allocates
 PSP_SEG = 0x0800             # program segment prefix; the image follows it
 ENV_SEG = 0x07E0             # the environment block, just below the PSP
@@ -192,9 +195,21 @@ def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None):
     # module's 32-byte descriptor, then 5-byte stubs. They pair 1:1, in order,
     # with the modules.
     seg_override = {}
+    # Where the helper keeps the routines below: from its source and nasm
+    # (tools/helper_symbols.py) when they are there, so a new helper moves
+    # nothing out from under us; else the table above (helper 2.5.0's).
+    inline_args, plain_sites, seg_space = dict(HELPER_INLINE_ARGS), set(HELPER_INLINE_PLAIN_SITES), HELPER_SEG_SPACE
     if tsr_path and mod_dir:
+        asm = os.path.join(os.path.dirname(os.path.abspath(tsr_path)), 'dsclog.asm')
+        syms = helper_symbols.symbols(asm, tsr_path) if os.path.exists(asm) else None
+        if syms:
+            inline_args = {syms['kit_is_b']: 1, syms['cr_is']: 1, syms['cb_is']: 1}
+            plain_sites = {syms['cr_is_back'] - 3}          # cr_is's `call kit_is_b`, right before cr_is_back
+            seg_space = syms['seg_space']
+        else:
+            print(f'  (helper symbols not read from {asm}: using the built-in table)')
         for sel, paras in HELPER_MOVED.items():
-            seg_override[sel] = TSR_PSP_SEG + 0x10 + HELPER_SEG_SPACE // 16 + paras
+            seg_override[sel] = TSR_PSP_SEG + 0x10 + seg_space // 16 + paras
     moved = 0
     modules = []
     tsr = load_tsr(mem, tsr_path) if tsr_path else None
@@ -270,8 +285,9 @@ def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None):
     umb = [[seg_next, 0xFFE0 - seg_next], [0xFFFF, 0x0FFF]] if tsr else []
     if tsr:
         tsr['moved_relocs'] = moved
-        tsr['inline_args'] = {f'{tsr["load"] * 16 + off:05X}': n for off, n in HELPER_INLINE_ARGS.items()}
-        tsr['inline_plain_sites'] = [f'{tsr["load"] * 16 + off:05X}' for off in sorted(HELPER_INLINE_PLAIN_SITES)]
+        tsr['inline_args'] = {f'{tsr["load"] * 16 + off:05X}': n for off, n in inline_args.items()}
+        tsr['inline_plain_sites'] = [f'{tsr["load"] * 16 + off:05X}' for off in sorted(plain_sites)]
+        tsr['seg_space'] = seg_space
     if tsr:
         code_segs.append(dict(seg=tsr['cs'], size=tsr['image'][1] - tsr['image'][0], tsr=True))
     sites, vectors, applied, originals = mod_sites(mod_dir, exe, hdr, base, modules) if mod_dir else ({}, [], 0, {})
