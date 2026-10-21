@@ -248,8 +248,17 @@ int host_run(int headless, double seconds, const char *shots, const char *input)
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
             if (e.type == SDL_QUIT) host_exit(0);
-            if (e.type == SDL_KEYDOWN && !e.key.repeat) key(e.key.keysym.scancode, 1);
-            if (e.type == SDL_KEYUP) key(e.key.keysym.scancode, 0);
+            /* F11, or Alt+Enter, switches between the window and full screen (the game's 4:3
+             * picture scaled to fit); neither reaches the game */
+            int fs_key = e.type == SDL_KEYDOWN && !e.key.repeat &&
+                         (e.key.keysym.scancode == SDL_SCANCODE_F11 ||
+                          (e.key.keysym.scancode == SDL_SCANCODE_RETURN && (e.key.keysym.mod & KMOD_ALT)));
+            if (fs_key) {
+                static int full;
+                full = !full;
+                SDL_SetWindowFullscreen(win, full ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
+            } else if (e.type == SDL_KEYDOWN && !e.key.repeat) key(e.key.keysym.scancode, 1);
+            if (e.type == SDL_KEYUP && e.key.keysym.scancode != SDL_SCANCODE_F11) key(e.key.keysym.scancode, 0);
             if (e.type == SDL_MOUSEMOTION) {
                 float lx, ly; int wx = e.motion.x, wy = e.motion.y;
                 SDL_RenderWindowToLogical(ren, wx, wy, &lx, &ly);

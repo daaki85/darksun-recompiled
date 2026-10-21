@@ -18,6 +18,7 @@ rm -rf "$OUT" && mkdir -p "$OUT"
 cp build/win/dsun.exe "$OUT/"
 cp /usr/x86_64-w64-mingw32/bin/SDL2.dll "$OUT/"
 cp README.md "$OUT/README.md"
+cp docs/PLAYING.md "$OUT/PLAYING.md"       # the players' how-to
 cp third_party/nuked-opl3/LICENSE "$OUT/LICENSE-nuked-opl3.txt"
 cp third_party/licenses/SDL2.txt "$OUT/LICENSE-SDL2.txt"
 cp third_party/licenses/stb_vorbis.txt "$OUT/LICENSE-stb_vorbis.txt"

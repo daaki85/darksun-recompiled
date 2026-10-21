@@ -17,6 +17,10 @@ sound drivers. See [docs/STATUS.md](docs/STATUS.md).
  See [docs/DESIGN.md](docs/DESIGN.md) for how it works and
 [docs/STATUS.md](docs/STATUS.md) for where it stands.
 
+**Players:** [docs/PLAYING.md](docs/PLAYING.md) is the how-to: what you
+need, installing on Windows or Linux, starting each game, the window and
+the keys, saves, sound, the mod, and what to do when something goes wrong.
+
 **This repository contains no game data or code.** You need the GOG release of
 the game; everything made from it (the memory image, the generated C, the
 program built from it) is made on your machine and stays out of git.
