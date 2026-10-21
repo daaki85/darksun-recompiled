@@ -52,7 +52,10 @@ it. CREATE CHARACTERS opens the roster (VIEW CHARACTER).
 
 ## Next
 
-- Out of the pens.
+- Out of the pens: the way out is story (the pens' tasks after the arena),
+  not a walk; a scripted route or a save from later in the game is needed
+  to exercise it. Seven minutes of wandering the arena, with the Effects
+  and inventory screens and the figure's menu opened, found no misses.
 - Listen to the output on a machine with a sound device; compare timing
   against DOSBox.
 - Clean up misses.txt handling (only real entry points should be kept).
@@ -107,6 +110,11 @@ and its dice log prints what the helper records: attached to a headless
 run during the arena fight (`python3 -m dsloader dicelog --pid $(pgrep -x
 dsun)`), it printed the announcer's lines, the party's kit lines, and the
 fight's saving throws, damage and hit points as they happened.
+
+The creation screen works in this build too (the mod's STORE and RECALL
+probe stands in for the `mov cx` that sizes the click routine's switch; the
+finder now reads it from the bytes the INT replaced). The walk and the
+creation scripts run with no misses.
 
 The helper gets both its upper memory blocks (the ring below the BIOS area,
 the panel in the HMA), so the combat-log panel can be drawn once the Loader

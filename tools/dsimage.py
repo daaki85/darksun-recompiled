@@ -26,6 +26,8 @@ class Image:
         segs = sorted(self.layout['code_segments'], key=lambda s: s['seg'])
         self.segs = segs
         self.int_sites = {int(k, 16): v['skip'] for k, v in (self.layout.get('int_sites') or {}).items()}
+        # the bytes the mod's INTs replaced (the finder sizes a switch by a `mov cx, N` among them)
+        self.int_originals = {int(k, 16): bytes.fromhex(v) for k, v in (self.layout.get('int_originals') or {}).items()}
         tsr = self.layout.get('tsr') or {}
         self.mod_vectors = set((self.layout.get('mod') or {}).get('vectors') or [])
         self.inline_args = {int(k, 16): v for k, v in (tsr.get('inline_args') or {}).items()}

@@ -184,6 +184,15 @@ class Finder:
         for j in insns_before[-12:]:
             if j.mnemonic == 'add' and repr(j.op1) == 'bx' and j.op2 and repr(j.op2) == 'cx':
                 add_bx_cx = True
+            if j.mnemonic == 'int':
+                # the mod's INT standing in for `mov cx, N` (its handler does the mov): the
+                # original bytes say N (the creation screen's click routine, PROBE_RS_CLICK)
+                orig = self.img.int_originals.get(cs * 16 + j.address, b'')
+                if len(orig) >= 3 and orig[0] == 0xB9:
+                    cx_imm = orig[1] | (orig[2] << 8)
+                elif len(orig) >= 3 and orig[0] == 0xBB:
+                    bx_imm = orig[1] | (orig[2] << 8)
+                continue
             if not (j.op1 and j.op1.type == OpType.REG16 and j.op2
                     and j.op2.type in (OpType.IMM8, OpType.IMM16)):
                 continue

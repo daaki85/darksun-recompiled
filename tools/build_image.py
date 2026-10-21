@@ -137,7 +137,7 @@ def mod_sites(mod_dir, exe, hdr, base, modules):
                 return m['seg'] * 16 + off - m['file']
         return None
 
-    sites, vectors, applied = {}, set(), 0
+    sites, vectors, applied, originals = {}, set(), 0, {}
     for pt in gamepatch.PATCHES:
         here = exe[pt.offset:pt.offset + len(pt.original)]
         if here == pt.replacement and pt.replacement != pt.original:
@@ -154,9 +154,10 @@ def mod_sites(mod_dir, exe, hdr, base, modules):
             raise ImageError(f'patch {pt.name} at {pt.offset:X} is outside the loaded code')
         if skip:
             sites[f'{lin:05X}'] = dict(skip=skip, vector=pt.replacement[1], name=pt.name)
+        originals[f'{lin:05X}'] = pt.original.hex()     # (the finder reads a `mov cx, N` an INT replaced: a switch's size)
     if not applied:
         raise ImageError(f'{mod_dir}: none of the mod\'s patches is in this EXE (give DSUNLOG.EXE)')
-    return sites, sorted(vectors), applied
+    return sites, sorted(vectors), applied, originals
 
 
 def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None):
@@ -273,12 +274,12 @@ def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None):
         tsr['inline_plain_sites'] = [f'{tsr["load"] * 16 + off:05X}' for off in sorted(HELPER_INLINE_PLAIN_SITES)]
     if tsr:
         code_segs.append(dict(seg=tsr['cs'], size=tsr['image'][1] - tsr['image'][0], tsr=True))
-    sites, vectors, applied = mod_sites(mod_dir, exe, hdr, base, modules) if mod_dir else ({}, [], 0)
+    sites, vectors, applied, originals = mod_sites(mod_dir, exe, hdr, base, modules) if mod_dir else ({}, [], 0, {})
 
     layout = dict(
         exe=os.path.basename(exe_path), exe_size=len(exe),
         tsr=tsr, mod=dict(dir=os.path.abspath(mod_dir), patches=applied, vectors=vectors) if mod_dir else None,
-        int_sites=sites,
+        int_sites=sites, int_originals=originals,
         psp_seg=PSP_SEG, load_seg=load, env_seg=ENV_SEG, top_of_dos=TOP_OF_DOS,
         resident=[base, res_end],
         entry=dict(cs=(mz['cs'] + load) & 0xFFFF, ip=mz['ip']),

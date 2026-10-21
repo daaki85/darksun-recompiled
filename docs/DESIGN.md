@@ -161,6 +161,12 @@ program of their own:
   (`text_enter`) pops its return address, saves registers and jumps back
   through it, so the rest of its caller has already run (to the `iret` at
   its end) by the time the C call returns, and must not run again.
+- An `INT` standing in for `mov cx, N` (the creation screen's click routine,
+  whose handler does the mov itself) hides the size of the Borland switch
+  that follows it from the finder, which then lifts the `jmp cs:[bx+table]`
+  as a dispatch instead of a switch. The layout carries the bytes every
+  mod `INT` replaced (`int_originals`) and the finder reads the `mov cx`
+  from there.
 - A far return to an address that is not a function's entry goes through
   `recomp_return`: inside an interrupt handler, into the middle of lifted
   game code (below the video memory or in an overlay), it is the helper
