@@ -70,6 +70,9 @@ Its regression cases (`tests/cases/wotr-*.toml`) run with the rest under
 builds Shattered Lands with the mod's patched EXE and its resident helper
 into `build/cmake-mod/dsun` (see docs/DESIGN.md, "The mod"); run it with
 `--game game/ds1 --build build/ds1mod --cd <mod>/obsidian-edition/dos`.
+The mod's Loader can start it instead of DOSBox (`dsloader launch
+--recompiled <path to dsun>`; its `item-reports` branch, also
+docs/loader-recompiled.patch) and attaches its dice log and window to it.
 
 **Windows** (cross-built from Linux): `tools/setup_mingw_sdl.sh` once, then
 `tools/package_windows.sh` makes `build/darksun-recompiled-windows-x64.zip`

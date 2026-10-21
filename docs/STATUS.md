@@ -100,8 +100,15 @@ The helper gets both its upper memory blocks (the ring below the BIOS area,
 the panel in the HMA), so the combat-log panel can be drawn once the Loader
 asks for it.
 
-Not yet: the Loader starting this program instead of DOSBox (and so its
-window and the panel with it).
+The Loader starts this program instead of DOSBox once told where it is
+(`dsloader launch --recompiled <path to dsun>`, on the mod repository's
+`item-reports` branch): `launch`, `play` and the window's "Start the game"
+run it with the game's folder and the mod's `dos` folder, and attach as
+they do to DOSBox. The program expects its memory image at `build/ds1mod`
+beside itself, as the zip lays it out.
+
+Not yet: the combat-log panel seen on screen through the Loader's window
+(it needs a display and the viewer; the helper has the memory for it now).
 
 ## Wake of the Ravager (GOG 1.1, DSUN.EXE 634,416 bytes)
 
