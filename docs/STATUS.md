@@ -116,6 +116,16 @@ probe stands in for the `mov cx` that sizes the click routine's switch; the
 finder now reads it from the bytes the INT replaced). The walk and the
 creation scripts run with no misses.
 
+The mod's latest release, 2.6.0 (84 commits past the version first built
+here), builds and runs the same way: `tools/helper_symbols.py` reads where
+its helper keeps the routines the builder must know about from its source,
+so the new helper's moved code needed no table change. Its new
+overlay-buffer reserve (33 KB of upper memory for the game's largest heap
+block) is refused here, as there is no room for it above the overlays, and
+the helper falls back to the game's heap as it did before; the runtime's
+DOS gives the game 608 KB, more than DOSBox does, so nothing is lost. The
+2.6.0 Loader attaches to the running program and reads the whole fight.
+
 The helper gets both its upper memory blocks (the ring below the BIOS area,
 the panel in the HMA), so the combat-log panel can be drawn once the Loader
 asks for it.
