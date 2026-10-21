@@ -4,8 +4,10 @@
 Each test in tests/cases/*.toml names a script of keys and clicks on a
 timeline, how long to run, and what must be true at the end: the screen must
 have changed since a given second, a screenshot must be close to a reference
-(tests/ref/<name>.png, written with --update), and the log must not report
-misses, stack faults or unhandled calls.
+(tests/ref/<name>.png, written with --update), files the game must have
+written must be there (`writes`, globs in the game folder; `removes` names
+the ones to delete afterwards), and the log must not report misses, stack
+faults or unhandled calls.
 
     python3 tests/run.py             # every case
     python3 tests/run.py intro       # one
@@ -83,6 +85,13 @@ def run_case(path, update):
                 d = differs(shot, ref, 24)
                 if d > chk.get('tolerance', 0.02):
                     problems.append(f'{chk["at"]} s: {d:.1%} of the screen differs from {os.path.basename(ref)}')
+    game_dir = os.path.join(ROOT, 'game', game)
+    for pattern in case.get('writes', []):
+        if not glob.glob(os.path.join(game_dir, pattern)):
+            problems.append(f'the game did not write {pattern}')
+    for pattern in case.get('removes', []):
+        for f in glob.glob(os.path.join(game_dir, pattern)):
+            os.remove(f)
     return name, problems
 
 

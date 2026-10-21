@@ -1,0 +1,11 @@
+# START GAME, through the scripted fight, then Esc opens "Exit: save game?":
+# SAVE, the first slot named "arena", SAVE again. The game writes the save
+# file (SAVEnn.SAV, and CHARSAVE.GFF with it) and exits to DOS by itself,
+# which ends the run early. save2-load.toml (run after it, by name) loads the file and removes it.
+seconds = 140
+input = "20:key=ESC 24:key=ESC 28:key=ESC 32:key=ESC 40:move=160,76 41:click=160,76 90:click=160,40 100:click=160,160 110:key=ESC/120 115:click=150,95 120:click=130,55 123:key=A 124:key=R 125:key=E 126:key=N 127:key=A 130:click=250,48"
+screen = [
+  { at = 113, min_colours = 90 },
+  { at = 122, ref = "slots", min_colours = 30, tolerance = 0.05 },
+]
+writes = ["SAVE*.SAV"]

@@ -42,12 +42,15 @@ it. CREATE CHARACTERS opens the roster (VIEW CHARACTER).
   random register sets. One real disagreement (`imul r32, imm` with a
   sign-extended immediate), fixed by `patches/pcrecomp/0001`; the rest are
   the `mov r, cs` probe artefact.
-- Four scripted regression tests (`tests/run.py`): intro, menu, start, walk.
+- Eight scripted regression tests (`tests/run.py`): intro, menu, start, walk,
+  save1-write and save2-load (Esc at the arena opens "Exit: save game?";
+  the save is named and written, the game exits to DOS; the next run
+  loads it from the title menu and is back at the arena), and the two
+  Wake of the Ravager cases.
 
 ## Next
 
-- Through the first fight, out of the pens; character creation; saving and
-  loading.
+- Out of the pens; character creation.
 - Listen to the output on a machine with a sound device; compare timing
   against DOSBox.
 - Clean up misses.txt handling (only real entry points should be kept).

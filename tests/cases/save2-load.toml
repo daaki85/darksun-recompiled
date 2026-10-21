@@ -1,0 +1,11 @@
+# After save1-write.toml: LOAD SAVED GAME from the title menu, the slot named
+# "arena", LOAD. The game shows the region's proclamation, then the arena
+# scene the game was saved at. The save file is removed afterwards.
+seconds = 100
+input = "20:key=ESC 24:key=ESC 28:key=ESC 32:key=ESC 40:move=160,106 41:click=160,106 50:click=130,67 56:click=250,48 70:click=240,140"
+screen = [
+  { at = 53, ref = "list", min_colours = 30, tolerance = 0.05 },
+  { at = 65, min_colours = 40 },
+  { at = 99, ref = "arena", min_colours = 90, tolerance = 0.35 },
+]
+removes = ["SAVE*.SAV"]
