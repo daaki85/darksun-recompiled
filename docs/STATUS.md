@@ -96,10 +96,12 @@ run during the arena fight (`python3 -m dsloader dicelog --pid $(pgrep -x
 dsun)`), it printed the announcer's lines, the party's kit lines, and the
 fight's saving throws, damage and hit points as they happened.
 
-Not yet: the mod's combat-log panel and strip, which need a second block of
-upper memory the runtime's DOS does not give (the helper reports "alloc in
-upper memory: none left" and goes without; the ring gets the one block,
-the HMA); the Loader starting this program instead of DOSBox.
+The helper gets both its upper memory blocks (the ring below the BIOS area,
+the panel in the HMA), so the combat-log panel can be drawn once the Loader
+asks for it.
+
+Not yet: the Loader starting this program instead of DOSBox (and so its
+window and the panel with it).
 
 ## Wake of the Ravager (GOG 1.1, DSUN.EXE 634,416 bytes)
 

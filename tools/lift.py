@@ -302,6 +302,9 @@ def main(argv=None):
         for start, end in ranges:
             fh.write(f'  {{0x{start:05X}, 0x{end:05X}}},\n')
         fh.write('};\n\n')
+        umb = lay.get('umb') or []
+        fh.write('static const uint16_t umb[][2] = {\n' + ''.join(f'  {{0x{s:04X}, 0x{n:04X}}},\n' for s, n in umb)
+                 + ('  {0, 0},\n' if not umb else '') + '};\n\n')
         cd = 'cd' if TAG == 'ds2' else ''
         mod = lay.get('mod')
         tsr = lay.get('tsr') or dict(psp=0, cs=0, ip=0, ss=0, sp=0)
@@ -315,6 +318,7 @@ def main(argv=None):
                  f'    "{os.path.basename(os.path.abspath(a.build))}", "{"obsidian" if mod else ""}",\n'
                  f'    0x{tsr["psp"]:04X}, 0x{tsr["cs"]:04X}, 0x{tsr["ip"]:04X}, 0x{tsr["ss"]:04X}, 0x{tsr["sp"]:04X},\n'
                  f'    ranges, {len(ranges)},\n'
+                 f'    umb, {len(umb)},\n'
                  f'}};\n\n')
         for s in stubs:
             # A call to something no function covers: say so at run time,

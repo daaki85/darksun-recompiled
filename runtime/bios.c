@@ -2,7 +2,7 @@
  * bios.c - the interrupt vector table, the BIOS services, the PIC and PIT,
  * port I/O, the mouse driver and the XMS driver.
  *
- * Every vector starts out pointing at F000:E000+n, which dispatch.c answers
+ * Every vector starts out pointing at F000:FE00+n, which dispatch.c answers
  * natively. When the game installs a handler of its own (INT 21h AH=25h, or
  * by writing the table), interrupts through that vector run the guest's code
  * instead, with a real FLAGS/CS/IP frame, and its `call far [old]` reaches

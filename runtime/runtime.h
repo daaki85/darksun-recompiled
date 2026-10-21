@@ -59,6 +59,7 @@ typedef struct {
     const char *variant;         /* "" or "obsidian": the mod's patched game with its helper */
     uint16_t tsr_psp, tsr_cs, tsr_ip, tsr_ss, tsr_sp;   /* the resident helper to run first, if any */
     const unsigned (*ranges)[2]; int nranges;           /* [start, end) of every lifted function, by start */
+    const uint16_t (*umb)[2]; int numb;                 /* upper memory blocks (segment, paragraphs) for the helper */
 } GameDesc;
 extern const GameDesc *g_game;                /* the one running */
 extern const GameDesc *const g_games[];       /* the ones built in (games.c, written by CMake) */
@@ -75,8 +76,8 @@ extern const char *g_game_dir;
 /* Native entry points the guest reaches by far call or through the IVT:
  * BIOS default interrupt handlers (one per vector) and the XMS driver. */
 #define BIOS_SEG        0xF000u
-#define BIOS_VEC_OFF    0xE000u          /* F000:E000 + vector */
-#define XMS_ENTRY_OFF   0xF000u          /* F000:F000 */
+#define BIOS_VEC_OFF    0xFE00u          /* F000:FE00 + vector (the memory below is an upper block for the mod's helper) */
+#define XMS_ENTRY_OFF   0xFF00u          /* F000:FF00 */
 #define BIOS_LIN(o)     ((BIOS_SEG << 4) + (o))
 
 void dos_init(CPU *cpu);

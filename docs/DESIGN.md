@@ -118,8 +118,14 @@ program of their own:
   `lh` would (PSP, environment, image at PSP+10h); `B000-BFFF` is free in
   mode 13h. The runtime runs the helper's entry first; its `INT 21h AH=31h`
   (stay resident) comes back to the host through a `longjmp`, and the game
-  starts. The helper links upper memory in and asks for a block "high
-  only" for its ring: the one block DOS has to give is the HMA (`FFFF:0000`).
+  starts. The helper links upper memory in and asks for two blocks "high
+  only, best fit": its ring and its combat-log panel. The image lays the
+  helper's environment right above its install stack and the overlays
+  right above that, and what the overlays leave below the BIOS area (whose
+  interrupt stubs and XMS entry sit at the top of `F000`, from `FE00`) is
+  the first block the runtime's DOS gives out; the HMA (`FFFF:0000`) is the
+  second. The blocks are in the layout (`umb`) and the `GameDesc`; the ring
+  fits the first best, the panel takes the HMA.
 - The patched code's `INT`s go through the interrupt vector table to the
   helper's lifted handlers like any other. Two things about them need the
   lifter's help. Some sites carry data after the `INT` (a site number the

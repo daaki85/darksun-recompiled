@@ -26,11 +26,20 @@ static uint16_t g_psp;
 void dos_set_psp(uint16_t psp) { g_psp = psp; }
 
 /* Upper memory for the mod's helper: it links the upper memory blocks in,
- * asks for "high only", and allocates its ring there. There is one block to
- * give: the HMA, segment FFFF (the overlays take the rest above the video
- * memory). The strategy and link are remembered as DOS would. */
+ * asks for "high only, best fit", and allocates its ring and its panel
+ * there. The blocks are the game's (GameDesc.umb, from the image's layout:
+ * what the overlays leave below the BIOS area, and the HMA); each is given
+ * out from its start, and nothing is ever given back (the helper keeps
+ * what it takes). The strategy and link are remembered as DOS would. */
 static uint8_t g_strategy, g_umb_link;
-static uint16_t g_umb_seg = 0xFFFF, g_umb_paras = 0x0FFF;
+static uint16_t g_umb_used[8];
+
+static int umb_block(uint16_t seg)              /* the block a segment is in, or -1 */
+{
+    for (int i = 0; i < g_game->numb && i < 8; i++)
+        if (seg >= g_game->umb[i][0] && seg < g_game->umb[i][0] + g_game->umb[i][1]) return i;
+    return -1;
+}
 static uint8_t g_last_error;
 
 static void set_cf(CPU *cpu, int on)
@@ -457,20 +466,26 @@ void dos_service(CPU *cpu)
         else fail(cpu, 1);
         break;
     case 0x48:
-        if ((g_strategy & 0xC0) && g_umb_link) {       /* high only / high first: the one upper block */
-            if (g_umb_paras && cpu->bx <= g_umb_paras) {
-                cpu->ax = g_umb_seg; g_umb_paras = 0; set_cf(cpu, 0);
+        if ((g_strategy & 0xC0) && g_umb_link) {       /* high only / high first: the upper blocks, best fit */
+            int best = -1; uint16_t largest = 0;
+            for (int i = 0; i < g_game->numb && i < 8; i++) {
+                uint16_t left = g_game->umb[i][1] - g_umb_used[i];
+                if (left > largest) largest = left;
+                if (cpu->bx <= left && (best < 0 || left < g_game->umb[best][1] - g_umb_used[best])) best = i;
+            }
+            if (best >= 0) {
+                cpu->ax = g_game->umb[best][0] + g_umb_used[best]; g_umb_used[best] += cpu->bx; set_cf(cpu, 0);
                 trace("[dos] alloc %04X paragraphs in upper memory -> seg %04X\n", cpu->bx, cpu->ax);
                 break;
             }
-            if (g_strategy & 0x40) { cpu->bx = g_umb_paras; trace("[dos] alloc in upper memory: none left\n"); fail(cpu, 8); break; }
+            if (g_strategy & 0x40) { cpu->bx = largest; trace("[dos] alloc in upper memory: none left (%04X paragraphs at most)\n", largest); fail(cpu, 8); break; }
         }
         { uint16_t want = cpu->bx; mem_alloc(cpu);
         trace("[dos] alloc %04X paragraphs -> %s %04X\n", want, (cpu->flags & FLAG_CF) ? "fail, largest" : "seg",
               (cpu->flags & FLAG_CF) ? cpu->bx : cpu->ax); break; }
     case 0x49: trace("[dos] free %04X\n", cpu->es);
         { char sig = (char)cpu->mem[(uint16_t)(cpu->es - 1) * 16];
-          if (sig == 'M' || sig == 'Z') mem_free(cpu, cpu->es); else set_cf(cpu, 0); }   /* not ours (the helper's environment) */
+          if (umb_block(cpu->es) < 0 && (sig == 'M' || sig == 'Z')) mem_free(cpu, cpu->es); else set_cf(cpu, 0); }   /* not ours (the helper's environment, an upper block) */
         break;
     case 0x4A: { uint16_t want = cpu->bx; mem_resize(cpu);
         trace("[dos] resize %04X to %04X paragraphs -> %s %04X\n", cpu->es, want,

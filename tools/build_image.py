@@ -39,7 +39,6 @@ OVL_FIRST_SEG = 0xC000       # overlay modules from here up (no EMS page frame)
 TOP_OF_DOS = 0xA000          # end of conventional memory
 TSR_PSP_SEG = 0xB000         # a resident helper (the mod's DSCLOG.EXE) lives in B000-BFFF,
                              # which nothing else uses in mode 13h
-TSR_ENV_SEG = 0xBF00
 
 # The mod's patches that put data after the INT, which the helper's handler
 # steps over: how many bytes, so the decoder does too. VEC_CR_SPELLS sites
@@ -98,25 +97,29 @@ def load_tsr(mem, path):
     load = TSR_PSP_SEG + 0x10
     image = exe[mz['hdr']:mz['image_end']]
     base = load * 16
-    if base + len(image) + 0x1000 > TSR_ENV_SEG * 16:
-        raise ImageError(f'{path} is too big for the B000 window')
     mem[base:base + len(image)] = image
     for off, seg in mz['relocs']:
         lin = base + seg * 16 + off
         struct.pack_into('<H', mem, lin, (u16(mem, lin) + load) & 0xFFFF)
+    # The environment goes right above the helper's install stack (whose top
+    # is past the image), and the overlays right above that: the room this
+    # leaves below the BIOS area is one of the two upper memory blocks the
+    # helper asks for (its ring; its panel gets the HMA).
+    ss, sp = (mz['ss'] + load) & 0xFFFF, mz['sp']
+    env_seg = (max(base + len(image), ss * 16 + sp) + 15) >> 4
     env = b'COMSPEC=C:\\COMMAND.COM\0\0' + b'\x01\x00' + b'D:\\DSCLOG.EXE\0'
-    mem[TSR_ENV_SEG * 16:TSR_ENV_SEG * 16 + len(env)] = env
+    mem[env_seg * 16:env_seg * 16 + len(env)] = env
     p = TSR_PSP_SEG * 16
     mem[p:p + 2] = b'\xCD\x20'
-    struct.pack_into('<H', mem, p + 2, TSR_ENV_SEG)        # first segment past ours
-    struct.pack_into('<H', mem, p + 0x2C, TSR_ENV_SEG)
+    struct.pack_into('<H', mem, p + 2, env_seg)            # first segment past ours
+    struct.pack_into('<H', mem, p + 0x2C, env_seg)
     mem[p + 0x80] = 0
     mem[p + 0x81] = 0x0D
     for k in range(20):
         mem[p + 0x18 + k] = k if k < 5 else 0xFF
-    return dict(exe=os.path.basename(path), psp=TSR_PSP_SEG, load=load, env=TSR_ENV_SEG,
-                cs=(mz['cs'] + load) & 0xFFFF, ip=mz['ip'], ss=(mz['ss'] + load) & 0xFFFF, sp=mz['sp'],
-                image=[base, base + len(image)])
+    return dict(exe=os.path.basename(path), psp=TSR_PSP_SEG, load=load, env=env_seg,
+                cs=(mz['cs'] + load) & 0xFFFF, ip=mz['ip'], ss=ss, sp=sp,
+                image=[base, base + len(image)], next_seg=env_seg + ((len(env) + 15) >> 4))
 
 
 def mod_sites(mod_dir, exe, hdr, base, modules):
@@ -193,7 +196,8 @@ def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None):
             seg_override[sel] = TSR_PSP_SEG + 0x10 + HELPER_SEG_SPACE // 16 + paras
     moved = 0
     modules = []
-    seg_next = OVL_FIRST_SEG
+    tsr = load_tsr(mem, tsr_path) if tsr_path else None
+    seg_next = tsr['next_seg'] if tsr else OVL_FIRST_SEG
     for r in (r for r in records if r['cls'] == 3):
         d = base + r['para'] * 16
         if bytes(mem[d:d + 4]) != b'\xCD\x3F\x00\x00':
@@ -259,7 +263,10 @@ def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None):
     code_segs += [dict(seg=m['seg'], size=m['size'], module=m['index'])
                   for m in modules if m['seg'] is not None]
 
-    tsr = load_tsr(mem, tsr_path) if tsr_path else None
+    # Upper memory blocks for the helper (segment, paragraphs): what is left
+    # below the BIOS area (the interrupt vectors' stubs start at F000:FE00),
+    # and the HMA. Its ring takes the first (best fit), its panel the HMA.
+    umb = [[seg_next, 0xFFE0 - seg_next], [0xFFFF, 0x0FFF]] if tsr else []
     if tsr:
         tsr['moved_relocs'] = moved
         tsr['inline_args'] = {f'{tsr["load"] * 16 + off:05X}': n for off, n in HELPER_INLINE_ARGS.items()}
@@ -280,7 +287,7 @@ def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None):
         segtab=segtab_lin, records=records, code_segments=code_segs,
         relocs=sorted(base + seg * 16 + off for off, seg in mz['relocs']),
         modules=modules,
-        overlay_top=seg_next * 16,
+        overlay_top=seg_next * 16, umb=umb,
     )
     os.makedirs(out_dir, exist_ok=True)
     with open(os.path.join(out_dir, 'image.bin'), 'wb') as f:
