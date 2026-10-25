@@ -48,7 +48,7 @@ file(WRITE "${GAMES_C}.new" "${GAMES_SRC}")
 configure_file("${GAMES_C}.new" "${GAMES_C}" COPYONLY)
 add_executable(dsun
     runtime/main.c runtime/host.c runtime/bios.c runtime/dos.c runtime/vga.c
-    runtime/dispatch.c runtime/aildrv.c runtime/opl.c runtime/audio.c runtime/sb.c runtime/cd.c
+    runtime/dispatch.c runtime/aildrv.c runtime/opl.c runtime/audio.c runtime/sb.c runtime/cd.c runtime/iso.c
     third_party/nuked-opl3/opl3.c ${GAMES_C} ${GEN_SOURCES})
 target_include_directories(dsun PRIVATE
     runtime third_party/pcrecomp/runtime/recomp16 third_party/nuked-opl3 third_party/stb)

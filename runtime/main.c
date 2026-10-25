@@ -319,8 +319,17 @@ int main(int argc, char **argv)
       if (!g_cd_dir && g_game->cd_sub[0]) {
           snprintf(cd_rel, sizeof cd_rel, "%s/%s", g_game_dir, g_game->cd_sub);
           struct stat st;
+          if (stat(cd_rel, &st) != 0) {
+              /* the CD's files are not unpacked yet: do it from GOG's image (once; a minute or so) */
+              extern int iso_extract(const char *, const char *);
+              char gog[1200]; snprintf(gog, sizeof gog, "%s/game.gog", g_game_dir);
+              if (stat(gog, &st) == 0) {
+                  fprintf(stderr, "[main] unpacking the CD's files from %s into %s (once)\n", gog, cd_rel);
+                  int n = iso_extract(gog, cd_rel);
+                  if (n > 0) fprintf(stderr, "[main] %d files unpacked\n", n);
+              } else fprintf(stderr, "[main] no %s and no game.gog: the CD's files are missing\n", cd_rel);
+          }
           if (stat(cd_rel, &st) == 0) g_cd_dir = cd_rel;
-          else fprintf(stderr, "[main] no %s: the CD's files are missing (tools/cd_extract.py)\n", cd_rel);
       } }
     fprintf(stderr, "[main] %s: game %s, build %s\n", g_game->title, g_game_dir, g_build_dir);
     g_cpu = &g_cpu_state;

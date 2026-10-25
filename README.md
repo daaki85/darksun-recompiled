@@ -47,12 +47,12 @@ cmake --build build/cmake
 **Wake of the Ravager** goes through the same steps with `game/ds2` and
 `build/ds2`, plus its command line and its CD: GOG starts it as `DSUN -W0 -L`,
 and its data CD is `game.gog`, a raw MODE2/2352 track (2,048 data bytes at
-offset 24 of each 2,352-byte sector; `tools/cd_extract.py` turns it into
-`game/ds2/cd`, which the program uses as drive D: when it is there).
+offset 24 of each 2,352-byte sector). The program unpacks it into
+`game/ds2/cd` the first time it starts the game (`runtime/iso.c`) and uses
+that folder as drive D:; `tools/cd_extract.py` does the same by hand.
 
 ```sh
 python3 tools/build_image.py game/ds2/DSUN.EXE --out build/ds2 --args "-W0 -L"
-python3 tools/cd_extract.py game/ds2/game.gog game/ds2/cd
 tools/converge.sh build/ds2 build/cmake game/ds2 60
 ```
 

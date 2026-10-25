@@ -53,7 +53,8 @@ data files, from your GOG installation.
   build.
 - A mouse. The games are played with the mouse and a few keys.
 
-For *Wake of the Ravager* you also need its CD's files unpacked once, see
+For *Wake of the Ravager* the program unpacks the CD's files from GOG's
+`game.gog` by itself the first time, see
 [Wake of the Ravager's CD](#wake-of-the-ravagers-cd).
 
 ## Installing on Windows
@@ -130,17 +131,13 @@ dsun.exe --game "C:\GOG Games\Dark Sun Shattered Lands" 2> log.txt
 *Wake of the Ravager* reads its data from a CD. GOG ships the CD as
 `game.gog` in the game folder, a raw disc image, and the music as
 `MUSIC\TrackNN.ogg`. The program plays the music from the OGG files as the
-game asks for its CD audio tracks, but the data files have to be unpacked
-from `game.gog` once, into a folder called `cd` inside the game folder:
-
-```sh
-python3 tools/cd_extract.py "C:\GOG Games\Dark Sun Wake of the Ravager\game.gog" "C:\GOG Games\Dark Sun Wake of the Ravager\cd"
-```
-
-This needs Python 3 and `7z` (7-Zip's command line) on the path. The
-program then uses that folder as the game's drive D:. Without it the game
-cannot start, and the log says so:
-`no .../cd: the CD's files are missing (tools/cd_extract.py)`.
+game asks for its CD audio tracks, and unpacks the data files from
+`game.gog` by itself the first time it starts the game, into a folder
+called `cd` inside the game folder (264 files, 90 MB, a few seconds). That
+folder is the game's drive D: from then on. Nothing to install for it; the
+game folder must be writable for that first start. The log says
+`unpacking the CD's files from ... (once)` when it does it, and `no .../cd
+and no game.gog: the CD's files are missing` when it finds neither.
 
 ## While you play
 
@@ -223,8 +220,9 @@ verified in this build; its dice log is.
 - **"cannot find build/ds1 (the folder with image.bin ...)"**: the memory
   image is missing. On Windows, keep the `build` folder from the zip beside
   `dsun.exe`, or give it with `--build`.
-- **The CD's files are missing** (Wake of the Ravager): unpack `game.gog`,
-  see [Wake of the Ravager's CD](#wake-of-the-ravagers-cd).
+- **The CD's files are missing** (Wake of the Ravager): the game folder
+  has no `cd` folder and no `game.gog` to make it from, or the folder could
+  not be written. See [Wake of the Ravager's CD](#wake-of-the-ravagers-cd).
 - **The game stops or the screen goes wrong**: start the program with its
   log redirected to a file (see [Starting a game](#starting-a-game)) and
   do what you did again. Lines saying `no function at ...` mean the game
