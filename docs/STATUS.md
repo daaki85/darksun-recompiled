@@ -42,6 +42,17 @@ it. CREATE CHARACTERS opens the roster (VIEW CHARACTER).
   random register sets. One real disagreement (`imul r32, imm` with a
   sign-extended immediate), fixed by `patches/pcrecomp/0001`; the rest are
   the `mov r, cs` probe artefact.
+- The stack audit (`tools/lift.py --spcheck`, built into its own program:
+  `DSUN=build/cmake-sp/dsun python3 tests/run.py`) over the Shattered
+  Lands cases: intro, menu, start and the load report nothing. The fight,
+  the walk and the save report one family of entries: forty points inside
+  the map blitter at `1CAE` that data points at, which the finder made
+  entries of, so a jump to one from the routine around it is lifted as a
+  tail call; each ends in that routine's epilogue and so leaves the stack
+  as the routine would, which the audit sees as the callee moving SP. The
+  same for `17B4E` on the creation screen. The idiom is sound (the caller
+  returns right after the tail call, which is where it was going), not a
+  translation fault.
 - Nine scripted regression tests (`tests/run.py`): intro, menu, start, walk,
   create (a character rolled on CREATE CHARACTERS, kept, and the game started
   with it),
