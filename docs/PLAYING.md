@@ -65,19 +65,24 @@ For *Wake of the Ravager* you also need its CD's files unpacked once, see
      images, one per game;
    - `run.bat`, a starter that takes your game folder as its argument;
    - this guide and the licences of the libraries used.
-2. Find your GOG game folder: the one with `DSUN.EXE` in it, such as
-   `C:\GOG Games\Dark Sun Shattered Lands` or
-   `C:\Program Files (x86)\GOG Galaxy\Games\Dark Sun Shattered Lands`.
-3. Start the game one of these ways:
+2. Double-click `dsun.exe`. It looks for the games where GOG installs them
+   (`C:\GOG Games\...`, `...\GOG Galaxy\Games\...`, on drives C to H) and
+   starts the one it finds; with both games installed it asks which. If it
+   finds neither, it opens a folder picker: choose the GOG game folder, the
+   one with `DSUN.EXE` in it. The folder is remembered in `dsun.ini` beside
+   the program, so the next start needs no asking.
+
+   Other ways, when you want them:
    - Drag the game folder onto `run.bat`.
    - Open a command prompt in the unzipped folder and run
      `dsun.exe --game "C:\GOG Games\Dark Sun Shattered Lands"`.
    - Make a shortcut to `dsun.exe` and add
      ` --game "C:\GOG Games\Dark Sun Shattered Lands"` to its target, after
      the closing quote of the program's path.
-   - Or copy (or link) your game folder to `game\ds1` (Shattered Lands) or
-     `game\ds2` (Wake of the Ravager) beside `dsun.exe`; then `dsun.exe`
-     needs no argument. With both there, it asks which to start.
+   - Copy (or link) your game folder to `game\ds1` (Shattered Lands) or
+     `game\ds2` (Wake of the Ravager) beside `dsun.exe`.
+   - Edit `dsun.ini`: one line per game, `ds1=C:\where\it\is` and
+     `ds2=...`. Delete the file to be asked again.
 
 Windows may warn that the program is unsigned ("Windows protected your
 PC"). Click **More info**, then **Run anyway**. The zip is not signed.
@@ -99,9 +104,15 @@ need Python 3, GCC, CMake, Ninja, SDL2's development package, and
 ## Starting a game
 
 `dsun --game <folder>` starts the game in that folder. Without `--game`,
-the program looks for `game/ds1` and `game/ds2` beside itself and beside the
-folder it was started from, and asks with a message box when both are
-there (or takes the environment variable `DS_GAME=ds1` or `ds2`).
+the program looks, for each game, in this order: `game/ds1` or `game/ds2`
+beside itself and beside the folder it was started from; the folder
+remembered in `dsun.ini` beside the program; GOG's usual install folders
+(on Windows `GOG Games`, `GOG Galaxy\Games` and `Games` on drives C to H; on
+Linux `~/GOG Games`, `~/.wine/drive_c/GOG Games` and `~/Games`). When it
+finds both games it asks with a message box which to start (or takes the
+environment variable `DS_GAME=ds1` or `ds2`). When it finds neither it
+opens a folder picker (on Linux, zenity's or kdialog's, when one is
+installed) and remembers the folder you choose.
 
 Each game needs its memory image, `build/ds1/image.bin` or
 `build/ds2/image.bin`, found the same way (beside the program or the
@@ -204,9 +215,11 @@ verified in this build; its dice log is.
 ## When something goes wrong
 
 - **"No game found"**: the program did not find a `DSUN.EXE` of a known size
-  in the folder it was given or beside itself. Give the GOG game folder
-  with `--game`. A `DSUN.EXE` of another size (another release, or a
-  patched one) is not recognised.
+  in the folder it was given, beside itself, in `dsun.ini`, in GOG's usual
+  folders, or in the folder you picked. Give the GOG game folder with
+  `--game`, or write it into `dsun.ini`. A `DSUN.EXE` of another size
+  (another release, or a patched one) is not recognised, and the log
+  names the size it saw.
 - **"cannot find build/ds1 (the folder with image.bin ...)"**: the memory
   image is missing. On Windows, keep the `build` folder from the zip beside
   `dsun.exe`, or give it with `--build`.

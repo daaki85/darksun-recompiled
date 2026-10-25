@@ -77,7 +77,8 @@ int game_main(void *arg)
 /* ---- which game ----------------------------------------------------------------
  * A game folder is recognised by the size of its DSUN.EXE. Without --game the
  * program looks for game/<tag> beside the current folder and beside itself,
- * and asks when it finds more than one. */
+ * then where it found the games before, then where GOG installs them, then
+ * asks with a folder picker; and asks which game when it finds more than one. */
 static long file_size(const char *path)
 {
     struct stat st;
@@ -112,6 +113,121 @@ static const char *find_dir(const char *rel)   /* rel, or rel beside the program
     return NULL;
 }
 
+/* ---- finding the games without being told -------------------------------------
+ * In this order: game/<tag> beside the program or the current folder; the
+ * folders remembered in dsun.ini beside the program (one line per game,
+ * `ds1=<folder>`); GOG's usual install folders; and, with a display, a folder
+ * picker. A folder found by the last two is remembered in dsun.ini. */
+static const char *GOG_NAMES[] = { "Dark Sun Shattered Lands", "Dark Sun Wake of the Ravager" };
+#ifdef _WIN32
+static const char *GOG_ROOTS[] = { "GOG Games", "Program Files (x86)\\GOG Galaxy\\Games", "Program Files\\GOG Galaxy\\Games",
+                                   "GOG Galaxy\\Games", "Games" };
+#else
+static const char *GOG_ROOTS[] = { "GOG Games", ".wine/drive_c/GOG Games", "Games", ".local/share/games" };
+#endif
+
+static void ini_path(char *out, size_t n) { snprintf(out, n, "%sdsun.ini", g_base); }
+
+static const char *remembered(const char *tag)         /* dsun.ini's folder for a game, if any */
+{
+    static char line[1200];
+    char path[1100]; ini_path(path, sizeof path);
+    FILE *f = fopen(path, "r");
+    if (!f) return NULL;
+    const char *hit = NULL;
+    while (fgets(line, sizeof line, f)) {
+        size_t l = strlen(line);
+        while (l && (line[l - 1] == '\n' || line[l - 1] == '\r' || line[l - 1] == ' ')) line[--l] = 0;
+        size_t t = strlen(tag);
+        if (!strncmp(line, tag, t) && line[t] == '=' && line[t + 1]) { hit = line + t + 1; break; }
+    }
+    fclose(f);
+    return hit;
+}
+
+static void remember(const char *tag, const char *dir)   /* dsun.ini: this game's folder (the others' lines kept) */
+{
+    char path[1100]; ini_path(path, sizeof path);
+    char keep[8][1200]; int nk = 0;
+    FILE *f = fopen(path, "r");
+    if (f) {
+        char line[1200];
+        while (fgets(line, sizeof line, f) && nk < 8)
+            if (strncmp(line, tag, strlen(tag)) || line[strlen(tag)] != '=') snprintf(keep[nk++], sizeof keep[0], "%s", line);
+        fclose(f);
+    }
+    f = fopen(path, "w");
+    if (!f) return;
+    fprintf(f, "# Dark Sun Recompiled: where each game is (written when a game was found; edit or delete freely)\n");
+    for (int i = 0; i < nk; i++) if (keep[i][0] != '#') fputs(keep[i], f);
+    fprintf(f, "%s=%s\n", tag, dir);
+    fclose(f);
+    fprintf(stderr, "[main] %s remembered in %s\n", dir, path);
+}
+
+static const char *gog_folder(const GameDesc *g)       /* the game in one of GOG's usual places */
+{
+    static char buf[1300];
+    const char *name = !strcmp(g->tag, "ds2") ? GOG_NAMES[1] : GOG_NAMES[0];
+    for (size_t r = 0; r < sizeof GOG_ROOTS / sizeof *GOG_ROOTS; r++) {
+#ifdef _WIN32
+        for (char drive = 'C'; drive <= 'H'; drive++) {
+            snprintf(buf, sizeof buf, "%c:\\%s\\%s", drive, GOG_ROOTS[r], name);
+            if (game_in(buf) == g) return buf;
+        }
+#else
+        const char *home = getenv("HOME");
+        if (!home) continue;
+        snprintf(buf, sizeof buf, "%s/%s/%s", home, GOG_ROOTS[r], name);
+        if (game_in(buf) == g) return buf;
+#endif
+    }
+    return NULL;
+}
+
+#ifdef _WIN32
+#include <windows.h>
+#include <shlobj.h>
+static const char *pick_folder(void)
+{
+    static char path[MAX_PATH];
+    CoInitialize(NULL);
+    BROWSEINFOA bi = {0};
+    bi.lpszTitle = "Where is Dark Sun installed? Pick the GOG folder with DSUN.EXE in it.";
+    bi.ulFlags = BIF_RETURNONLYFSDIRS | BIF_NEWDIALOGSTYLE;
+    LPITEMIDLIST idl = SHBrowseForFolderA(&bi);
+    if (!idl || !SHGetPathFromIDListA(idl, path)) return NULL;
+    return path;
+}
+#else
+static const char *pick_folder(void)                   /* zenity or kdialog, when one is installed */
+{
+    static char path[1200];
+    const char *cmds[] = {
+        "zenity --file-selection --directory --title='Where is Dark Sun installed? Pick the GOG folder with DSUN.EXE in it.' 2>/dev/null",
+        "kdialog --getexistingdirectory \"$HOME\" --title 'Where is Dark Sun installed?' 2>/dev/null" };
+    for (size_t i = 0; i < sizeof cmds / sizeof *cmds; i++) {
+        FILE *p = popen(cmds[i], "r");
+        if (!p) continue;
+        char *got = fgets(path, sizeof path, p);
+        int rc = pclose(p);
+        if (got && rc == 0) {
+            size_t l = strlen(path);
+            while (l && (path[l - 1] == '\n' || path[l - 1] == '/')) path[--l] = 0;
+            return path;
+        }
+        if (rc != 127 * 256) return NULL;                /* the dialog ran and was cancelled */
+    }
+    return NULL;
+}
+#endif
+
+static void say(int headless, const char *text)
+{
+    fputs(text, stderr); fputc('\n', stderr);
+    if (!headless) { SDL_Init(SDL_INIT_VIDEO); SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Dark Sun Recompiled", text, NULL); }
+}
+
 static const GameDesc *choose_game(int headless)
 {
     const GameDesc *found[8]; const char *dirs[8]; int n = 0;
@@ -119,11 +235,31 @@ static const GameDesc *choose_game(int headless)
         char rel[64];
         snprintf(rel, sizeof rel, "game/%s", g_games[g]->tag);
         const char *d = find_dir(rel);
-        if (d && game_in(d) == g_games[g]) { found[n] = g_games[g]; dirs[n++] = strdup(d); }
+        if (d && game_in(d) == g_games[g]) { found[n] = g_games[g]; dirs[n++] = strdup(d); continue; }
+        d = remembered(g_games[g]->tag);
+        if (d && game_in(d) == g_games[g]) { found[n] = g_games[g]; dirs[n++] = strdup(d); continue; }
+        d = gog_folder(g_games[g]);
+        if (d) { remember(g_games[g]->tag, d); found[n] = g_games[g]; dirs[n++] = strdup(d); }
+    }
+    if (n == 0 && !headless) {
+        const char *d = pick_folder();
+        if (d) {
+            const GameDesc *g = game_in(d);
+            if (g) { remember(g->tag, d); found[n] = g; dirs[n++] = strdup(d); }
+            else {
+                char msg[1500];
+                snprintf(msg, sizeof msg, "%s has no DSUN.EXE this program knows. Pick the GOG folder of Dark Sun: Shattered Lands or Wake of the Ravager, the one with DSUN.EXE in it.", d);
+                say(headless, msg);
+                return NULL;
+            }
+        }
     }
     if (n == 0) {
-        fprintf(stderr, "No game found. Give the folder of your GOG install with --game <folder>; this program has:\n");
-        for (int g = 0; g < g_ngames; g++) fprintf(stderr, "  %s (%s, %u bytes)\n", g_games[g]->title, g_games[g]->exe, g_games[g]->exe_size);
+        char msg[2000];
+        int k = snprintf(msg, sizeof msg, "No game found. Install Dark Sun from GOG, or start this program with --game <folder> (the folder with DSUN.EXE), or put the game in game/ds1 (Shattered Lands) or game/ds2 (Wake of the Ravager) beside it. This program has:\n");
+        for (int g = 0; g < g_ngames && k < (int)sizeof msg - 100; g++)
+            k += snprintf(msg + k, sizeof msg - k, "  %s (%s, %u bytes)\n", g_games[g]->title, g_games[g]->exe, g_games[g]->exe_size);
+        say(headless, msg);
         return NULL;
     }
     int pick = 0;

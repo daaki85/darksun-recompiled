@@ -61,8 +61,11 @@ exists into the one `dsun` (the list is `GAME_BUILDS`; each game's symbols
 carry its tag, `ds1_` or `ds2_`). The program recognises a game folder by
 the size of its `DSUN.EXE`: `--game <folder>` names one; without it, the
 program looks for `game/ds1` and `game/ds2` beside the current folder and
-beside itself, and asks with a message box when it finds both (or takes
-`DS_GAME=ds1|ds2`). `--build` defaults to `build/<tag>` in the same places.
+beside itself, then in `dsun.ini` beside itself, then in GOG's usual
+install folders, and last asks with a folder picker (remembering the
+answer in `dsun.ini`); it asks with a message box when it finds both games
+(or takes `DS_GAME=ds1|ds2`). `--build` defaults to `build/<tag>` beside
+the current folder or the program.
 
 Its music is CD audio, read from GOG's `MUSIC/TrackNN.ogg` files in the
 game folder through an emulated MSCDEX drive (`runtime/cd.c`).

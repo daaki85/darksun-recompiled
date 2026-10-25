@@ -62,4 +62,5 @@ if(CMAKE_SYSTEM_NAME STREQUAL "Linux")
 endif()
 if(WIN32)
     target_link_options(dsun PRIVATE -static)
+    target_link_libraries(dsun PRIVATE shell32 ole32)    # the folder picker
 endif()
