@@ -64,7 +64,7 @@ def run_case(path, update):
     cmd += ['--game', f'game/{game}', '--build', f'build/{game}']
     if case.get('input'):
         cmd += ['--input', case['input']]
-    env = dict(os.environ, DS_QUIET='')
+    env = dict(os.environ, DS_QUIET='', DS_CLOCK='1000000000')   # the clock pinned: the same dice every run
     log = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=case['seconds'] + 60).stderr
     open(os.path.join(shots, 'log.txt'), 'w').write(log)
     problems = []

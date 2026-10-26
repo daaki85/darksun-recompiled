@@ -173,6 +173,16 @@ program of their own:
   as a dispatch instead of a switch. The layout carries the bytes every
   mod `INT` replaced (`int_originals`) and the finder reads the `mov cx`
   from there.
+- The lifter's calls push a sentinel return address, not the real one. The
+  helper records where `rand()` was called from and the Loader tells the
+  rolls apart by it, so in this build its log lacks the lines it works out
+  that way (the damage dice, the Wild Fighting roll); the rolls themselves
+  are the same. Pushing real addresses for the game's calls (near and far,
+  as the helper's near calls already do, with a check after each call and
+  `ret`/`retf` popping into `cpu->cs:ip`) is the fix, and a larger change
+  than it looks: the AIL code calls an `iret` stub with `push cs / call`
+  and other idioms leave the popped address meaningless, so an attempt at
+  far calls alone broke start-up. It is the next step for the dice log.
 - A far return to an address that is not a function's entry goes through
   `recomp_return`: inside an interrupt handler, into the middle of lifted
   game code (below the video memory or in an overlay), it is the helper
@@ -199,6 +209,12 @@ per-function constant.)
 ## Debugging aids
 
 - `--headless --seconds N --shots DIR` and scripted `--input`.
+- `DS_CLOCK=<seconds since 1970>`: the date and time DOS reports start
+  there (plus the time the program has run, in UTC) instead of at the
+  computer's clock. The game seeds its dice from the time of day once, at
+  the main menu, so two runs with the same script then roll the same dice;
+  the regression tests set it, and the DOSBox comparison pins DOSBox's
+  start second the same way.
 - `tools/lift.py --spcheck`: every function reports a stack or BP it leaves
   unbalanced.
 - `DS_WATCH=<linear>`: every write to an address, with the call chain.

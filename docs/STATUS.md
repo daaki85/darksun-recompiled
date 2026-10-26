@@ -53,6 +53,15 @@ it. CREATE CHARACTERS opens the roster (VIEW CHARACTER).
   same for `17B4E` on the creation screen. The idiom is sound (the caller
   returns right after the tail call, which is where it was going), not a
   translation fault.
+- The dice against DOSBox: the same scripted arena fight in DOSBox 0.74
+  (the mod loaded, the Loader attached, driven by xdotool under Xvfb) and
+  in this program with `DS_CLOCK` pinned to the second DOSBox started: the
+  same saving throws (7, 5, 7, 10), the same damage, the same deaths, roll
+  for roll. The game seeds its dice from the time of day once, at the main
+  menu; the runs differ when the clocks do. `tools/dosbox_compare.sh` runs
+  it. The Loader's log from this build lacks the lines it works out from
+  the address `rand()` was called from (the lifter pushes a sentinel return
+  address): see docs/DESIGN.md, "The mod".
 - Nine scripted regression tests (`tests/run.py`): intro, menu, start, walk,
   create (a character rolled on CREATE CHARACTERS, kept, and the game started
   with it),

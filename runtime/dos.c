@@ -42,6 +42,25 @@ static int umb_block(uint16_t seg)              /* the block a segment is in, or
 }
 static uint8_t g_last_error;
 
+/* The date and time the game sees (it seeds its dice from them): the
+ * computer's, or, with DS_CLOCK=<seconds since 1970>, that moment plus the
+ * time the program has run, in UTC, so two runs with the same script roll
+ * the same dice (the regression tests and the DOSBox comparison). */
+static void dos_clock(struct tm *out, unsigned *hundredths)
+{
+    static int fixed = -1; static long long base;
+    if (fixed < 0) { const char *c = getenv("DS_CLOCK"); fixed = c && *c; if (fixed) base = atoll(c); }
+    uint64_t us = host_us();
+    if (fixed) {
+        time_t t = (time_t)(base + (long long)(us / 1000000));
+        struct tm *tm = gmtime(&t); *out = *tm;
+    } else {
+        time_t t = time(NULL);
+        struct tm *tm = localtime(&t); *out = *tm;
+    }
+    if (hundredths) *hundredths = (unsigned)((us / 10000) % 100);
+}
+
 static void set_cf(CPU *cpu, int on)
 {
     if (on) cpu->flags |= FLAG_CF; else cpu->flags &= ~FLAG_CF;
@@ -335,12 +354,13 @@ void dos_service(CPU *cpu)
     case 0x25: mem_write16(cpu, 0, (uint16_t)(cpu->al * 4), cpu->dx);
                mem_write16(cpu, 0, (uint16_t)(cpu->al * 4 + 2), cpu->ds);
                trace("[dos] vector %02X -> %04X:%04X\n", cpu->al, cpu->ds, cpu->dx); break;
-    case 0x2A: { time_t t = time(NULL); struct tm *tm = localtime(&t);
-                 cpu->cx = (uint16_t)(tm->tm_year + 1900); cpu->dh = (uint8_t)(tm->tm_mon + 1);
-                 cpu->dl = (uint8_t)tm->tm_mday; cpu->al = (uint8_t)tm->tm_wday; break; }
-    case 0x2C: { uint64_t us = host_us(); time_t t = time(NULL); struct tm *tm = localtime(&t);
-                 cpu->ch = (uint8_t)tm->tm_hour; cpu->cl = (uint8_t)tm->tm_min; cpu->dh = (uint8_t)tm->tm_sec;
-                 cpu->dl = (uint8_t)((us / 10000) % 100); break; }
+    case 0x2A: { struct tm tm; dos_clock(&tm, NULL);
+                 cpu->cx = (uint16_t)(tm.tm_year + 1900); cpu->dh = (uint8_t)(tm.tm_mon + 1);
+                 cpu->dl = (uint8_t)tm.tm_mday; cpu->al = (uint8_t)tm.tm_wday; break; }
+    case 0x2C: { struct tm tm; unsigned hundredths; dos_clock(&tm, &hundredths);
+                 trace("[dos] time asked: %02d:%02d:%02d.%02u\n", tm.tm_hour, tm.tm_min, tm.tm_sec, hundredths);
+                 cpu->ch = (uint8_t)tm.tm_hour; cpu->cl = (uint8_t)tm.tm_min; cpu->dh = (uint8_t)tm.tm_sec;
+                 cpu->dl = (uint8_t)hundredths; break; }
     case 0x2B: case 0x2D: cpu->al = 0; break;                  /* set date/time: accepted, ignored */
     case 0x2F: cpu->es = g_dta_seg; cpu->bx = g_dta_off; break;
     case 0x30: cpu->ax = 0x0005; cpu->bx = 0; cpu->cx = 0; break;   /* DOS 5.0 */
