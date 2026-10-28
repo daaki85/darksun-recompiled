@@ -124,7 +124,7 @@ the frame's or a return address could be off, each of which sent the game
 into the wrong code with a stack that no longer matched.
 
 The mod's Loader reads this program: with the change on the mod
-repository's `item-reports` branch (also docs/loader-recompiled.patch) it
+repository's `recompiled` branch (also docs/loader-recompiled.patch) it
 finds the memory by the mark at F000:FFC0, attaches to the helper's ring,
 and its dice log prints what the helper records: attached to a headless
 run during the arena fight (`python3 -m dsloader dicelog --pid $(pgrep -x
@@ -159,7 +159,7 @@ asks for it.
 
 The Loader starts this program instead of DOSBox once told where it is
 (`dsloader launch --recompiled <path to dsun>`, on the mod repository's
-`item-reports` branch): `launch`, `play` and the window's "Start the game"
+`recompiled` branch): `launch`, `play` and the window's "Start the game"
 run it with the game's folder and the mod's `dos` folder, and attach as
 they do to DOSBox. The program expects its memory image at `build/ds1mod`
 beside itself, as the zip lays it out.

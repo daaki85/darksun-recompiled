@@ -1,8 +1,8 @@
 diff --git a/obsidian-edition/dsloader/__main__.py b/obsidian-edition/dsloader/__main__.py
-index e11eb71..a3401e3 100644
+index d6a4643..b166146 100644
 --- a/obsidian-edition/dsloader/__main__.py
 +++ b/obsidian-edition/dsloader/__main__.py
-@@ -199,6 +199,16 @@ def cmd_dicelog(args) -> None:
+@@ -211,6 +211,16 @@ def cmd_dicelog(args) -> None:
  def _game_dir(args) -> str:
      """The game folder: remembered, found, or asked for (and then remembered)."""
      from . import launch
@@ -19,7 +19,7 @@ index e11eb71..a3401e3 100644
      game_dir = launch.find_game_dir(args.game_dir)
      if game_dir is None:
          import tkinter
-@@ -347,6 +357,9 @@ def main(argv=None) -> int:
+@@ -365,6 +375,9 @@ def main(argv=None) -> int:
      s.add_argument("--fullscreen", dest="fullscreen", action="store_true", default=None,
                     help="start DOSBox full screen, as GOG does (remembered; --windowed undoes it)")
      s.add_argument("--windowed", dest="fullscreen", action="store_false")
@@ -29,7 +29,7 @@ index e11eb71..a3401e3 100644
      s.set_defaults(func=cmd_launch)
  
      s = sub.add_parser("play", help="start the game with the in-game rolls and stats, no window of our own")
-@@ -357,6 +370,9 @@ def main(argv=None) -> int:
+@@ -375,6 +388,9 @@ def main(argv=None) -> int:
      s.add_argument("--fullscreen", dest="fullscreen", action="store_true", default=None,
                     help="start DOSBox full screen, as GOG does (remembered; --windowed undoes it)")
      s.add_argument("--windowed", dest="fullscreen", action="store_false")
@@ -40,7 +40,7 @@ index e11eb71..a3401e3 100644
  
      s = sub.add_parser("dicelog", parents=[common], help="print the game's dice rolls as they happen")
 diff --git a/obsidian-edition/dsloader/guestmem.py b/obsidian-edition/dsloader/guestmem.py
-index 64eeecf..30215e3 100644
+index 801fb9c..c168d3f 100644
 --- a/obsidian-edition/dsloader/guestmem.py
 +++ b/obsidian-edition/dsloader/guestmem.py
 @@ -20,6 +20,10 @@ from .process import ProcessError, ProcessMemory
@@ -54,7 +54,7 @@ index 64eeecf..30215e3 100644
  MIN_GUEST_SIZE = 0x100000  # 1 MB: the date string alone lives just below this
  _CHUNK = 4 * 1024 * 1024
  
-@@ -104,16 +108,17 @@ def locate(proc: ProcessMemory, base: Optional[int] = None) -> GuestMemory:
+@@ -108,16 +112,17 @@ def locate(proc: ProcessMemory, base: Optional[int] = None) -> GuestMemory:
                  chunk = proc.read(start, min(_CHUNK + len(BIOS_DATE), region.end - start))
              except ProcessError:
                  continue
@@ -83,10 +83,10 @@ index 64eeecf..30215e3 100644
          "Could not find DOSBox guest RAM (no BIOS signature found). "
          "Is this DOSBox, and has it finished starting?")
 diff --git a/obsidian-edition/dsloader/launch.py b/obsidian-edition/dsloader/launch.py
-index 1d5324c..8d10c01 100644
+index 3665065..a7b5d77 100644
 --- a/obsidian-edition/dsloader/launch.py
 +++ b/obsidian-edition/dsloader/launch.py
-@@ -51,8 +51,29 @@ def _find_file(folder: str, name: str) -> Optional[str]:
+@@ -55,8 +55,29 @@ def _find_file(folder: str, name: str) -> Optional[str]:
  
  
  def is_game_dir(folder: str) -> bool:
@@ -117,7 +117,7 @@ index 1d5324c..8d10c01 100644
  
  
  def candidate_dirs() -> List[str]:
-@@ -322,7 +343,9 @@ CRASH_CODES = {0xC0000005: "an access violation", 0xC00000FD: "a stack overflow"
+@@ -384,7 +405,9 @@ CRASH_CODES = {0xC0000005: "an access violation", 0xC00000FD: "a stack overflow"
  
  
  def closed_line(code: int) -> str:
@@ -128,23 +128,7 @@ index 1d5324c..8d10c01 100644
      if code == 0:
          return "DOSBox closed."
      known = CRASH_CODES.get(code & 0xFFFFFFFF)
-@@ -449,11 +472,11 @@ def _last_lines(text: str, count: int) -> str:
-     return "\n".join(text.rstrip().splitlines()[-count:]) or "(empty)"
- 
- 
--def write_crash_report(text: str, now: float, folder: str = CRASH_DIR) -> str:
--    """Save a crash report as crash-logs/crash-YYYY-MM-DD-HHMMSS.txt (a number after it if there
--    is one already); returns its path."""
-+def write_crash_report(text: str, now: float, folder: str = CRASH_DIR, kind: str = "crash") -> str:
-+    """Save a report as crash-logs/crash-YYYY-MM-DD-HHMMSS.txt (a number after it if there is one
-+    already; KIND names it: "item" for a lost item's, itemwatch.py); returns its path."""
-     os.makedirs(folder, exist_ok=True)
--    stem = os.path.join(folder, time.strftime("crash-%Y-%m-%d-%H%M%S", time.localtime(now)))
-+    stem = os.path.join(folder, time.strftime(f"{kind}-%Y-%m-%d-%H%M%S", time.localtime(now)))
-     path, n = stem + ".txt", 1
-     while os.path.exists(path):  # (two in the same second)
-         n += 1
-@@ -464,7 +487,21 @@ def write_crash_report(text: str, now: float, folder: str = CRASH_DIR) -> str:
+@@ -541,7 +564,21 @@ def write_crash_report(text: str, now: float, folder: str = CRASH_DIR, kind: str
  
  
  def launch(game_dir: str) -> Tuple[subprocess.Popen, Optional[str]]:
@@ -168,10 +152,10 @@ index 1d5324c..8d10c01 100644
      settings_conf = _find_file(game_dir, "dosbox_darksun.conf") or _find_file(
          os.path.join(game_dir, "__support", "app"), "dosbox_darksun.conf")
 diff --git a/obsidian-edition/dsloader/process.py b/obsidian-edition/dsloader/process.py
-index a7bf020..e433427 100644
+index c44fa88..a686e69 100644
 --- a/obsidian-edition/dsloader/process.py
 +++ b/obsidian-edition/dsloader/process.py
-@@ -24,7 +24,8 @@ class Region(NamedTuple):
+@@ -29,7 +29,8 @@ class Region(NamedTuple):
  
  def find_dosbox_processes() -> List[Tuple[int, str]]:
      """(pid, executable name) for every running process that looks like DOSBox."""

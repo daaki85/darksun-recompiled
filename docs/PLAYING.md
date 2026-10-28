@@ -205,7 +205,7 @@ dsloader launch --recompiled "C:\path\to\dsun.exe"
 dsloader launch --dosbox        (back to DOSBox)
 ```
 
-That part of the Loader is on the mod repository's `item-reports` branch,
+That part of the Loader is on the mod repository's `recompiled` branch,
 not yet in a release. The mod's combat-log panel on screen is not yet
 verified in this build; its dice log is.
 
