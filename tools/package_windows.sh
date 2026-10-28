@@ -10,7 +10,10 @@
 # puts both next to the program as game/ds1 and build/ds1.
 set -e
 cd "$(dirname "$0")/.."
+# GAME_BUILDS is given outright: a build/win configured before the list grew
+# would keep its cached, shorter list.
 cmake -S . -B build/win -G Ninja -DCMAKE_BUILD_TYPE=Release \
+      -DGAME_BUILDS="$PWD/build/ds1;$PWD/build/ds2;$PWD/build/ct" \
       -DCMAKE_TOOLCHAIN_FILE=cmake/mingw-w64-x86_64.cmake >/dev/null
 cmake --build build/win
 OUT=build/package/windows

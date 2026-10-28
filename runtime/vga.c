@@ -24,6 +24,8 @@ static uint8_t g_misc = 0x63;
 static int g_mode = 3;
 volatile unsigned long g_vga_frames;
 
+void mem_watch_init(void);
+
 void vga_init(void)
 {
     mem_watch_init();
