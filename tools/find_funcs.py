@@ -24,7 +24,7 @@ import json
 import os
 import sys
 
-from dsimage import Image, OpType
+from dsimage import Image, OpType, Decoder
 
 JCC = {'jo', 'jno', 'jb', 'jae', 'je', 'jne', 'jbe', 'ja', 'js', 'jns', 'jp',
        'jnp', 'jl', 'jge', 'jle', 'jg', 'loop', 'loopz', 'loopnz', 'jcxz'}
@@ -243,6 +243,28 @@ class Finder:
                 nxt = (ip + ins.length) & 0xFFFF
                 if m in STOP:
                     break
+                if m == 'int' and self.img.int_originals.get(cs * 16 + ip):
+                    # The mod's INT stands in for the game's instructions, which its handler
+                    # does itself: a jump among them (`or ax,ax / jnz`) is a way on the
+                    # handler takes by moving the return address, so its target is code of
+                    # this function too. Decode the original bytes in place for it.
+                    orig = self.img.int_originals[cs * 16 + ip]
+                    b = cs * 16
+                    blob = bytearray(self.img.mem[b:b + 0x10000])
+                    blob[ip:ip + len(orig)] = orig
+                    d = Decoder(bytes(blob), base_offset=b)
+                    d.pos = ip
+                    while d.pos < ip + len(orig):
+                        try:
+                            oi = d.decode_one()
+                        except (IndexError, KeyError):
+                            break
+                        oo = oi.op1
+                        if oi.mnemonic in JCC or oi.mnemonic == 'jmp':
+                            if oo and oo.type in (OpType.REL8, OpType.REL16):
+                                work.append(oo.disp & 0xFFFF)
+                        elif oi.mnemonic == 'call' and oo and oo.type == OpType.REL16:
+                            calls.add(cs * 16 + (oo.disp & 0xFFFF))
                 if m in JCC and o and o.type in (OpType.REL8, OpType.REL16):
                     t = o.disp & 0xFFFF
                     if cs * 16 + t in self.entries and t != ip0:

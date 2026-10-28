@@ -488,14 +488,17 @@ void dos_service(CPU *cpu)
     case 0x48:
         if ((g_strategy & 0xC0) && g_umb_link) {       /* high only / high first: the upper blocks, best fit */
             int best = -1; uint16_t largest = 0;
+            extern int g_hma_owner;
             for (int i = 0; i < g_game->numb && i < 8; i++) {
                 uint16_t left = g_game->umb[i][1] - g_umb_used[i];
                 if (g_game->umb[i][0] + g_umb_used[i] > 0xFFFF) continue;   /* the HMA: one block, at FFFF, is all a segment can name */
+                if (g_game->umb[i][0] == 0xFFFF && g_hma_owner == 1) continue;  /* ... and XMS has given it away */
                 if (left > largest) largest = left;
                 if (cpu->bx <= left && (best < 0 || left < g_game->umb[best][1] - g_umb_used[best])) best = i;
             }
             if (best >= 0) {
                 cpu->ax = g_game->umb[best][0] + g_umb_used[best]; g_umb_used[best] += cpu->bx; set_cf(cpu, 0);
+                if (g_game->umb[best][0] == 0xFFFF) g_hma_owner = 2;
                 trace("[dos] alloc %04X paragraphs in upper memory -> seg %04X\n", cpu->bx, cpu->ax);
                 break;
             }

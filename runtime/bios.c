@@ -31,6 +31,8 @@ static int ivt_is_default(CPU *cpu, int vec)
 
 static int g_in_irq;
 
+static volatile unsigned g_irq_pending;
+void irq_poll(CPU *cpu);
 void run_guest_interrupt(CPU *cpu, int vec)
 {
     if (ivt_is_default(cpu, vec)) { bios_service(cpu, vec); return; }
@@ -54,6 +56,11 @@ void run_guest_interrupt(CPU *cpu, int vec)
     g_in_int++;
     int ok = recomp_dispatch(cpu, v >> 16, v & 0xFFFF);
     g_in_int--;
+    /* A loop the game closes through an INT (the mod's scene-player check,
+     * whose handler runs with interrupts off and spends the tick budget on
+     * polls that find them off): deliver what is pending now that the iret
+     * has them on again, or the timer never fires and the scene never moves. */
+    if ((cpu->flags & FLAG_IF) && g_irq_pending && !g_in_irq) irq_poll(cpu);
     if (watched)
         fprintf(stderr, "[int %02X] out cs:ip=%04X:%04X ds=%04X ss:sp=%04X:%04X ax=%04X flags=%04X\n", vec,
                 cpu->cs, cpu->ip, cpu->ds, cpu->ss, cpu->sp, cpu->ax, cpu->flags);
@@ -90,7 +97,6 @@ static void hw_interrupt(CPU *cpu, int vec)
 
 /* ---- PIC and PIT ------------------------------------------------------------ */
 static uint8_t g_pic_mask, g_pic_mask2;
-static volatile unsigned g_irq_pending;
 static unsigned g_pit_div = 65536;
 static uint64_t g_pit_last;
 static int g_pit_latch_hi, g_pit_wlo, g_pit_mode;
@@ -161,6 +167,14 @@ void kbd_irq(CPU *cpu);
 void irq_poll(CPU *cpu)
 {
     pit_update();
+    static unsigned polls, no_if, in_irq, had0; static uint64_t last;   /* DS_TRACE_IRQ: a line a second */
+    static int dbg = -1; if (dbg < 0) dbg = getenv("DS_TRACE_IRQ") != NULL;
+    if (dbg) {
+        polls++; if (!(cpu->flags & FLAG_IF)) no_if++; if (g_in_irq) in_irq++; if (g_irq_pending & 1) had0++;
+        uint64_t now = host_us();
+        if (now - last > 1000000) { last = now; trace("[irq] polls %u, IF off %u, in irq %u, irq0 pending %u, mask %02X, delivered %lu, div %u\n",
+                                                    polls, no_if, in_irq, had0, g_pic_mask, g_ticks_delivered, g_pit_div); polls = no_if = in_irq = had0 = 0; }
+    }
     if (g_in_irq || !(cpu->flags & FLAG_IF)) return;
     for (int irq = 0; irq < 8; irq++) {
         unsigned bit = 1u << irq;
@@ -497,6 +511,10 @@ static uint8_t *xms_ptr(CPU *cpu, uint16_t h, uint32_t off, uint32_t len)
     return g_xms[h].mem + off;
 }
 
+/* Who has the HMA: 0 nobody, 1 XMS's holder (function 01h), 2 the DOS upper-memory allocator
+ * (a block at FFFF, dos.c). Either keeps the other out. */
+int g_hma_owner;
+
 void xms_service(CPU *cpu)
 {
     static int quiet = -1;
@@ -504,6 +522,11 @@ void xms_service(CPU *cpu)
     if (!quiet) trace("[xms] AH=%02X BX=%04X DX=%04X\n", cpu->ah, cpu->bx, cpu->dx);
     switch (cpu->ah) {
     case 0x00: cpu->ax = 0x0300; cpu->bx = 0x0300; cpu->dx = 1; break;
+    case 0x01:                                 /* request the HMA (the mod's helper keeps its big buffers there) */
+        if (g_hma_owner) { cpu->ax = 0; cpu->bl = 0x91; }          /* in use */
+        else { g_hma_owner = 1; cpu->ax = 1; cpu->bl = 0; trace("[xms] the HMA is given out\n"); }
+        break;
+    case 0x02: if (g_hma_owner == 1) g_hma_owner = 0; cpu->ax = 1; cpu->bl = 0; break;   /* release the HMA */
     case 0x03: case 0x04: case 0x05: case 0x06: cpu->ax = 1; cpu->bl = 0; break;
     case 0x07: cpu->ax = 1; cpu->bl = 0; break;
     case 0x08: {

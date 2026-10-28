@@ -36,6 +36,7 @@ class DriverImage:
         self.segs = []                  # no far-pointer tables inside a driver
         self.stub_target = {}
         self.layout = {}
+        self.int_originals = {}         # (no mod INT sites in a driver)
         self._dec = Decoder(self.mem, base_offset=0)
 
     def seg_of(self, lin):

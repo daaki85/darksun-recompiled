@@ -183,6 +183,18 @@ program of their own:
   than it looks: the AIL code calls an `iret` stub with `push cs / call`
   and other idioms leave the popped address meaningless, so an attempt at
   far calls alone broke start-up. It is the next step for the dice log.
+- Interrupts come through at the lifter's tick points (loop back-edges) and
+  are delivered there when the game has them enabled. A loop the game
+  closes through one of the mod's INTs (2.12.1's scene-player check, whose
+  handler runs with interrupts off) spends the tick budget on polls that
+  find them off, and the timer never fires: `run_guest_interrupt` now
+  delivers what is pending as soon as a handler's iret has them on again.
+  Found as a black screen with the game spinning at 340,000 INTs a second.
+- The 2.12.1 helper keeps its big buffers (ring, panel, shadow cache, text)
+  in the HMA, asked for through XMS function 01h, which the runtime now
+  grants; the HMA is then off the DOS allocator's list (`g_hma_owner`).
+  Its 33 KB overlay-buffer reserve is still refused (no room above the
+  overlays) and it falls back to the game's heap as before.
 - A far return to an address that is not a function's entry goes through
   `recomp_return`: inside an interrupt handler, into the middle of lifted
   game code (below the video memory or in an overlay), it is the helper
