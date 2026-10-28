@@ -41,7 +41,9 @@ it. CREATE CHARACTERS opens the roster (VIEW CHARACTER).
   instructions, each lifted alone and run against Unicorn's x86 on two
   random register sets. One real disagreement (`imul r32, imm` with a
   sign-extended immediate), fixed by `patches/pcrecomp/0001`; the rest are
-  the `mov r, cs` probe artefact.
+  the `mov r, cs` probe artefact. The same over Wake of the Ravager's 127
+  segments: nothing but that artefact (a stray `lar` decoded from data in
+  two segments needed a stub in the harness to let them build).
 - The stack audit (`tools/lift.py --spcheck`, built into its own program:
   `DSUN=build/cmake-sp/dsun python3 tests/run.py`) over the Shattered
   Lands cases: intro, menu, start and the load report nothing. The fight,
