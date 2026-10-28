@@ -56,6 +56,10 @@ SP_OK = {
         0x08799,   # Borland's struct-by-value push: makes room below its return address
         0x09E3A, 0x08320,   # the start-up's argv/env builders
     },
+    634416: {               # Wake of the Ravager: the same run-time
+        0x08799,
+        0x0A977, 0x08320,
+    },
 }
 
 

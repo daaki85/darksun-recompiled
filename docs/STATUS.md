@@ -64,6 +64,10 @@ it. CREATE CHARACTERS opens the roster (VIEW CHARACTER).
   it. The Loader's log from this build lacks the lines it works out from
   the address `rand()` was called from (the lifter pushes a sentinel return
   address): see docs/DESIGN.md, "The mod".
+- The stack audit over Wake of the Ravager's two cases: the sequel's
+  Borland run-time at the same addresses as Shattered Lands' (the
+  struct-by-value push, the start-up's argv builders) is the only thing it
+  reports, and is on the audit's known-good list for both games.
 - Nine scripted regression tests (`tests/run.py`): intro, menu, start, walk,
   create (a character rolled on CREATE CHARACTERS, kept, and the game started
   with it),
