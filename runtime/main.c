@@ -17,6 +17,7 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <setjmp.h>
+#include <ctype.h>
 #define SDL_MAIN_HANDLED          /* our main stays main; SDL must not rename it */
 #include <SDL.h>
 
@@ -85,19 +86,36 @@ static long file_size(const char *path)
     return stat(path, &st) == 0 ? (long)st.st_size : -1;
 }
 
-static const GameDesc *game_in(const char *dir)
+static int is_game(const GameDesc *g) { return !strcmp(g->exe, "DSUN.EXE"); }   /* not the transfer utility */
+
+static long exe_size_in(const char *dir, const char *exe)   /* the size of dir/exe, in any case */
 {
-    static const char *names[] = { "DSUN.EXE", "dsun.exe", "Dsun.exe" };
-    char path[1200];
-    for (size_t i = 0; i < sizeof names / sizeof *names; i++) {
+    char path[1200], lower[64], cap[64];
+    snprintf(lower, sizeof lower, "%s", exe); snprintf(cap, sizeof cap, "%s", exe);
+    for (char *c = lower; *c; c++) *c = (char)tolower((unsigned char)*c);
+    for (char *c = cap + 1; *c; c++) *c = (char)tolower((unsigned char)*c);
+    const char *names[] = { exe, lower, cap };
+    for (size_t i = 0; i < 3; i++) {
         snprintf(path, sizeof path, "%s/%s", dir, names[i]);
         long n = file_size(path);
-        if (n < 0) continue;
-        for (int g = 0; g < g_ngames; g++)
-            if ((long)g_games[g]->exe_size == n) return g_games[g];
-        fprintf(stderr, "%s is %ld bytes: not a DSUN.EXE this program was built from\n", path, n);
-        return NULL;
+        if (n >= 0) return n;
     }
+    return -1;
+}
+
+static const GameDesc *game_in(const char *dir)
+{
+    long n = exe_size_in(dir, "DSUN.EXE");
+    if (n < 0) return NULL;
+    for (int g = 0; g < g_ngames; g++)
+        if (is_game(g_games[g]) && (long)g_games[g]->exe_size == n) return g_games[g];
+    fprintf(stderr, "%s/DSUN.EXE is %ld bytes: not a DSUN.EXE this program was built from\n", dir, n);
+    return NULL;
+}
+
+static const GameDesc *by_tag(const char *tag)
+{
+    for (int g = 0; g < g_ngames; g++) if (!strcmp(g_games[g]->tag, tag)) return g_games[g];
     return NULL;
 }
 
@@ -228,18 +246,53 @@ static void say(int headless, const char *text)
     if (!headless) { SDL_Init(SDL_INIT_VIDEO); SDL_ShowSimpleMessageBox(SDL_MESSAGEBOX_INFORMATION, "Dark Sun Recompiled", text, NULL); }
 }
 
+static const char *locate(const GameDesc *g)           /* the game's folder, by the search order above */
+{
+    char rel[64];
+    snprintf(rel, sizeof rel, "game/%s", g->tag);
+    const char *d = find_dir(rel);
+    if (d && game_in(d) == g) return strdup(d);
+    d = remembered(g->tag);
+    if (d && game_in(d) == g) return strdup(d);
+    d = gog_folder(g);
+    if (d) { remember(g->tag, d); return strdup(d); }
+    return NULL;
+}
+
+/* The character transfer utility (CHARTRAN.EXE, in Wake of the Ravager's
+ * folder, built in as "ct"): it wants both games, as C:\DSUN and C:\RAVAGER,
+ * and writes the party it makes into Wake of the Ravager's CHARSAVE.GFF. */
+static const GameDesc *transfer_setup(const char *ds1, const char *ds2, int headless)
+{
+    const GameDesc *ct = by_tag("ct");
+    if (!ct) { say(headless, "This program was built without the character transfer utility (build/ct)."); return NULL; }
+    const GameDesc *g1 = by_tag("ds1"), *g2 = by_tag("ds2");
+    if (!ds1 && g1) ds1 = locate(g1);
+    if (!ds2 && g2) ds2 = locate(g2);
+    if (!ds1 || !ds2) {
+        say(headless, "The character transfer needs both games: Shattered Lands (--ds1 <folder>) and Wake of the Ravager (--ds2 <folder>), or both installed where this program finds them.");
+        return NULL;
+    }
+    if (exe_size_in(ds2, ct->exe) != (long)ct->exe_size) {
+        char msg[1500];
+        snprintf(msg, sizeof msg, "%s has no %s of %u bytes (GOG's): the transfer utility this program was built from.", ds2, ct->exe, ct->exe_size);
+        say(headless, msg);
+        return NULL;
+    }
+    g_game_dir = ds2;
+    dos_mount("DSUN", ds1);
+    dos_mount("RAVAGER", ds2);
+    fprintf(stderr, "[main] character transfer: C:\\DSUN is %s, C:\\RAVAGER is %s\n", ds1, ds2);
+    return ct;
+}
+
 static const GameDesc *choose_game(int headless)
 {
     const GameDesc *found[8]; const char *dirs[8]; int n = 0;
     for (int g = 0; g < g_ngames && n < 8; g++) {
-        char rel[64];
-        snprintf(rel, sizeof rel, "game/%s", g_games[g]->tag);
-        const char *d = find_dir(rel);
-        if (d && game_in(d) == g_games[g]) { found[n] = g_games[g]; dirs[n++] = strdup(d); continue; }
-        d = remembered(g_games[g]->tag);
-        if (d && game_in(d) == g_games[g]) { found[n] = g_games[g]; dirs[n++] = strdup(d); continue; }
-        d = gog_folder(g_games[g]);
-        if (d) { remember(g_games[g]->tag, d); found[n] = g_games[g]; dirs[n++] = strdup(d); }
+        if (!is_game(g_games[g])) continue;
+        const char *d = locate(g_games[g]);
+        if (d) { found[n] = g_games[g]; dirs[n++] = d; }
     }
     if (n == 0 && !headless) {
         const char *d = pick_folder();
@@ -265,16 +318,20 @@ static const GameDesc *choose_game(int headless)
     int pick = 0;
     const char *want = getenv("DS_GAME");
     if (want) for (int i = 0; i < n; i++) if (!strcmp(found[i]->tag, want)) pick = i;
+    if (want && !strcmp(want, "ct")) return transfer_setup(NULL, NULL, headless);
     if (n > 1 && !want && !headless) {
-        SDL_MessageBoxButtonData buttons[8];
-        for (int i = 0; i < n; i++) {
+        /* both games there: the transfer utility is offered too, when built in */
+        int nb = n + (by_tag("ct") != NULL);
+        SDL_MessageBoxButtonData buttons[9];
+        for (int i = 0; i < nb; i++) {
             buttons[i].flags = i == 0 ? SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT : 0;
-            buttons[i].buttonid = i; buttons[i].text = found[i]->title;
+            buttons[i].buttonid = i; buttons[i].text = i < n ? found[i]->title : "Transfer a party (Shattered Lands to Wake)";
         }
-        SDL_MessageBoxData box = { SDL_MESSAGEBOX_INFORMATION, NULL, "Dark Sun Recompiled", "Which game?", n, buttons, NULL };
+        SDL_MessageBoxData box = { SDL_MESSAGEBOX_INFORMATION, NULL, "Dark Sun Recompiled", "Which game?", nb, buttons, NULL };
         int id = 0;
         SDL_Init(SDL_INIT_VIDEO);
-        if (SDL_ShowMessageBox(&box, &id) == 0 && id >= 0 && id < n) pick = id;
+        if (SDL_ShowMessageBox(&box, &id) == 0 && id >= 0 && id < nb) pick = id;
+        if (pick == n) return transfer_setup(NULL, NULL, headless);
     }
     g_game_dir = dirs[pick];
     return found[pick];
@@ -289,8 +346,12 @@ int main(int argc, char **argv)
     int headless = 0;
     double seconds = 0;
     const char *shots = NULL, *input = NULL, *wav = NULL;
+    int transfer = 0; const char *ds1 = NULL, *ds2 = NULL;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--game") && i + 1 < argc) g_game_dir = argv[++i];
+        else if (!strcmp(argv[i], "--transfer")) transfer = 1;
+        else if (!strcmp(argv[i], "--ds1") && i + 1 < argc) { ds1 = argv[++i]; transfer = 1; }
+        else if (!strcmp(argv[i], "--ds2") && i + 1 < argc) { ds2 = argv[++i]; transfer = 1; }
         else if (!strcmp(argv[i], "--build") && i + 1 < argc) g_build_dir = argv[++i];
         else if (!strcmp(argv[i], "--headless")) headless = 1;
         else if (!strcmp(argv[i], "--seconds") && i + 1 < argc) seconds = atof(argv[++i]);
@@ -306,7 +367,8 @@ int main(int argc, char **argv)
 #endif
     }
     { char *b = SDL_GetBasePath(); if (b) { snprintf(g_base, sizeof g_base, "%s", b); SDL_free(b); } }
-    if (g_game_dir) g_game = game_in(g_game_dir);
+    if (transfer) g_game = transfer_setup(ds1, ds2, headless);
+    else if (g_game_dir) g_game = game_in(g_game_dir);
     else g_game = choose_game(headless);
     if (!g_game) return 1;
     char build_rel[64], cd_rel[1200];

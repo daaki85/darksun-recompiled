@@ -236,11 +236,11 @@ int host_run(int headless, double seconds, const char *shots, const char *input)
                                960, 720, SDL_WINDOW_RESIZABLE);
         ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_PRESENTVSYNC);
         SDL_RenderSetLogicalSize(ren, 320, 240);
-        tex = SDL_CreateTexture(ren, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 320, 240);
+        tex = SDL_CreateTexture(ren, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 640, 400);
         SDL_ShowCursor(SDL_DISABLE);
     }
     g_game_thread = SDL_CreateThreadWithStackSize(game_main, "game", 256u << 20, NULL);
-    static uint32_t px[320 * 240];
+    static uint32_t px[640 * 400];       /* mode 13h's 320x200 (or 240), or text mode's 640x400 */
     double next_shot = 1.0;
     int shot = 0;
     while (g_exit_code < 0) {
@@ -273,9 +273,9 @@ int host_run(int headless, double seconds, const char *shots, const char *input)
         if (!headless) {
             int w, h;
             vga_render(px, &w, &h);
-            SDL_UpdateTexture(tex, NULL, px, 320 * 4);
             SDL_Rect src = {0, 0, w, h};
-            SDL_RenderSetLogicalSize(ren, 320, h == 200 ? 240 : h);   /* 4:3 */
+            SDL_UpdateTexture(tex, &src, px, w * 4);
+            SDL_RenderSetLogicalSize(ren, w, w * 3 / 4);               /* 4:3 */
             SDL_RenderClear(ren);
             SDL_RenderCopy(ren, tex, &src, NULL);
             SDL_RenderPresent(ren);
@@ -294,5 +294,6 @@ int host_run(int headless, double seconds, const char *shots, const char *input)
             host_exit(0);
         }
     }
+    if (shots) { char p[1024]; snprintf(p, sizeof p, "%s/final.bmp", shots); vga_save_bmp(p); }   /* the screen the program ended on */
     return g_exit_code;
 }

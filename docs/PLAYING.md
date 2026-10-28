@@ -23,6 +23,7 @@ saves work in both (see [Saving and loading](#saving-and-loading)).
 - [While you play](#while-you-play)
 - [Saving and loading](#saving-and-loading)
 - [Sound](#sound)
+- [Taking a party to Wake of the Ravager](#taking-a-party-to-wake-of-the-ravager)
 - [The Obsidian Edition mod](#the-obsidian-edition-mod)
 - [When something goes wrong](#when-something-goes-wrong)
 - [What is not there yet](#what-is-not-there-yet)
@@ -63,7 +64,8 @@ For *Wake of the Ravager* the program unpacks the CD's files from GOG's
    example `C:\Games\DarkSunRecompiled`. It holds:
    - `dsun.exe`, the program, and `SDL2.dll`, which it needs beside it;
    - `build\ds1\image.bin` and `build\ds2\image.bin`, the games' memory
-     images, one per game;
+     images, one per game, and `build\ct\image.bin`, the character transfer
+     utility's;
    - `run.bat`, a starter that takes your game folder as its argument;
    - this guide and the licences of the libraries used.
 2. Double-click `dsun.exe`. It looks for the games where GOG installs them
@@ -180,6 +182,37 @@ ship, which is why). MT-32 and General MIDI are not supported.
 On Linux, ALSA may print a few configuration errors at start when no sound
 device is configured; they are harmless.
 
+## Taking a party to Wake of the Ravager
+
+*Wake of the Ravager* can start with the characters of a *Shattered Lands*
+save. SSI's utility for that, `CHARTRAN.EXE` in the *Wake of the Ravager*
+folder, is built into the program too. Start it with both games installed
+where the program finds them (see [Starting a game](#starting-a-game)):
+when it finds both, the message box asking which game offers **Transfer a
+party** as well. Or from a command prompt:
+
+```
+dsun.exe --transfer
+dsun.exe --transfer --ds1 "C:\GOG Games\Dark Sun Shattered Lands" --ds2 "C:\GOG Games\Dark Sun Wake of the Ravager"
+```
+
+The utility is the original, a DOS text-mode program, drawn in the same
+window: it shows the two game folders as `C:\DSUN` and `C:\RAVAGER` (that
+is what it calls them; they are the two folders above, whatever they are
+really named), **Enter** accepts them, it lists the saves it found in the
+*Shattered Lands* folder with a letter each, and the letter you press
+transfers that save's characters into *Wake of the Ravager*'s roster, the
+`CHARSAVE.GFF` in its folder. It prints the characters' names, its note
+that not every item and spell has a counterpart in the sequel (those
+become money or something similar), and ends by itself. The sequel's
+CREATE CHARACTER screen then offers them. The written roster is byte for
+byte what the utility writes under DOSBox (the same save, the same
+result), so a party transferred here is the same party.
+
+The *Shattered Lands* folder needs the save you want to transfer in it
+(`SAVEnn.SAV`); the utility reads it as it is, and a game saved by this
+program or by DOSBox is the same file.
+
 ## The Obsidian Edition mod
 
 [Obsidian Edition](https://github.com/daaki85/darksun-obsidian-edition) is a
@@ -244,6 +277,6 @@ verified in this build; its dice log is.
 - A settings file, scaling filters, a CRT look: none. Window or full screen
   is the only choice.
 - MT-32 or General MIDI music.
-- Party transfer from *Shattered Lands* to *Wake of the Ravager*
-  (`CHARTRAN.EXE`).
+- Party transfer with the Obsidian Edition's additions to a party (its
+  own items): the utility is SSI's, and knows the original game's items.
 - The mod's combat-log panel seen on screen in the recompiled build.

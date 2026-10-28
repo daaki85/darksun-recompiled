@@ -56,9 +56,26 @@ python3 tools/build_image.py game/ds2/DSUN.EXE --out build/ds2 --args "-W0 -L"
 tools/converge.sh build/ds2 build/cmake game/ds2 60
 ```
 
+**The character transfer utility** (`CHARTRAN.EXE`, in Wake of the Ravager's
+folder, which carries a Shattered Lands party into the sequel's roster) is
+built in as a third program, tag `ct`. It is LZEXE-packed; `tools/unlzexe.py`
+unpacks it, and `build_image.py` takes the plain program (no overlays: its
+code segments come from its relocations). It is a text-mode program, so the
+runtime draws text mode too (`runtime/vga.c`, with Spleen's 8x16 font from
+`third_party/spleen`) and answers the BIOS and DOS console services. Started
+with `--transfer`, the program finds both games (or takes `--ds1` and
+`--ds2`) and mounts them as the `C:\DSUN` and `C:\RAVAGER` the utility
+expects.
+
+```sh
+python3 tools/unlzexe.py game/ds2/CHARTRAN.EXE build/chartran/CHARTRAN.EXE
+python3 tools/build_image.py build/chartran/CHARTRAN.EXE --out build/ct --original game/ds2/CHARTRAN.EXE
+tools/converge.sh build/ct build/cmake game/ds2 12 --transfer --ds1 game/ds1 --ds2 game/ds2 --input "3:key=RET 7:key=A"
+```
+
 **One program, both games.** CMake builds every game whose `build/<tag>/gen`
 exists into the one `dsun` (the list is `GAME_BUILDS`; each game's symbols
-carry its tag, `ds1_` or `ds2_`). The program recognises a game folder by
+carry its tag, `ds1_`, `ds2_` or `ct_`). The program recognises a game folder by
 the size of its `DSUN.EXE`: `--game <folder>` names one; without it, the
 program looks for `game/ds1` and `game/ds2` beside the current folder and
 beside itself, then in `dsun.ini` beside itself, then in GOG's usual

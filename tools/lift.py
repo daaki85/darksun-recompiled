@@ -25,6 +25,7 @@ CHUNK = 80
 GAMES = {
     611408: ('ds1', 'Dark Sun: Shattered Lands'),
     634416: ('ds2', 'Dark Sun: Wake of the Ravager'),
+    70288: ('ct', 'Dark Sun: character transfer'),      # CHARTRAN.EXE unpacked (tools/unlzexe.py)
 }
 TAG = 'ds1'
 
@@ -315,7 +316,7 @@ def main(argv=None):
         if mod:
             title += ' (Obsidian Edition)'
         fh.write(f'const GameDesc {TAG}_game = {{\n'
-                 f'    "{TAG}", "{title}", "{lay["exe"]}", {exe_size},\n'
+                 f'    "{TAG}", "{title}", "{lay["exe"]}", {lay.get("disk_size", exe_size)},\n'
                  f'    0x{lay["psp_seg"]:04X}, 0x{lay["entry"]["cs"]:04X}, 0x{lay["entry"]["ip"]:04X}, '
                  f'0x{lay["stack"]["ss"]:04X}, 0x{lay["stack"]["sp"]:04X},\n'
                  f'    dispatch, {len(entries)}, {TAG}_drivers, &{TAG}_ndrivers, "{cd}",\n'

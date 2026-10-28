@@ -7,8 +7,8 @@ have changed since a given second, a screenshot must be close to a reference
 (tests/ref/<name>.png, written with --update), files the game must have
 written must be there (`writes`, globs in the game folder; `removes` names
 the ones to delete afterwards, `keeps` the game's own files to put back as
-they were), and the log must not report misses, stack faults or unhandled
-calls.
+they were, `changes` the kept ones that must come out rewritten), and the
+log must not report misses, stack faults or unhandled calls.
 
     python3 tests/run.py             # every case
     python3 tests/run.py intro       # one
@@ -27,7 +27,11 @@ import tomllib
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DSUN = os.environ.get('DSUN', os.path.join(ROOT, 'build', 'cmake', 'dsun'))
 # A case with `game = "ds2"` is Wake of the Ravager: the same program, its
-# data folder and its CD.
+# data folder and its CD; `game = "ct"` is the character transfer utility,
+# run with both game folders (its files, for `writes` and `keeps`, are Wake
+# of the Ravager's). `places` copies files into place first (a save to
+# transfer), as {"game/ds1/SAVE01.SAV" = "tests/ref/arena.sav"}, and removes
+# them afterwards.
 
 
 def colours(path):
@@ -56,12 +60,20 @@ def run_case(path, update):
         os.remove(f)
     cmd = [DSUN, '--headless', '--seconds', str(case['seconds']), '--shots', shots]
     game = case.get('game', 'ds1')
-    game_dir = os.path.join(ROOT, 'game', game)
+    game_dir = os.path.join(ROOT, 'game', 'ds2' if game == 'ct' else game)
     kept = {}
     for pattern in case.get('keeps', []):         # the game rewrites these (its roster, CHARSAVE.GFF)
         for f in glob.glob(os.path.join(game_dir, pattern)):
             kept[f] = open(f, 'rb').read()
-    cmd += ['--game', f'game/{game}', '--build', f'build/{game}']
+    placed = []
+    for dst, src in case.get('places', {}).items():
+        d = os.path.join(ROOT, dst)
+        open(d, 'wb').write(open(os.path.join(ROOT, src), 'rb').read())
+        placed.append(d)
+    if game == 'ct':
+        cmd += ['--transfer', '--ds1', 'game/ds1', '--ds2', 'game/ds2', '--build', 'build/ct']
+    else:
+        cmd += ['--game', f'game/{game}', '--build', f'build/{game}']
     if case.get('input'):
         cmd += ['--input', case['input']]
     env = dict(os.environ, DS_QUIET='', DS_CLOCK='1000000000')   # the clock pinned: the same dice every run
@@ -73,12 +85,13 @@ def run_case(path, update):
         if n and bad not in case.get('allow', []):
             problems.append(f'{n} x "{bad}" in the log')
     for chk in case.get('screen', []):
-        shot = os.path.join(shots, f'shot_{chk["at"]:03d}.bmp')
+        at = chk['at']                            # a second, or "final": the screen the program ended on
+        shot = os.path.join(shots, 'final.bmp' if at == 'final' else f'shot_{at:03d}.bmp')
         if not os.path.exists(shot):
-            problems.append(f'no screenshot at {chk["at"]} s')
+            problems.append(f'no screenshot at {at} s')
             continue
         if 'min_colours' in chk and colours(shot) < chk['min_colours']:
-            problems.append(f'{chk["at"]} s: {colours(shot)} colours, wanted {chk["min_colours"]}')
+            problems.append(f'{at} s: {colours(shot)} colours, wanted {chk["min_colours"]}')
         if 'ref' in chk:
             ref = os.path.join(ROOT, 'tests', 'ref', f'{name}-{chk["ref"]}.png')
             if update:
@@ -90,12 +103,19 @@ def run_case(path, update):
             else:
                 d = differs(shot, ref, 24)
                 if d > chk.get('tolerance', 0.02):
-                    problems.append(f'{chk["at"]} s: {d:.1%} of the screen differs from {os.path.basename(ref)}')
+                    problems.append(f'{at} s: {d:.1%} of the screen differs from {os.path.basename(ref)}')
     for pattern in case.get('writes', []):
         if not glob.glob(os.path.join(game_dir, pattern)):
             problems.append(f'the game did not write {pattern}')
+    for pattern in case.get('changes', []):       # kept files the program must have rewritten
+        for f in glob.glob(os.path.join(game_dir, pattern)):
+            if f in kept and open(f, 'rb').read() == kept[f]:
+                problems.append(f'the program left {pattern} as it was')
     for pattern in case.get('removes', []):
         for f in glob.glob(os.path.join(game_dir, pattern)):
+            os.remove(f)
+    for f in placed:
+        if os.path.exists(f):
             os.remove(f)
     for f, data in kept.items():
         open(f, 'wb').write(data)

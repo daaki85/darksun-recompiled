@@ -202,9 +202,43 @@ void vga_port_out(uint16_t port, uint8_t val)
 }
 
 /* ---- the picture ----------------------------------------------------------------- */
+#include "font8x16.h"
+
+/* Text mode (the character transfer utility runs in mode 3): 80x25 cells of
+ * character and attribute at B800:0000, drawn 8x16 into 640x400 with the
+ * CGA's sixteen colours; the cursor from the BIOS data area (0040:0050, its
+ * shape at 0040:0060, bit 5 of the start line hiding it). */
+static const uint32_t CGA[16] = {
+    0xFF000000, 0xFF0000AA, 0xFF00AA00, 0xFF00AAAA, 0xFFAA0000, 0xFFAA00AA, 0xFFAA5500, 0xFFAAAAAA,
+    0xFF555555, 0xFF5555FF, 0xFF55FF55, 0xFF55FFFF, 0xFFFF5555, 0xFFFF55FF, 0xFFFFFF55, 0xFFFFFFFF,
+};
+
+int vga_text_mode(void) { return g_mode <= 3 || g_mode == 7; }
+
+static void render_text(uint32_t *rgba)
+{
+    const uint8_t *m = g_cpu->mem;
+    const uint8_t *cell = m + 0xB8000;
+    int cx = m[0x450], cy = m[0x451];
+    int cur_start = m[0x461] & 0x1F, cur_end = m[0x460] & 0x1F, cur_on = !(m[0x461] & 0x20);
+    for (int row = 0; row < 25; row++)
+        for (int col = 0; col < 80; col++) {
+            uint8_t ch = cell[(row * 80 + col) * 2], at = cell[(row * 80 + col) * 2 + 1];
+            uint32_t fg = CGA[at & 15], bg = CGA[(at >> 4) & 7];
+            const unsigned char *gl = FONT8X16[ch];
+            for (int y = 0; y < 16; y++) {
+                unsigned bits = gl[y];
+                if (cur_on && row == cy && col == cx && y >= cur_start && y <= cur_end) bits = 0xFF;
+                uint32_t *o = rgba + (row * 16 + y) * 640 + col * 8;
+                for (int x = 0; x < 8; x++) o[x] = (bits & (0x80 >> x)) ? fg : bg;
+            }
+        }
+}
+
 void vga_render(uint32_t *rgba, int *w, int *h)
 {
     int W = 320, H = 200;
+    if (vga_text_mode()) { render_text(rgba); *w = 640; *h = 400; return; }
     unsigned start = ((unsigned)g_crtc[0x0C] << 8) | g_crtc[0x0D];
     unsigned pitch = g_crtc[0x13] * 2u;                 /* bytes per line, byte mode */
     unsigned vde = g_crtc[0x12] | ((g_crtc[0x07] & 0x02) << 7) | ((g_crtc[0x07] & 0x40) << 3);
@@ -236,7 +270,7 @@ void vga_render(uint32_t *rgba, int *w, int *h)
 
 void vga_save_bmp(const char *path)
 {
-    static uint32_t px[320 * 240];
+    static uint32_t px[640 * 400];
     int w, h;
     vga_render(px, &w, &h);
     FILE *f = fopen(path, "wb");

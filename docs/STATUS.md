@@ -68,13 +68,20 @@ it. CREATE CHARACTERS opens the roster (VIEW CHARACTER).
   Borland run-time at the same addresses as Shattered Lands' (the
   struct-by-value push, the start-up's argv builders) is the only thing it
   reports, and is on the audit's known-good list for both games.
-- Nine scripted regression tests (`tests/run.py`): intro, menu, start, walk,
+- The character transfer against DOSBox: the same Shattered Lands save
+  (the arena party of four, `tests/ref/arena.sav`) carried into the
+  sequel's roster by the translated CHARTRAN.EXE and by the original under
+  DOSBox 0.74 gives the same `CHARSAVE.GFF`, byte for byte, and the same
+  exit code (211, the utility's own).
+- Ten scripted regression tests (`tests/run.py`): intro, menu, start, walk,
   create (a character rolled on CREATE CHARACTERS, kept, and the game started
   with it),
   save1-write and save2-load (Esc at the arena opens "Exit: save game?";
   the save is named and written, the game exits to DOS; the next run
-  loads it from the title menu and is back at the arena), and the two
-  Wake of the Ravager cases.
+  loads it from the title menu and is back at the arena), the two
+  Wake of the Ravager cases, and transfer (the utility carries the arena
+  party into the sequel's roster, its three screens checked against
+  references).
 
 ## Next
 
@@ -105,6 +112,19 @@ CMake writes the table of the games it found lifts for. The program
 recognises a game folder by the size of its `DSUN.EXE`, finds `game/ds1`
 and `game/ds2` on its own, and asks with a message box when both are
 there. The Windows zip now carries both memory images.
+
+**The character transfer** (Phase 7's party transfer) is the third program
+built in: SSI's `CHARTRAN.EXE` from Wake of the Ravager's folder,
+unpacked from LZEXE (`tools/unlzexe.py`), translated like the games (303
+functions; plain program, no overlays) and started with `--transfer`, or
+from the message box when both games are found. It runs in text mode,
+which the runtime now draws (80x25 from B800:0000, Spleen's 8x16 font,
+the BIOS cursor), with the BIOS character services and DOS console input
+and output answered, and both game folders mounted as the `C:\DSUN` and
+`C:\RAVAGER` it expects. The arena party goes into the sequel's roster
+with the same bytes DOSBox produces (Checks above). What it does not
+cover: a party with the Obsidian Edition's own items (the utility is the
+original's).
 
 ## Shattered Lands with the Obsidian Edition mod
 

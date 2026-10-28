@@ -174,6 +174,15 @@ static void guest_str(CPU *cpu, uint16_t seg, uint16_t off, char *out, int n)
 /* "C:\\DIR\\File.ext" -> a host path inside the game folder, matching case. */
 const char *g_cd_dir;          /* --cd: the folder D: shows (the CD-ROM's files) */
 
+/* Folders of C:\ that stand for host folders elsewhere: the character
+ * transfer utility expects both games, as C:\DSUN and C:\RAVAGER. */
+static struct { char name[32]; const char *dir; } g_mounts[4];
+static int g_nmounts;
+void dos_mount(const char *name, const char *dir)
+{
+    if (g_nmounts < 4) { snprintf(g_mounts[g_nmounts].name, 32, "%s", name); g_mounts[g_nmounts++].dir = dir; }
+}
+
 int dos_host_path(const char *dos, char *out, size_t n, int must_exist);
 #define host_path dos_host_path
 int dos_host_path(const char *dos, char *out, size_t n, int must_exist)
@@ -186,12 +195,19 @@ int dos_host_path(const char *dos, char *out, size_t n, int must_exist)
     }
     while (*p == '\\' || *p == '/') p++;
     snprintf(out, n, "%s", root);
+    int first = 1;
     while (*p) {
         char part[128]; int k = 0;
         while (*p && *p != '\\' && *p != '/' && k < 127) part[k++] = *p++;
         part[k] = 0;
         while (*p == '\\' || *p == '/') p++;
         if (!strcmp(part, ".")) continue;
+        if (first && root == g_game_dir) {
+            int m;
+            for (m = 0; m < g_nmounts; m++) if (!strcasecmp(part, g_mounts[m].name)) break;
+            first = 0;
+            if (m < g_nmounts) { snprintf(out, n, "%s", g_mounts[m].dir); continue; }
+        }
         char found[128] = {0};
         DIR *d = opendir(out);
         if (d) {
@@ -326,17 +342,55 @@ void dos_init(CPU *cpu)
     g_dta_seg = g_psp; g_dta_off = 0x80;
 }
 
+/* ---- the console ----------------------------------------------------------------
+ * Output goes to the text screen when the display is in a text mode (the
+ * character transfer utility's), and to the log either way; input is the
+ * BIOS keyboard, a line at a time for the cooked reads. */
+static void con_out(CPU *cpu, uint8_t c)
+{
+    if (vga_text_mode()) bios_teletype(cpu, c);
+    if (c == '\n' || (c >= ' ' && c < 127)) fputc(c, stderr);
+}
+
+static uint8_t con_key(CPU *cpu)
+{
+    uint16_t w;
+    while (!host_key_pop(&w, 0)) { irq_poll(cpu); host_sleep_us(2000); }
+    return (uint8_t)w;
+}
+
+static int con_line(CPU *cpu, char *line, int max)
+{
+    int len = 0;
+    for (;;) {
+        uint8_t c = con_key(cpu);
+        if (c == '\r') { con_out(cpu, '\r'); con_out(cpu, '\n'); break; }
+        if (c == 8) { if (len) { len--; con_out(cpu, 8); con_out(cpu, ' '); con_out(cpu, 8); } continue; }
+        if (c >= ' ' && len < max) { line[len++] = (char)c; con_out(cpu, c); }
+    }
+    line[len] = 0;
+    return len;
+}
+
 void dos_service(CPU *cpu)
 {
     char name[256], path[1024];
     uint8_t ah = cpu->ah;
     switch (ah) {
-    case 0x02: fputc(cpu->dl, stderr); break;
-    case 0x06: if (cpu->dl != 0xFF) fputc(cpu->dl, stderr); else { cpu->flags |= FLAG_ZF; cpu->al = 0; } break;
-    case 0x07: case 0x08: { uint16_t w; while (!host_key_pop(&w, 0)) { irq_poll(cpu); host_sleep_us(2000); } cpu->al = (uint8_t)w; break; }
+    case 0x02: con_out(cpu, cpu->dl); break;
+    case 0x06: if (cpu->dl != 0xFF) con_out(cpu, cpu->dl); else { cpu->flags |= FLAG_ZF; cpu->al = 0; } break;
+    case 0x01: cpu->al = con_key(cpu); con_out(cpu, cpu->al); break;
+    case 0x07: case 0x08: cpu->al = con_key(cpu); break;
+    case 0x0A: {                                                /* buffered line input */
+        uint8_t max = mem_read8(cpu, cpu->ds, cpu->dx);
+        char line[256]; int len = con_line(cpu, line, max ? max - 1 : 0);
+        mem_write8(cpu, cpu->ds, (uint16_t)(cpu->dx + 1), (uint8_t)len);
+        for (int i = 0; i < len; i++) mem_write8(cpu, cpu->ds, (uint16_t)(cpu->dx + 2 + i), (uint8_t)line[i]);
+        mem_write8(cpu, cpu->ds, (uint16_t)(cpu->dx + 2 + len), '\r');
+        break; }
     case 0x09: {
         char txt[201]; int k = 0;
-        for (uint16_t o = cpu->dx; ; o++) { char c = (char)mem_read8(cpu, cpu->ds, o); if (c == '$') break; fputc(c, stderr); if (k < 200) txt[k++] = c; }
+        for (uint16_t o = cpu->dx; ; o++) { char c = (char)mem_read8(cpu, cpu->ds, o); if (c == '$') break; con_out(cpu, (uint8_t)c); if (k < 200) txt[k++] = c; }
         txt[k] = 0;
         if (strstr(txt, "overflow") || strstr(txt, "rror")) {
             fprintf(stderr, "[dos] the game says \"%s\" (ss:sp=%04X:%04X ds=%04X)\n", txt, cpu->ss, cpu->sp, cpu->ds);
@@ -407,7 +461,12 @@ void dos_service(CPU *cpu)
         break; }
     case 0x3F: {
         int h = cpu->bx;
-        if (h == 0) { cpu->ax = 0; set_cf(cpu, 0); break; }
+        if (h == 0) {                                            /* a line from the keyboard, CR LF ended */
+            char line[256]; int len = con_line(cpu, line, cpu->cx > 253 ? 253 : (int)cpu->cx);
+            if (len + 2 <= (int)cpu->cx) { line[len++] = '\r'; line[len++] = '\n'; }
+            for (int i = 0; i < len; i++) mem_write8(cpu, cpu->ds, (uint16_t)(cpu->dx + i), (uint8_t)line[i]);
+            cpu->ax = (uint16_t)len; set_cf(cpu, 0); break;
+        }
         if (!valid(h)) { fail(cpu, 6); break; }
         uint32_t lin = ((uint32_t)cpu->ds << 4) + cpu->dx;
         ssize_t n = read(g_files[h], cpu->mem + lin, cpu->cx);
@@ -429,6 +488,10 @@ void dos_service(CPU *cpu)
                 fprintf(stderr, "[dos] the game writes \"%s\" (ss:sp=%04X:%04X)\n", txt, cpu->ss, cpu->sp);
                 extern void dispatch_backtrace(void); dispatch_backtrace();
             }
+        }
+        if (h <= 2) {                                    /* the console: the text screen, and the log */
+            for (unsigned i = 0; i < cpu->cx; i++) con_out(cpu, cpu->mem[lin + i]);
+            cpu->ax = cpu->cx; set_cf(cpu, 0); break;
         }
         ssize_t n = write(g_files[h], cpu->mem + lin, cpu->cx);
         if (n < 0) { fail(cpu, 5); break; }

@@ -89,7 +89,8 @@ the intro plays (SSI logo, AD&D screen).
 
 - One program and launcher with both games, one runtime.
 - Party transfer (`CHARTRAN.EXE`, translated or reimplemented), including the
-  mod's additions.
+  mod's additions. (Translated: built in as `ct`, started with
+  `--transfer`; the mod's additions are not covered.)
 - The mod's rules shared, an address table per game.
 
 ## Phase 8: Shattered Lands figures in Wake of the Ravager

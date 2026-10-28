@@ -1,0 +1,17 @@
+# The character transfer utility (CHARTRAN.EXE, Wake of the Ravager's): the
+# arena save from Shattered Lands (tests/ref/arena.sav, the party of four at
+# the gate of Draj's arena) put in game/ds1, Enter takes the default folders,
+# A picks the one save listed, and the utility writes the party into Wake of
+# the Ravager's roster, CHARSAVE.GFF (the same bytes DOSBox writes: STATUS.md),
+# and ends by itself with its notes on the screen.
+game = "ct"
+seconds = 12
+input = "3:key=RET 7:key=A"
+places = { "game/ds1/SAVE02.SAV" = "tests/ref/arena.sav" }
+screen = [
+  { at = 2, ref = "paths", min_colours = 3 },
+  { at = 5, ref = "list", min_colours = 3 },
+  { at = "final", ref = "done", min_colours = 2 },
+]
+keeps = ["CHARSAVE.GFF"]
+changes = ["CHARSAVE.GFF"]

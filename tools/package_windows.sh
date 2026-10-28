@@ -22,9 +22,10 @@ cp docs/PLAYING.md "$OUT/PLAYING.md"       # the players' how-to
 cp third_party/nuked-opl3/LICENSE "$OUT/LICENSE-nuked-opl3.txt"
 cp third_party/licenses/SDL2.txt "$OUT/LICENSE-SDL2.txt"
 cp third_party/licenses/stb_vorbis.txt "$OUT/LICENSE-stb_vorbis.txt"
+cp third_party/spleen/LICENSE "$OUT/LICENSE-spleen.txt"      # the text-mode font
 # The memory images made from the owner's own DSUN.EXEs, for the owner's own
 # use: they are the games' code, as the program itself is.
-for T in ds1 ds2; do
+for T in ds1 ds2 ct; do
     [ -f "build/$T/image.bin" ] && mkdir -p "$OUT/build/$T" && cp "build/$T/image.bin" "$OUT/build/$T/image.bin"
 done
 printf '@echo off\r\nrem Usage: run.bat "C:\\GOG Games\\Dark Sun Shattered Lands"  (or the Wake of the Ravager folder)\r\nif "%%~1"=="" (echo Give the folder of your GOG Dark Sun install as the argument.& pause & exit /b 1)\r\ndsun.exe --game "%%~1"\r\n' > "$OUT/run.bat"

@@ -68,6 +68,7 @@ extern int g_in_int;                          /* depth of guest interrupt handle
 void dispatch_reset_depth(void);
 void recomp_return(CPU *cpu, unsigned seg, unsigned off);
 void dos_set_psp(uint16_t psp);
+void dos_mount(const char *name, const char *dir);   /* C:\<name> stands for this host folder */
 
 /* ---- the machine ---------------------------------------------------------- */
 extern CPU *g_cpu;
@@ -100,6 +101,8 @@ uint8_t vga_port_in(uint16_t port);
 void vga_port_out(uint16_t port, uint8_t val);
 void vga_set_mode(CPU *cpu, int mode);
 int  vga_mode(void);
+int  vga_text_mode(void);                          /* modes 0-3 and 7: text, drawn 640x400 */
+void bios_teletype(CPU *cpu, uint8_t ch);          /* one character at the cursor (INT 10h AH=0Eh) */
 void vga_render(uint32_t *rgba, int *w, int *h);   /* the screen as shown */
 void vga_save_bmp(const char *path);
 extern volatile unsigned long g_vga_frames;      /* retraces the game waited on */

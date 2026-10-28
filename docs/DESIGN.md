@@ -60,6 +60,34 @@ only ever looks at `g_game`. A game folder is recognised by the size of its
 looks for `game/ds1` and `game/ds2` beside itself and asks when both are
 there (SDL's message box, which needs no drawing code of our own).
 
+### The character transfer utility
+
+`CHARTRAN.EXE` (Wake of the Ravager's folder) is a third program in the
+same table, tag `ct`, with `exe` naming it, so the game-finding code (which
+only looks at `DSUN.EXE`s) leaves it alone and `--transfer` picks it. It
+is LZEXE 0.91-packed: `tools/unlzexe.py` unpacks it (the decompressor's
+header gives the real entry, stack and sizes; the relocation table is a
+list of spans after it; the data is the usual bit-coded LZ stream), and
+`build_image.py --original` records the packed file's size, which is what
+the program checks in the game folder. A plain program has no overlay
+segment table, so its code segments are the segments its relocations name
+below DGROUP (Borland links code first), each running to the next.
+
+It is a Borland conio program: it writes the screen at B800:0000 itself
+and asks the BIOS for the cursor and the mode, and its prompts go through
+DOS. The runtime draws text mode when the mode is 0-3 or 7
+(`runtime/vga.c`: 80x25 cells, 8x16 glyphs from `runtime/font8x16.h`, made
+from Spleen's BDF by `tools/mkfont.py`, in code page 437 order; the
+cursor from the BIOS data area), the window's texture is 640x400 and the
+logical size follows the mode's width at 4:3. `runtime/bios.c` answers
+INT 10h's cursor, scroll, character and string services, and
+`runtime/dos.c`'s console (`con_out`, `con_key`, `con_line`) sends DOS
+output to the text screen (and the log) and reads keys and lines from the
+BIOS keyboard, for the character and buffered-input calls and for reads of
+handle 0. The two game folders are mounted as `C:\DSUN` and `C:\RAVAGER`
+(`dos_mount`: a first path component that names a mount stands for that
+host folder), the utility's defaults, so a player need only press Enter.
+
 ## Things the game does that needed handling
 
 - **The overlay manager** still has its init in Borland's `_INIT_` table and

@@ -291,6 +291,8 @@ void bios_init(CPU *cpu)
     m[BDA(0x4A)] = 80;
     m[BDA(0x84)] = 24;
     m[BDA(0x63)] = 0xD4; m[BDA(0x64)] = 0x03;            /* CRTC at 3D4 */
+    m[BDA(0x60)] = 0x07; m[BDA(0x61)] = 0x06;            /* the cursor: lines 6-7, shown */
+    for (int i = 0; i < 80 * 25; i++) { m[0xB8000 + i * 2] = ' '; m[0xB8000 + i * 2 + 1] = 0x07; }
     memcpy(&m[0xFFFF5], "01/01/92", 8);
     m[0xFFFFE] = 0xFC;                                   /* an AT */
 }
@@ -309,10 +311,98 @@ static void set_cf(CPU *cpu, int on)
     if (on) cpu->flags |= FLAG_CF; else cpu->flags &= ~FLAG_CF;
 }
 
+/* ---- text mode (INT 10h's character services, used through DOS as well) ----
+ * The screen is 80x25 cells of character and attribute at B800:0000; the
+ * cursor is kept in the BIOS data area (0040:0050), as programs read it. */
+#define TEXT_BASE 0xB8000u
+#define COLS 80
+#define ROWS 25
+
+static void text_scroll(CPU *cpu, int up, int n, int top, int left, int bottom, int right, uint8_t attr)
+{
+    uint8_t *v = cpu->mem + TEXT_BASE;
+    if (right >= COLS) right = COLS - 1;
+    if (bottom >= ROWS) bottom = ROWS - 1;
+    if (top > bottom || left > right) return;
+    int h = bottom - top + 1;
+    if (n <= 0 || n > h) n = h;
+    for (int r = 0; r < h; r++) {
+        int dst = up ? top + r : bottom - r, src = up ? dst + n : dst - n;
+        for (int c = left; c <= right; c++) {
+            uint8_t *d = v + (dst * COLS + c) * 2;
+            if (src >= top && src <= bottom) { d[0] = v[(src * COLS + c) * 2]; d[1] = v[(src * COLS + c) * 2 + 1]; }
+            else { d[0] = ' '; d[1] = attr; }
+        }
+    }
+}
+
+static void text_set_cursor(CPU *cpu, int col, int row)
+{
+    cpu->mem[BDA(0x50)] = (uint8_t)col; cpu->mem[BDA(0x51)] = (uint8_t)row;
+}
+
+/* Write one character at the cursor and advance it, as INT 10h AH=0Eh does:
+ * BEL, BS, CR and LF act, the rest print; the screen scrolls at the bottom. */
+void bios_teletype(CPU *cpu, uint8_t ch)
+{
+    int col = cpu->mem[BDA(0x50)], row = cpu->mem[BDA(0x51)];
+    uint8_t *v = cpu->mem + TEXT_BASE;
+    switch (ch) {
+    case 7: break;
+    case 8: if (col > 0) col--; break;
+    case '\r': col = 0; break;
+    case '\n': row++; break;
+    default:
+        v[(row * COLS + col) * 2] = ch;
+        if (v[(row * COLS + col) * 2 + 1] == 0) v[(row * COLS + col) * 2 + 1] = 0x07;
+        if (++col >= COLS) { col = 0; row++; }
+    }
+    if (row >= ROWS) { text_scroll(cpu, 1, 1, 0, 0, ROWS - 1, COLS - 1, 0x07); row = ROWS - 1; }
+    text_set_cursor(cpu, col, row);
+}
+
+static void text_clear(CPU *cpu)
+{
+    uint8_t *v = cpu->mem + TEXT_BASE;
+    for (int i = 0; i < COLS * ROWS; i++) { v[i * 2] = ' '; v[i * 2 + 1] = 0x07; }
+    text_set_cursor(cpu, 0, 0);
+}
+
 static void int10(CPU *cpu)
 {
+    uint8_t *m = cpu->mem;
     switch (cpu->ah) {
-    case 0x00: vga_set_mode(cpu, cpu->al & 0x7F); cpu->mem[BDA(0x49)] = cpu->al & 0x7F; break;
+    case 0x00:
+        vga_set_mode(cpu, cpu->al & 0x7F); m[BDA(0x49)] = cpu->al & 0x7F;
+        if (vga_text_mode()) { text_clear(cpu); m[BDA(0x60)] = 0x07; m[BDA(0x61)] = 0x06; }
+        break;
+    case 0x01: m[BDA(0x60)] = cpu->cl; m[BDA(0x61)] = cpu->ch; break;             /* cursor shape */
+    case 0x02: if (cpu->bh == 0) text_set_cursor(cpu, cpu->dl, cpu->dh); break;
+    case 0x03: cpu->dl = m[BDA(0x50)]; cpu->dh = m[BDA(0x51)]; cpu->cl = m[BDA(0x60)]; cpu->ch = m[BDA(0x61)]; break;
+    case 0x05: break;                                                            /* page: only 0 */
+    case 0x06: text_scroll(cpu, 1, cpu->al, cpu->ch, cpu->cl, cpu->dh, cpu->dl, cpu->bh); break;
+    case 0x07: text_scroll(cpu, 0, cpu->al, cpu->ch, cpu->cl, cpu->dh, cpu->dl, cpu->bh); break;
+    case 0x08: { unsigned o = TEXT_BASE + (m[BDA(0x51)] * COLS + m[BDA(0x50)]) * 2; cpu->al = m[o]; cpu->ah = m[o + 1]; break; }
+    case 0x09: case 0x0A: {                                                      /* n copies, cursor kept */
+        int col = m[BDA(0x50)], row = m[BDA(0x51)];
+        for (unsigned i = 0; i < cpu->cx && row < ROWS; i++) {
+            unsigned o = TEXT_BASE + (row * COLS + col) * 2;
+            m[o] = cpu->al; if (cpu->ah == 0x09) m[o + 1] = cpu->bl;
+            if (++col >= COLS) { col = 0; row++; }
+        }
+        break; }
+    case 0x0E: if (vga_text_mode()) bios_teletype(cpu, cpu->al); else fputc(cpu->al, stderr); break;
+    case 0x13: {                                                                 /* write string */
+        int col = m[BDA(0x50)], row = m[BDA(0x51)];
+        text_set_cursor(cpu, cpu->dl, cpu->dh);
+        for (unsigned i = 0; i < cpu->cx; i++) {
+            uint8_t ch = mem_read8(cpu, cpu->es, (uint16_t)(cpu->bp + i));
+            int c = m[BDA(0x50)], r = m[BDA(0x51)];
+            bios_teletype(cpu, ch);
+            if (ch >= ' ' && r < ROWS) m[TEXT_BASE + (r * COLS + c) * 2 + 1] = cpu->bl;
+        }
+        if (!(cpu->al & 1)) text_set_cursor(cpu, col, row);
+        break; }
     case 0x0F: cpu->al = (uint8_t)vga_mode(); cpu->ah = 80; cpu->bh = 0; break;
     case 0x10:
         if (cpu->al == 0x10) {
@@ -331,11 +421,9 @@ static void int10(CPU *cpu)
                 mem_write8(cpu, cpu->es, (uint16_t)(cpu->dx + i), vga_port_in(0x3C9));
         }
         break;
-    case 0x0E: fputc(cpu->al, stderr); break;
     case 0x12: if (cpu->bl == 0x10) { cpu->bh = 0; cpu->bl = 3; cpu->cx = 0; } break;
     case 0x1A: if (cpu->al == 0) { cpu->al = 0x1A; cpu->bx = 0x0008; } break;
     case 0x4F: cpu->ax = 0x0100; break;          /* no VESA */
-    case 0x03: cpu->dx = 0; cpu->cx = 0x0607; break;
     default: break;
     }
 }

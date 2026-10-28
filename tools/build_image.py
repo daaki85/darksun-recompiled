@@ -163,14 +163,19 @@ def mod_sites(mod_dir, exe, hdr, base, modules):
     return sites, sorted(vectors), applied, originals
 
 
-def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None):
+def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None, original=None):
     exe = open(exe_path, 'rb').read()
     mz = parse_mz(exe)
     hdr, image_end = mz['hdr'], mz['image_end']
-    if exe[image_end:image_end + 4] != b'FBOV':
-        raise ImageError('no Borland overlay (FBOV) header after the image')
-    ovrsize, exeinfo, segnum = struct.unpack_from('<3I', exe, image_end + 4)
-    area = ((image_end + 15) & ~15) + 16          # overlay area base (file offset)
+    # A plain program (CHARTRAN.EXE, once unpacked) has no overlays: no
+    # segment table either, so its code segments are read from its
+    # relocations below.
+    has_ovl = exe[image_end:image_end + 4] == b'FBOV'
+    if has_ovl:
+        ovrsize, exeinfo, segnum = struct.unpack_from('<3I', exe, image_end + 4)
+        area = ((image_end + 15) & ~15) + 16      # overlay area base (file offset)
+    else:
+        exeinfo = segnum = area = 0
 
     mem = bytearray(MEM_SIZE)
     load = PSP_SEG + 0x10
@@ -184,7 +189,7 @@ def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None):
 
     # The segment table: 8-byte records {para, size, class, x} at exeinfo
     # (a file offset; the table is part of the resident image).
-    segtab_lin = base + (exeinfo - hdr)
+    segtab_lin = base + (exeinfo - hdr) if has_ovl else 0
     records = []
     for i in range(segnum):
         para, size, cls, x = struct.unpack_from('<4H', exe, exeinfo + 8 * i)
@@ -261,7 +266,8 @@ def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None):
         seg_next = seg + ((size + 15) >> 4)
 
     # The environment and the program segment prefix, as DOS leaves them.
-    env = b'COMSPEC=C:\\COMMAND.COM\0PATH=C:\\\0\0' + b'\x01\x00' + b'C:\\DSUN.EXE\0'
+    exe_name = os.path.basename(original or exe_path).upper().encode('ascii')
+    env = b'COMSPEC=C:\\COMMAND.COM\0PATH=C:\\\0\0' + b'\x01\x00' + b'C:\\' + exe_name + b'\0'
     mem[ENV_SEG * 16:ENV_SEG * 16 + len(env)] = env
     p = PSP_SEG * 16
     mem[p:p + 2] = b'\xCD\x20'
@@ -274,8 +280,17 @@ def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None):
     for k in range(20):                               # job file table
         mem[p + 0x18 + k] = k if k < 5 else 0xFF
 
+    dgroup = (u16(exe, hdr + 1) + load) & 0xFFFF      # `mov dx, DGROUP` first
     code_segs = [dict(seg=r['seg'], size=r['size'], record=r['index'])
                  for r in records if r['cls'] == 1 and r['size']]
+    if not has_ovl:
+        # Borland links the code segments first, DGROUP after them: every
+        # segment a relocation names below DGROUP is code, up to the next.
+        named = sorted({(u16(mem, a) + 0) & 0xFFFF for a in
+                        (base + seg * 16 + off for off, seg in mz['relocs'])} | {(mz['cs'] + load) & 0xFFFF})
+        named = [v for v in named if load <= v < dgroup] + [dgroup]
+        code_segs = [dict(seg=v, size=(named[i + 1] - v) * 16, plain=True)
+                     for i, v in enumerate(named[:-1])]
     code_segs += [dict(seg=m['seg'], size=m['size'], module=m['index'])
                   for m in modules if m['seg'] is not None]
 
@@ -293,14 +308,15 @@ def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None):
     sites, vectors, applied, originals = mod_sites(mod_dir, exe, hdr, base, modules) if mod_dir else ({}, [], 0, {})
 
     layout = dict(
-        exe=os.path.basename(exe_path), exe_size=len(exe),
+        exe=os.path.basename(original or exe_path), exe_size=len(exe),
+        disk_size=os.path.getsize(original) if original else len(exe),
         tsr=tsr, mod=dict(dir=os.path.abspath(mod_dir), patches=applied, vectors=vectors) if mod_dir else None,
         int_sites=sites, int_originals=originals,
         psp_seg=PSP_SEG, load_seg=load, env_seg=ENV_SEG, top_of_dos=TOP_OF_DOS,
         resident=[base, res_end],
         entry=dict(cs=(mz['cs'] + load) & 0xFFFF, ip=mz['ip']),
         stack=dict(ss=(mz['ss'] + load) & 0xFFFF, sp=mz['sp']),
-        dgroup=(u16(exe, hdr + 1) + load) & 0xFFFF,   # `mov dx, DGROUP` first
+        dgroup=dgroup,
         segtab=segtab_lin, records=records, code_segments=code_segs,
         relocs=sorted(base + seg * 16 + off for off, seg in mz['relocs']),
         modules=modules,
@@ -321,9 +337,10 @@ def main(argv=None):
     ap.add_argument('--args', default='', help='command tail for the PSP')
     ap.add_argument('--tsr', help='a resident helper to load first (the mod\'s DSCLOG.EXE)')
     ap.add_argument('--mod', help="the mod's obsidian-edition folder (its dsloader/gamepatch.py names the INT sites)")
+    ap.add_argument('--original', help='the file as the game folder has it, when exe is an unpacked copy (tools/unlzexe.py)')
     a = ap.parse_args(argv)
     try:
-        lay = build(a.exe, a.out, a.args, a.tsr, a.mod)
+        lay = build(a.exe, a.out, a.args, a.tsr, a.mod, a.original)
     except ImageError as e:
         sys.exit(f'build_image: {e}')
     live = [m for m in lay['modules'] if m['seg'] is not None]
