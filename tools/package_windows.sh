@@ -13,7 +13,7 @@ cd "$(dirname "$0")/.."
 # GAME_BUILDS is given outright: a build/win configured before the list grew
 # would keep its cached, shorter list.
 cmake -S . -B build/win -G Ninja -DCMAKE_BUILD_TYPE=Release \
-      -DGAME_BUILDS="$PWD/build/ds1;$PWD/build/ds2;$PWD/build/ct" \
+      -DGAME_BUILDS="$PWD/build/ds1;$PWD/build/ds1o;$PWD/build/ds2;$PWD/build/ct" \
       -DCMAKE_TOOLCHAIN_FILE=cmake/mingw-w64-x86_64.cmake >/dev/null
 cmake --build build/win
 OUT=build/package/windows
@@ -28,7 +28,7 @@ cp third_party/licenses/stb_vorbis.txt "$OUT/LICENSE-stb_vorbis.txt"
 cp third_party/spleen/LICENSE "$OUT/LICENSE-spleen.txt"      # the text-mode font
 # The memory images made from the owner's own DSUN.EXEs, for the owner's own
 # use: they are the games' code, as the program itself is.
-for T in ds1 ds2 ct; do
+for T in ds1 ds1o ds2 ct; do
     [ -f "build/$T/image.bin" ] && mkdir -p "$OUT/build/$T" && cp "build/$T/image.bin" "$OUT/build/$T/image.bin"
 done
 printf '@echo off\r\nrem Usage: run.bat "C:\\GOG Games\\Dark Sun Shattered Lands"  (or the Wake of the Ravager folder)\r\nif "%%~1"=="" (echo Give the folder of your GOG Dark Sun install as the argument.& pause & exit /b 1)\r\ndsun.exe --game "%%~1"\r\n' > "$OUT/run.bat"

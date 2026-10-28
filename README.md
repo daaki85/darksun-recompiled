@@ -17,9 +17,13 @@ sound drivers. See [docs/STATUS.md](docs/STATUS.md).
  See [docs/DESIGN.md](docs/DESIGN.md) for how it works and
 [docs/STATUS.md](docs/STATUS.md) for where it stands.
 
-**Players:** [docs/PLAYING.md](docs/PLAYING.md) is the how-to: what you
-need, installing on Windows or Linux, starting each game, the window and
-the keys, saves, sound, the mod, and what to do when something goes wrong.
+**Players:** install the games from GOG, unzip
+`darksun-recompiled-windows-x64.zip`, double-click `dsun.exe`: it finds the
+games and asks which to start (the mod and the party transfer among the
+buttons, when they are there). [docs/PLAYING.md](docs/PLAYING.md) is the
+how-to: what you need, installing on Windows or Linux, starting each game
+and the Obsidian Edition, the window and the keys, saves, sound, and what
+to do when something goes wrong.
 
 **This repository contains no game data or code.** You need the GOG release of
 the game; everything made from it (the memory image, the generated C, the
@@ -75,7 +79,7 @@ tools/converge.sh build/ct build/cmake game/ds2 12 --transfer --ds1 game/ds1 --d
 
 **One program, both games.** CMake builds every game whose `build/<tag>/gen`
 exists into the one `dsun` (the list is `GAME_BUILDS`; each game's symbols
-carry its tag, `ds1_`, `ds2_` or `ct_`). The program recognises a game folder by
+carry its tag, `ds1_`, `ds1o_` (the mod's build), `ds2_` or `ct_`). The program recognises a game folder by
 the size of its `DSUN.EXE`: `--game <folder>` names one; without it, the
 program looks for `game/ds1` and `game/ds2` beside the current folder and
 beside itself, then in `dsun.ini` beside itself, then in GOG's usual
@@ -92,11 +96,15 @@ Its regression cases (`tests/cases/wotr-*.toml`) run with the rest under
 
 **The Obsidian Edition mod.** `tools/build_mod.sh <mod>/obsidian-edition`
 builds Shattered Lands with the mod's patched EXE and its resident helper
-into `build/cmake-mod/dsun` (see docs/DESIGN.md, "The mod"); run it with
-`--game game/ds1 --build build/ds1mod --cd <mod>/obsidian-edition/dos`.
-The mod's Loader can start it instead of DOSBox (`dsloader launch
---recompiled <path to dsun>`; its `recompiled` branch (on top of 2.12.1), also
-docs/loader-recompiled.patch) and attaches its dice log and window to it.
+into `build/ds1o`, a fourth entry in the one `dsun` (see docs/DESIGN.md,
+"The mod"); `dsun --mod <mod>/obsidian-edition` runs it (or `--game
+game/ds1 --build build/ds1o --cd <mod>/obsidian-edition/dos`), and the
+program finds the mod's folder on its own when it sits in or beside its
+own, offering it in the choice box. The mod's Loader starts the program
+instead of DOSBox when the program is unzipped into or beside the mod's
+folder, or named once with `dsloader launch --recompiled <path to dsun>`;
+that is its `recompiled` branch (on top of 2.12.1, also
+docs/loader-recompiled.patch), which attaches its dice log and window to it.
 
 **Windows** (cross-built from Linux): `tools/setup_mingw_sdl.sh` once, then
 `tools/package_windows.sh` makes `build/darksun-recompiled-windows-x64.zip`

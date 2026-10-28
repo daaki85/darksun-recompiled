@@ -129,9 +129,11 @@ original's).
 ## Shattered Lands with the Obsidian Edition mod
 
 `tools/build_mod.sh` builds the mod's patched game (`DSUNLOG.EXE`) and its
-resident helper (`DSCLOG.EXE`) into a program of their own,
-`build/cmake-mod/dsun`, run with `--game game/ds1 --build build/ds1mod --cd
-<mod>/obsidian-edition/dos` (docs/DESIGN.md, "The mod"). The helper loads
+resident helper (`DSCLOG.EXE`) into `build/ds1o`, an entry of the one
+`dsun` beside the plain game (tag `ds1o`), run with `--mod
+<mod>/obsidian-edition`, or chosen from the box of buttons when the
+program finds the mod's folder in or beside its own (docs/DESIGN.md, "The
+mod"). The helper loads
 and stays resident, hooks DOS, the keyboard and the mouse, and answers the
 patched game's interrupts; the game boots with the mod's data files
 through its DOS hook, plays its intro, shows the menu, and START GAME
@@ -183,12 +185,15 @@ The helper gets both its upper memory blocks (the ring below the BIOS area,
 the panel in the HMA), so the combat-log panel can be drawn once the Loader
 asks for it.
 
-The Loader starts this program instead of DOSBox once told where it is
-(`dsloader launch --recompiled <path to dsun>`, on the mod repository's
+The Loader starts this program instead of DOSBox when it finds it, unzipped
+into or beside the mod's folder, or once told where it is (`dsloader
+launch --recompiled <path to dsun>`; both on the mod repository's
 `recompiled` branch): `launch`, `play` and the window's "Start the game"
 run it with the game's folder and the mod's `dos` folder, and attach as
-they do to DOSBox. The program expects its memory image at `build/ds1mod`
-beside itself, as the zip lays it out.
+they do to DOSBox. The program expects its memory image at `build/ds1o`
+beside itself, as the zip lays it out. The program started on its own
+picks the mod's build when its `--cd` folder holds `DSUNLOG.EXE` (the
+Loader's command line), with `--mod`, or from the choice box.
 
 Not yet: the combat-log panel seen on screen through the Loader's window
 (it needs a display and the viewer; the helper has the memory for it now).

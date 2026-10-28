@@ -86,7 +86,7 @@ static long file_size(const char *path)
     return stat(path, &st) == 0 ? (long)st.st_size : -1;
 }
 
-static int is_game(const GameDesc *g) { return !strcmp(g->exe, "DSUN.EXE"); }   /* not the transfer utility */
+static int is_game(const GameDesc *g) { return !strcmp(g->exe, "DSUN.EXE") && !g->variant[0]; }   /* a plain game: not the transfer utility, not the mod's build */
 
 static long exe_size_in(const char *dir, const char *exe)   /* the size of dir/exe, in any case */
 {
@@ -259,6 +259,62 @@ static const char *locate(const GameDesc *g)           /* the game's folder, by 
     return NULL;
 }
 
+/* ---- the Obsidian Edition mod -------------------------------------------------
+ * The mod's build of Shattered Lands (tag ds1o: its patched game and its
+ * helper, translated together) runs the plain game folder with the mod's
+ * prepared folder as D:, where the patched game reads its data files. The
+ * mod's Loader writes that folder (<mod>/dos: DSUNLOG.EXE and the data
+ * files) the first time it starts the game. The folder is found as --mod
+ * names it, as dsun.ini remembers it (mod=), or in the usual places: the
+ * mod beside the program, or the program inside the mod's folder. */
+static const char *mod_dos_dir(const char *mod)      /* the prepared folder in or at mod, or NULL */
+{
+    static char buf[1300];
+    if (!mod) return NULL;
+    snprintf(buf, sizeof buf, "%s/dos", mod);
+    if (exe_size_in(buf, "DSUNLOG.EXE") > 0) return buf;
+    snprintf(buf, sizeof buf, "%s", mod);
+    if (exe_size_in(buf, "DSUNLOG.EXE") > 0) return buf;
+    return NULL;
+}
+
+static const char *find_mod(void)
+{
+    static const char *rels[] = { "mod", "obsidian-edition", "darksun-obsidian-edition/obsidian-edition",
+                                  "..", "../obsidian-edition", "../darksun-obsidian-edition/obsidian-edition" };
+    const char *d = mod_dos_dir(remembered("mod"));
+    if (d) return d;
+    for (size_t i = 0; i < sizeof rels / sizeof *rels; i++) {
+        const char *r = find_dir(rels[i]);
+        d = r ? mod_dos_dir(r) : NULL;
+        if (d) { remember("mod", r); return d; }
+    }
+    return NULL;
+}
+
+static const GameDesc *mod_setup(const char *mod, int headless)
+{
+    const GameDesc *o = by_tag("ds1o"), *g1 = by_tag("ds1");
+    if (!o) { say(headless, "This program was built without the Obsidian Edition's game (build/ds1o)."); return NULL; }
+    const char *dos = mod ? mod_dos_dir(mod) : find_mod();
+    if (!dos) {
+        char msg[1600];
+        snprintf(msg, sizeof msg, "The Obsidian Edition's prepared files were not found%s%s. Start the mod once with its own \"Start Obsidian Edition.bat\" (its Loader writes DSUNLOG.EXE and the data files into its dos folder), then start this program with --mod <the mod's obsidian-edition folder>, or put this program's folder inside it.",
+                 mod ? " in " : "", mod ? mod : "");
+        say(headless, msg);
+        return NULL;
+    }
+    if (!g_game_dir && g1) g_game_dir = locate(g1);
+    if (!g_game_dir || game_in(g_game_dir) != g1) {
+        say(headless, "The Obsidian Edition needs Shattered Lands: give its folder with --game, or install it where this program finds it.");
+        return NULL;
+    }
+    extern const char *g_cd_dir;
+    g_cd_dir = dos;
+    fprintf(stderr, "[main] Obsidian Edition: the mod's files from %s\n", dos);
+    return o;
+}
+
 /* The character transfer utility (CHARTRAN.EXE, in Wake of the Ravager's
  * folder, built in as "ct"): it wants both games, as C:\DSUN and C:\RAVAGER,
  * and writes the party it makes into Wake of the Ravager's CHARSAVE.GFF. */
@@ -319,19 +375,38 @@ static const GameDesc *choose_game(int headless)
     const char *want = getenv("DS_GAME");
     if (want) for (int i = 0; i < n; i++) if (!strcmp(found[i]->tag, want)) pick = i;
     if (want && !strcmp(want, "ct")) return transfer_setup(NULL, NULL, headless);
-    if (n > 1 && !want && !headless) {
-        /* both games there: the transfer utility is offered too, when built in */
-        int nb = n + (by_tag("ct") != NULL);
-        SDL_MessageBoxButtonData buttons[9];
-        for (int i = 0; i < nb; i++) {
-            buttons[i].flags = i == 0 ? SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT : 0;
-            buttons[i].buttonid = i; buttons[i].text = i < n ? found[i]->title : "Transfer a party (Shattered Lands to Wake)";
+    if (want && !strcmp(want, "ds1o")) return mod_setup(NULL, headless);
+    /* With more than one thing to start, ask: the games found, the mod's
+     * build when its prepared folder is found beside Shattered Lands, and the
+     * transfer utility when both games are there. */
+    int has_ds1 = 0; for (int i = 0; i < n; i++) if (!strcmp(found[i]->tag, "ds1")) has_ds1 = 1;
+    int with_mod = has_ds1 && by_tag("ds1o") && find_mod() != NULL;
+    int with_ct = n > 1 && by_tag("ct") != NULL;
+    int nb = n + with_mod + with_ct;
+    if (nb > 1 && !want && !headless) {
+        SDL_MessageBoxButtonData buttons[10];
+        const char *texts[10];
+        int k = 0;
+        for (int i = 0; i < n; i++) {
+            texts[k++] = found[i]->title;
+            if (with_mod && !strcmp(found[i]->tag, "ds1")) texts[k++] = "Shattered Lands with the Obsidian Edition";
         }
-        SDL_MessageBoxData box = { SDL_MESSAGEBOX_INFORMATION, NULL, "Dark Sun Recompiled", "Which game?", nb, buttons, NULL };
+        if (with_ct) texts[k++] = "Transfer a party (Shattered Lands to Wake)";
+        for (int i = 0; i < k; i++) {
+            buttons[i].flags = i == 0 ? SDL_MESSAGEBOX_BUTTON_RETURNKEY_DEFAULT : 0;
+            buttons[i].buttonid = i; buttons[i].text = texts[i];
+        }
+        SDL_MessageBoxData box = { SDL_MESSAGEBOX_INFORMATION, NULL, "Dark Sun Recompiled", "Which game?", k, buttons, NULL };
         int id = 0;
         SDL_Init(SDL_INIT_VIDEO);
-        if (SDL_ShowMessageBox(&box, &id) == 0 && id >= 0 && id < nb) pick = id;
-        if (pick == n) return transfer_setup(NULL, NULL, headless);
+        if (SDL_ShowMessageBox(&box, &id) == 0 && id >= 0 && id < k) pick = id; else pick = 0;
+        if (with_ct && pick == k - 1) return transfer_setup(NULL, NULL, headless);
+        if (!strcmp(texts[pick], "Shattered Lands with the Obsidian Edition")) return mod_setup(NULL, headless);
+        for (int i = 0, j = 0; i < n; i++) {        /* back from a button to the game */
+            if (j == pick) { pick = i; break; }
+            j++;
+            if (with_mod && !strcmp(found[i]->tag, "ds1")) { if (j == pick) { pick = i; break; } j++; }
+        }
     }
     g_game_dir = dirs[pick];
     return found[pick];
@@ -346,10 +421,11 @@ int main(int argc, char **argv)
     int headless = 0;
     double seconds = 0;
     const char *shots = NULL, *input = NULL, *wav = NULL;
-    int transfer = 0; const char *ds1 = NULL, *ds2 = NULL;
+    int transfer = 0; const char *ds1 = NULL, *ds2 = NULL, *mod = NULL;
     for (int i = 1; i < argc; i++) {
         if (!strcmp(argv[i], "--game") && i + 1 < argc) g_game_dir = argv[++i];
         else if (!strcmp(argv[i], "--transfer")) transfer = 1;
+        else if (!strcmp(argv[i], "--mod") && i + 1 < argc) mod = argv[++i];
         else if (!strcmp(argv[i], "--ds1") && i + 1 < argc) { ds1 = argv[++i]; transfer = 1; }
         else if (!strcmp(argv[i], "--ds2") && i + 1 < argc) { ds2 = argv[++i]; transfer = 1; }
         else if (!strcmp(argv[i], "--build") && i + 1 < argc) g_build_dir = argv[++i];
@@ -368,9 +444,15 @@ int main(int argc, char **argv)
     }
     { char *b = SDL_GetBasePath(); if (b) { snprintf(g_base, sizeof g_base, "%s", b); SDL_free(b); } }
     if (transfer) g_game = transfer_setup(ds1, ds2, headless);
+    else if (mod) g_game = mod_setup(mod, headless);
     else if (g_game_dir) g_game = game_in(g_game_dir);
     else g_game = choose_game(headless);
     if (!g_game) return 1;
+    { extern const char *g_cd_dir;          /* the mod's Loader starts the game as --game <ds1> --cd <mod>/dos */
+      if (g_cd_dir && !strcmp(g_game->tag, "ds1") && by_tag("ds1o") && mod_dos_dir(g_cd_dir)) {
+          g_game = by_tag("ds1o");
+          fprintf(stderr, "[main] Obsidian Edition: the mod's files from %s\n", g_cd_dir);
+      } }
     char build_rel[64], cd_rel[1200];
     if (!g_build_dir) {
         snprintf(build_rel, sizeof build_rel, "build/%s", g_game->build);

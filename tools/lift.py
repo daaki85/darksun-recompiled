@@ -147,6 +147,8 @@ def main(argv=None):
     global TAG
     exe_size = img.layout['exe_size']
     TAG, title = GAMES.get(exe_size, (f'x{exe_size}', os.path.basename(img.layout['exe'])))
+    if img.layout.get('mod'):
+        TAG += 'o'                    # the mod's build of the game: its own entry beside the plain one
     native = NATIVE.get(exe_size, {})
     known = {lin: name_of(lin) for lin in funcs}
     for stub, target in img.stub_target.items():

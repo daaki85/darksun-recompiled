@@ -12,6 +12,30 @@ the opening of *Wake of the Ravager* in Tyr. Everything past that is
 untested and may stop with an error. Keep your DOSBox installation; your
 saves work in both (see [Saving and loading](#saving-and-loading)).
 
+## Quick start
+
+1. Install *Dark Sun: Shattered Lands* and/or *Wake of the Ravager* from
+   GOG, as you would to play them in DOSBox.
+2. Unzip `darksun-recompiled-windows-x64.zip` anywhere.
+3. Double-click `dsun.exe`. It finds the games where GOG put them and
+   starts the one it finds; with more than one thing to start it asks with
+   a box of buttons: *Shattered Lands*, *Wake of the Ravager*, *Transfer a
+   party*. If it finds no game, it asks for the game's folder once.
+
+**With the Obsidian Edition mod:**
+
+1. Install the mod as its own README says, and start it once with its
+   *Start Obsidian Edition.bat* (its Loader prepares the mod's files).
+2. Unzip `darksun-recompiled-windows-x64.zip` **into the mod's folder**
+   (the one with *Start Obsidian Edition.bat*), or next to it.
+3. From then on, *Start Obsidian Edition.bat* runs the mod on this program
+   instead of DOSBox, with its dice log and window as before. And
+   `dsun.exe` double-clicked offers *Shattered Lands with the Obsidian
+   Edition* among its buttons.
+
+Windows may warn that the program is unsigned ("Windows protected your
+PC"): click **More info**, then **Run anyway**.
+
 ## Contents
 
 - [What it is](#what-it-is)
@@ -64,13 +88,14 @@ For *Wake of the Ravager* the program unpacks the CD's files from GOG's
    example `C:\Games\DarkSunRecompiled`. It holds:
    - `dsun.exe`, the program, and `SDL2.dll`, which it needs beside it;
    - `build\ds1\image.bin` and `build\ds2\image.bin`, the games' memory
-     images, one per game, and `build\ct\image.bin`, the character transfer
-     utility's;
+     images, one per game, `build\ds1o\image.bin`, the Obsidian Edition's
+     game, and `build\ct\image.bin`, the character transfer utility's;
    - `run.bat`, a starter that takes your game folder as its argument;
    - this guide and the licences of the libraries used.
 2. Double-click `dsun.exe`. It looks for the games where GOG installs them
    (`C:\GOG Games\...`, `...\GOG Galaxy\Games\...`, on drives C to H) and
-   starts the one it finds; with both games installed it asks which. If it
+   starts the one it finds; with more than one thing to start it asks
+   which: the games, the mod when its folder is found, the transfer. If it
    finds neither, it opens a folder picker: choose the GOG game folder, the
    one with `DSUN.EXE` in it. The folder is remembered in `dsun.ini` beside
    the program, so the next start needs no asking.
@@ -86,9 +111,6 @@ For *Wake of the Ravager* the program unpacks the CD's files from GOG's
      `game\ds2` (Wake of the Ravager) beside `dsun.exe`.
    - Edit `dsun.ini`: one line per game, `ds1=C:\where\it\is` and
      `ds2=...`. Delete the file to be asked again.
-
-Windows may warn that the program is unsigned ("Windows protected your
-PC"). Click **More info**, then **Run anyway**. The zip is not signed.
 
 ## Installing on Linux
 
@@ -220,27 +242,35 @@ mod for *Shattered Lands*, run through its Loader. It patches the game's
 program and adds a resident helper that answers the patched code; the
 Loader reads the helper's records to show a dice log and a combat log.
 
-The mod can be built into a program of its own, with the patched game and
-the helper translated together (see the README, "The Obsidian Edition
-mod"). That build needs the mod's repository, `nasm` (to read where the
-helper keeps its routines), and the same tools as the plain build. Its
-program is started with the game folder and the mod's `dos` folder:
+The mod's game is built into this program as well (the patched game and
+the helper, translated together, beside the plain game). What the program
+cannot carry is the mod's data files: the Loader makes them from your own
+copy of the game, into the mod's `dos` folder, the first time it starts the
+game. So, as in the quick start: install the mod, start it once through
+its own *Start Obsidian Edition.bat*, then unzip this program into the
+mod's folder (or next to it). Two ways to play from then on:
 
-```
-dsun --game "C:\GOG Games\Dark Sun Shattered Lands" --cd <mod>\obsidian-edition\dos
-```
+- **Through the Loader** (*Start Obsidian Edition.bat*, as before): it
+  finds `dsun.exe` in or beside its folder and starts that instead of
+  DOSBox, with its dice log and window attached as usual. `dsloader launch
+  --dosbox` goes back to DOSBox, `dsloader launch --recompiled
+  "C:\path\to\dsun.exe"` names a program kept elsewhere.
+- **The program alone** (`dsun.exe` double-clicked): when it finds the
+  mod's prepared folder, in or beside its own folder (or remembered in
+  `dsun.ini` as `mod=`), its box of buttons offers *Shattered Lands with
+  the Obsidian Edition*. From a command prompt, `dsun.exe --mod
+  "C:\path\to\obsidian-edition"` names the mod's folder. Without the
+  Loader there is no dice log or combat log; the mod's rules and content
+  are in the game.
 
-The Loader can start that program for you instead of DOSBox, once told where
-it is, with its dice log and window attached as usual:
-
-```
-dsloader launch --recompiled "C:\path\to\dsun.exe"
-dsloader launch --dosbox        (back to DOSBox)
-```
-
-That part of the Loader is on the mod repository's `recompiled` branch,
-not yet in a release. The mod's combat-log panel on screen is not yet
-verified in this build; its dice log is.
+Two things to know. The mod's game in this program was built with the
+mod's patches as its settings have them by default; the content choices in
+the Loader's settings (Kalzith, the items) are in the data files and are
+honoured, but a patch switched off in the settings stays on here. And that
+part of the Loader is on the mod repository's `recompiled` branch, not yet
+in a release; until it is, the Loader starts DOSBox, and `dsun.exe` on its
+own is the way. The mod's combat-log panel on screen is not yet verified
+in this build; its dice log is.
 
 ## When something goes wrong
 

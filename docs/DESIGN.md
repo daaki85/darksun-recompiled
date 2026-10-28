@@ -135,8 +135,10 @@ answers), the helper `DSCLOG.EXE` (a resident DOS program, source in
 `dos/dsclog.asm`, that answers those interrupts, hooks DOS's file opens,
 the keyboard and the mouse, and keeps a ring of dice rolls), and the
 Python Loader, which prepares the files, starts DOSBox and reads the
-ring out of its memory. `tools/build_mod.sh` turns the first two into a
-program of their own:
+ring out of its memory. `tools/build_mod.sh` turns the first two into an
+entry of the one program (tag `ds1o`, "Shattered Lands (Obsidian
+Edition)", chosen with `--mod`, from the choice box, or by a `--cd` folder
+holding `DSUNLOG.EXE`):
 
 - The Loader's own `prepare_patched_game` writes `DSUNLOG.EXE` and the
   mod's copies of the data files into `<mod>/dos`, exactly as it does

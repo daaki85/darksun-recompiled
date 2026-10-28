@@ -6,13 +6,13 @@
 #   cmake -S . -B build/cmake -G Ninja -DCMAKE_BUILD_TYPE=Release
 #   cmake --build build/cmake
 #
-# GAME_BUILDS lists the folders the lifts went into (build/ds1;build/ds2;build/ct by
+# GAME_BUILDS lists the folders the lifts went into (build/ds1;build/ds1o;build/ds2;build/ct by
 # default); every one that has gen/ is built into the one program.
 cmake_minimum_required(VERSION 3.20)
 project(DarkSunRecompiled C)
 
 set(CMAKE_C_STANDARD 11)
-set(GAME_BUILDS "${CMAKE_SOURCE_DIR}/build/ds1;${CMAKE_SOURCE_DIR}/build/ds2;${CMAKE_SOURCE_DIR}/build/ct"
+set(GAME_BUILDS "${CMAKE_SOURCE_DIR}/build/ds1;${CMAKE_SOURCE_DIR}/build/ds1o;${CMAKE_SOURCE_DIR}/build/ds2;${CMAKE_SOURCE_DIR}/build/ct"
     CACHE STRING "folders with gen/ from tools/lift.py, one per game")
 
 find_package(SDL2 REQUIRED)
