@@ -292,7 +292,7 @@ void bios_init(CPU *cpu)
     m[BDA(0x84)] = 24;
     m[BDA(0x63)] = 0xD4; m[BDA(0x64)] = 0x03;            /* CRTC at 3D4 */
     m[BDA(0x60)] = 0x07; m[BDA(0x61)] = 0x06;            /* the cursor: lines 6-7, shown */
-    for (int i = 0; i < 80 * 25; i++) { m[0xB8000 + i * 2] = ' '; m[0xB8000 + i * 2 + 1] = 0x07; }
+    { uint8_t *v = bios_text_mem(cpu); for (int i = 0; i < 80 * 25; i++) { v[i * 2] = ' '; v[i * 2 + 1] = 0x07; } }
     memcpy(&m[0xFFFF5], "01/01/92", 8);
     m[0xFFFFE] = 0xFC;                                   /* an AT */
 }
@@ -317,10 +317,21 @@ static void set_cf(CPU *cpu, int on)
 #define TEXT_BASE 0xB8000u
 #define COLS 80
 #define ROWS 25
+/* The text screen's cells. At B800:0000, where a program writes them itself
+ * (the character transfer utility), unless a resident helper is loaded over
+ * that memory (the mod's, at B000 and larger than 32 KB): then in a buffer of
+ * the runtime's own, since the game only ever writes text through DOS and
+ * the BIOS. (The first helper that reached B8000 had its table of file names
+ * cleared to spaces by the screen's clearing.) */
+static uint8_t g_text_own[COLS * ROWS * 2];
+uint8_t *bios_text_mem(CPU *cpu)
+{
+    return (g_game && g_game->tsr_cs) ? g_text_own : cpu->mem + TEXT_BASE;
+}
 
 static void text_scroll(CPU *cpu, int up, int n, int top, int left, int bottom, int right, uint8_t attr)
 {
-    uint8_t *v = cpu->mem + TEXT_BASE;
+    uint8_t *v = bios_text_mem(cpu);
     if (right >= COLS) right = COLS - 1;
     if (bottom >= ROWS) bottom = ROWS - 1;
     if (top > bottom || left > right) return;
@@ -346,7 +357,7 @@ static void text_set_cursor(CPU *cpu, int col, int row)
 void bios_teletype(CPU *cpu, uint8_t ch)
 {
     int col = cpu->mem[BDA(0x50)], row = cpu->mem[BDA(0x51)];
-    uint8_t *v = cpu->mem + TEXT_BASE;
+    uint8_t *v = bios_text_mem(cpu);
     switch (ch) {
     case 7: break;
     case 8: if (col > 0) col--; break;
@@ -363,7 +374,7 @@ void bios_teletype(CPU *cpu, uint8_t ch)
 
 static void text_clear(CPU *cpu)
 {
-    uint8_t *v = cpu->mem + TEXT_BASE;
+    uint8_t *v = bios_text_mem(cpu);
     for (int i = 0; i < COLS * ROWS; i++) { v[i * 2] = ' '; v[i * 2 + 1] = 0x07; }
     text_set_cursor(cpu, 0, 0);
 }
@@ -382,12 +393,12 @@ static void int10(CPU *cpu)
     case 0x05: break;                                                            /* page: only 0 */
     case 0x06: text_scroll(cpu, 1, cpu->al, cpu->ch, cpu->cl, cpu->dh, cpu->dl, cpu->bh); break;
     case 0x07: text_scroll(cpu, 0, cpu->al, cpu->ch, cpu->cl, cpu->dh, cpu->dl, cpu->bh); break;
-    case 0x08: { unsigned o = TEXT_BASE + (m[BDA(0x51)] * COLS + m[BDA(0x50)]) * 2; cpu->al = m[o]; cpu->ah = m[o + 1]; break; }
+    case 0x08: { uint8_t *v = bios_text_mem(cpu); unsigned o = (m[BDA(0x51)] * COLS + m[BDA(0x50)]) * 2; cpu->al = v[o]; cpu->ah = v[o + 1]; break; }
     case 0x09: case 0x0A: {                                                      /* n copies, cursor kept */
         int col = m[BDA(0x50)], row = m[BDA(0x51)];
         for (unsigned i = 0; i < cpu->cx && row < ROWS; i++) {
-            unsigned o = TEXT_BASE + (row * COLS + col) * 2;
-            m[o] = cpu->al; if (cpu->ah == 0x09) m[o + 1] = cpu->bl;
+            uint8_t *v = bios_text_mem(cpu); unsigned o = (row * COLS + col) * 2;
+            v[o] = cpu->al; if (cpu->ah == 0x09) v[o + 1] = cpu->bl;
             if (++col >= COLS) { col = 0; row++; }
         }
         break; }
@@ -399,7 +410,7 @@ static void int10(CPU *cpu)
             uint8_t ch = mem_read8(cpu, cpu->es, (uint16_t)(cpu->bp + i));
             int c = m[BDA(0x50)], r = m[BDA(0x51)];
             bios_teletype(cpu, ch);
-            if (ch >= ' ' && r < ROWS) m[TEXT_BASE + (r * COLS + c) * 2 + 1] = cpu->bl;
+            if (ch >= ' ' && r < ROWS) bios_text_mem(cpu)[(r * COLS + c) * 2 + 1] = cpu->bl;
         }
         if (!(cpu->al & 1)) text_set_cursor(cpu, col, row);
         break; }

@@ -103,6 +103,7 @@ void vga_set_mode(CPU *cpu, int mode);
 int  vga_mode(void);
 int  vga_text_mode(void);                          /* modes 0-3 and 7: text, drawn 640x400 */
 void bios_teletype(CPU *cpu, uint8_t ch);          /* one character at the cursor (INT 10h AH=0Eh) */
+uint8_t *bios_text_mem(CPU *cpu);                  /* the text screen's cells: B800:0000, or the runtime's own under a resident helper */
 void vga_render(uint32_t *rgba, int *w, int *h);   /* the screen as shown */
 void vga_save_bmp(const char *path);
 extern volatile unsigned long g_vga_frames;      /* retraces the game waited on */

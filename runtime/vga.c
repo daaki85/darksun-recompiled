@@ -220,7 +220,8 @@ int vga_text_mode(void) { return g_mode <= 3 || g_mode == 7; }
 static void render_text(uint32_t *rgba)
 {
     const uint8_t *m = g_cpu->mem;
-    const uint8_t *cell = m + 0xB8000;
+    extern uint8_t *bios_text_mem(CPU *);
+    const uint8_t *cell = bios_text_mem(g_cpu);
     int cx = m[0x450], cy = m[0x451];
     int cur_start = m[0x461] & 0x1F, cur_end = m[0x460] & 0x1F, cur_on = !(m[0x461] & 0x20);
     for (int row = 0; row < 25; row++)
