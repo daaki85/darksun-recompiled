@@ -151,6 +151,28 @@ def main(argv=None):
         TAG += 'o'                    # the mod's build of the game: its own entry beside the plain one
     native = NATIVE.get(exe_size, {})
     known = {lin: name_of(lin) for lin in funcs}
+    # Addresses the game is entered at in the middle of a function (the mod's
+    # helper jumps far into the die routine's tail): the runtime notes them in
+    # inside.txt; each gets a small entry of its own that starts the function
+    # at that instruction (recomp_enter_ip, the switch at the top of its body).
+    inside = {}                                 # function lin -> sorted interior ips
+    ip_path = os.path.join(a.build, 'inside.txt')
+    if os.path.exists(ip_path):
+        for line in open(ip_path):
+            toks = line.split()
+            if not toks:
+                continue
+            at = int(toks[0], 16)
+            owner = [l for l, v in funcs.items() if any(v['cs'] * 16 + ip == at for ip in v['ips'][1:])]
+            if not owner:
+                print(f'  inside.txt: {at:05X} is in no function, skipped')
+                continue
+            # (the rest of the line: the functions on the way there; one of
+            #  them owning the address, its resume block carries on there)
+            if any(int(t, 16) in owner for t in toks[1:]):
+                continue
+            inside.setdefault(owner[0], []).append(at - funcs[owner[0]]['cs'] * 16)
+    entry_wrappers = {}                         # lin -> wrapper name (extra dispatch entries)
     for stub, target in img.stub_target.items():
         if target in known:
             known[stub] = known[target]
@@ -215,7 +237,7 @@ def main(argv=None):
         lf.jump_tables = {int(ip): [cs * 16 + arm for arm in arms]
                           for ip, arms in f['tables'].items()}
         resumes = bool(sites_here) or cs == img.tsr_cs      # (the helper's near calls check their return too)
-        if resumes:                 # every instruction gets a label: the resume switch needs them
+        if resumes or lin in inside:                 # every instruction gets a label: the resume switch needs them
             lf.jump_tables[-1] = [cs * 16 + ip for ip in f['ips']]
         entry_ip = lin - cs * 16
         try:
@@ -227,6 +249,14 @@ def main(argv=None):
                     f'void {name}(CPU *cpu) {{ recomp_unlifted(cpu, 0x{lin:05X}); }}')
         unhandled += body.count('UNHANDLED') + body.count('/* FPU:')
         body = body.replace('(CPU *cpu)\n{', f'(CPU *cpu)\n{{\n    cpu->cs = 0x{cs:04X};', 1)
+        if lin in inside:
+            cases = ''.join(f'        case 0x{ip:04X}: recomp_enter_ip = 0; goto L_{name}_{ip:06X};\n' for ip in sorted(inside[lin]))
+            k = body.index(f'L_{name}_')          # before the first instruction
+            body = body[:k] + f'    if (recomp_enter_ip) switch (recomp_enter_ip) {{\n{cases}    }}\n' + body[k:]
+            for ip in inside[lin]:
+                w = f'{name}__at_{ip:04X}'
+                body += f'\nvoid {w}(CPU *cpu) {{ recomp_enter_ip = 0x{ip:04X}; {name}(cpu); }}'
+                entry_wrappers[cs * 16 + ip] = w
         # a far return to a real address goes through recomp_return (a tail
         # call, or the mod's helper sending the game on)
         body = body.replace('recomp_dispatch(cpu,_cs,_ip); return; } /* retf', 'recomp_return(cpu,_cs,_ip); return; } /* retf')
@@ -252,7 +282,8 @@ def main(argv=None):
                      f'    if (cpu->ip != 0xFFFF) trace("[resume] {name} -> %04X:%04X (ss:sp %04X:%04X)\\n", cpu->cs, cpu->ip, cpu->ss, cpu->sp);\n'
                      f'    if (cpu->cs == SEG_{cs:04X}) switch (cpu->ip) {{\n{cases}        default: break;\n    }}\n'
                      f'    {{ uint16_t _c = cpu->cs, _i = cpu->ip; recomp_return(cpu, _c, _i);\n'
-                     f'      if ((cpu->cs != _c || cpu->ip != _i) && cpu->cs == SEG_{cs:04X}) goto resume_{name}; }}\n'
+                     f'      if ((cpu->cs != _c || cpu->ip != _i) && cpu->cs == SEG_{cs:04X}) goto resume_{name};\n'
+                     f'      if (cpu->cs == _c && cpu->ip == _i) recomp_inside_miss(_c, _i); }}\n'
                      f'    return;\n')
             k = body.rfind('\n}')
             body = body[:k + 1] + block + body[k + 1:]
@@ -263,6 +294,7 @@ def main(argv=None):
         bodies.append(body)
         calls |= lf.func_calls
 
+    known.update(entry_wrappers)
     names = sorted(set(known.values()))
     stubs = sorted(c for c in calls if c not in names)
 

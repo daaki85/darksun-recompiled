@@ -29,6 +29,7 @@ void dispatch_backtrace(void);
 void recomp_trace_last(int n);
 
 static int inside_function(unsigned lin);
+static recomp_fn lookup(unsigned lin);
 /* the game's own code: below the video memory, or an overlay above it (the helper sits in B000) */
 static int game_code(unsigned lin) { return lin < 0xA0000 || lin >= 0xC0000; }
 
@@ -86,8 +87,69 @@ void dispatch_backtrace(void)
     }
 }
 
+/* ---- entries in the middle of a function ---------------------------------------
+ * The mod's helper jumps far into the middle of the game's code (the die
+ * routine's tail, after a recall): an address a lifted function's resume
+ * block cannot continue at and no entry covers. Noted here and written to
+ * inside.txt, it gets an entry of its own on the next build (tools/lift.py:
+ * a wrapper sets recomp_enter_ip and the function starts at that ip). */
+uint16_t recomp_enter_ip;
+#define NINSIDE 64
+#define NCHAIN 16
+static unsigned g_inside[NINSIDE];
+static unsigned g_inside_chain[NINSIDE][NCHAIN];  /* the lifted functions on the way there (0-ended) */
+static int g_ninside;
+
+void recomp_inside_miss(unsigned seg, unsigned off)
+{
+    unsigned lin = ((seg & 0xFFFF) << 4) + (off & 0xFFFF);
+    if ((off & 0xFFFF) == 0xFFFF || lookup(lin) || !inside_function(lin)) return;
+    for (int i = 0; i < g_ninside; i++) if (g_inside[i] == lin) return;
+    if (g_ninside >= NINSIDE) return;
+    int k = g_ninside++, n = 0;
+    g_inside[k] = lin;
+    /* The functions on the host's stack: one of them may be the one the
+     * address is in (a caller's resume block carries on there): the lifter
+     * keeps only the addresses no function on the way owns. */
+#ifdef __linux__
+    void *bt[32];
+    int m = backtrace(bt, 32);
+    char **sym = backtrace_symbols(bt, m);
+    for (int i = 1; i < m && sym && n < NCHAIN - 1; i++) {
+        const char *p = strstr(sym[i], "_fn_");
+        if (p) g_inside_chain[k][n++] = (unsigned)strtoul(p + 4, NULL, 16);
+    }
+    free(sym);
+#endif
+    g_inside_chain[k][n] = 0;
+    trace("[dispatch] the game is sent on to %04X:%04X, inside a function: noted in inside.txt\n", seg, off);
+}
+
+static void dump_inside(const char *path)
+{
+    char q[1024]; strncpy(q, path, sizeof q - 1); q[sizeof q - 1] = 0;
+    char *slash = strrchr(q, '/');
+    snprintf(slash ? slash + 1 : q, sizeof q - (slash ? (size_t)(slash + 1 - q) : 0), "inside.txt");
+    char old[NINSIDE][256]; int n = 0;
+    FILE *f = fopen(q, "r");
+    if (f) { while (n < NINSIDE && fgets(old[n], sizeof old[n], f)) if (strtoul(old[n], NULL, 16)) n++; fclose(f); }
+    if (!(f = fopen(q, "w"))) return;
+    for (int i = 0; i < n; i++) fputs(old[i], f);
+    for (int i = 0; i < g_ninside; i++) {
+        int dup = 0;
+        for (int k = 0; k < n; k++) if (strtoul(old[k], NULL, 16) == g_inside[i]) dup = 1;
+        if (dup) continue;
+        fprintf(f, "%05X", g_inside[i]);
+        for (int c = 0; g_inside_chain[i][c]; c++) fprintf(f, " %05X", g_inside_chain[i][c]);
+        fprintf(f, "\n");
+    }
+    fclose(f);
+    fprintf(stderr, "[dispatch] %d interior address(es) for the next build -> %s\n", g_ninside, q);
+}
+
 void dispatch_dump_misses(const char *path)
 {
+    if (g_ninside) dump_inside(path);
     if (!g_nmiss) return;
     /* merge with what is there: the list only grows */
     unsigned old[MAXMISS]; int n = 0;

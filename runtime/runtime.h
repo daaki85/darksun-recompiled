@@ -67,6 +67,8 @@ extern const int g_ngames;
 extern int g_in_int;                          /* depth of guest interrupt handlers running */
 void dispatch_reset_depth(void);
 void recomp_return(CPU *cpu, unsigned seg, unsigned off);
+extern uint16_t recomp_enter_ip;              /* a function entered in the middle starts at this ip (0: at its start) */
+void recomp_inside_miss(unsigned seg, unsigned off);   /* an interior address nothing enters at: noted for the next build */
 void dos_set_psp(uint16_t psp);
 void dos_mount(const char *name, const char *dir);   /* C:\<name> stands for this host folder */
 
