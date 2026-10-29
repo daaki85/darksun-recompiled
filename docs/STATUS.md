@@ -227,6 +227,21 @@ narrowed twice), dicelog; and save (a save file's party) and checks
 on L. When the game is killed under the Loader it writes its crash
 report, as it would for DOSBox closed from outside.
 
+**A fault found by the feature tests, now fixed:** the helper is loaded at
+B000 and, at 50-60 KB, spans B8000, the colour text screen, which the
+text-mode support (the transfer utility's) cleared at start-up: that wiped
+the helper's table of the data files it swaps for the mod's copies, so
+every mod run before 29 October ran on the game's own GPLDATA, SEGOBJEX
+and RESOURCE files, without the mod's icons, scripts, new people and
+items, and the Loader never dressed the party's figures. With a resident
+helper the text screen is now a buffer of the runtime's own. After the
+fix the helper opens its copies (the log shows `D:\SEGOBJEX.GFF`), the
+party's figures carry their gear (Gerakis's long sword at the belt, the
+gythka over the shoulder, on the map, in fights and in the screens'
+portraits), and the mod's game still converges clean on the arena
+script. What was verified before the fix (the window, the dice log, the
+combat log, the screens' numbers) did not depend on the copies.
+
 The mod's features in the game itself, through the Loader, at the arena:
 the names over the figures (Fireball and Fear float over their casters in
 the scripted fight, with the mod's monster boxes), View Character with
@@ -235,7 +250,8 @@ saves, REAC, DEF and each weapon's THAC0 (the Loader's numbers; the
 game's own come back without it, as the mod says), the USE screen's
 SPELLS LEFT line on the preserver's list and none on the psionic lists,
 and the Effects screen's kit and weapon-spec lines (WILD FIGHTING,
-SPECIALIZED IN LONG SWORD, GYTHKA; KIT: ARCANIST). Not reachable at the
+SPECIALIZED IN LONG SWORD, GYTHKA; KIT: ARCANIST), and, after the fix
+above, what the party wears drawn on their figures. Not reachable at the
 arena, so not tried: the Look box (the party's first fight is later), a
 charged item's box and a scroll (the party has none yet), the manual
 check (the sewers), and the rule changes that show only in play.
