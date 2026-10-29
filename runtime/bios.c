@@ -588,6 +588,8 @@ void mouse_poll(CPU *cpu)
     }
     g_mouse_last_x = x; g_mouse_last_y = y; g_mouse_last_b = b;
     if (!(ev & g_mhandler_mask) || !g_mhandler_seg) return;
+    { static int dbg = -1; if (dbg < 0) dbg = getenv("DS_TRACE_MOUSE") != NULL;
+      if (dbg && (ev & ~1)) fprintf(stderr, "[mouse] handler ev=%02X at %d,%d buttons %d\n", ev & g_mhandler_mask, x, y, b); }
     CPU saved = *cpu;
     g_in_irq++;
     cpu->ax = (uint16_t)(ev & g_mhandler_mask); cpu->bx = (uint16_t)b;
