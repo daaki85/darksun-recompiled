@@ -15,6 +15,7 @@
 #include <SDL.h>
 #include <stdarg.h>
 #include <stdlib.h>
+#include <stdint.h>
 #include <string.h>
 
 static int g_headless;
@@ -31,11 +32,27 @@ uint64_t host_us(void)
 
 void host_sleep_us(unsigned us) { SDL_Delay(us >= 1000 ? us / 1000 : 1); }
 
+/* Each trace site (its format string) gets at most TRACE_CAP lines a run:
+ * one site in a loop (a handler's resume, a resize) wrote millions of lines
+ * into the Loader's log and slowed the game to a crawl. */
+#define TRACE_CAP 300
 void trace(const char *fmt, ...)
 {
     static int quiet = -1;
     if (quiet < 0) quiet = getenv("DS_QUIET") != NULL;
     if (quiet) return;
+    static const char *sites[512]; static unsigned counts[512];
+    unsigned h = (unsigned)((uintptr_t)fmt >> 3) & 511;
+    for (int probe = 0; probe < 8; probe++, h = (h + 1) & 511) {
+        if (sites[h] == fmt) {
+            if (++counts[h] > TRACE_CAP) {
+                if (counts[h] == TRACE_CAP + 1) fprintf(stderr, "%8.3f (more lines like the last from this place are left out)\n", host_us() / 1e6);
+                return;
+            }
+            break;
+        }
+        if (!sites[h]) { sites[h] = fmt; counts[h] = 1; break; }
+    }
     va_list ap; va_start(ap, fmt);
     fprintf(stderr, "%8.3f ", host_us() / 1e6);
     vfprintf(stderr, fmt, ap);

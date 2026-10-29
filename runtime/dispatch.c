@@ -266,6 +266,11 @@ void recomp_enter(const char *fn)
     g_ring_sp[g_ring_i & (RING - 1)] = g_cpu->sp;
     g_ring[g_ring_i++ & (RING - 1)] = fn;
     g_entered++;
+    /* The lifter's tick points sit on backward jumps inside a function; a
+     * loop that cycles through calls, returns and an INT (the mod's helper
+     * waiting for the clock on the game's behalf) never passes one, and
+     * starved the timer and the mouse. So time is checked here as well. */
+    if (!(g_entered & 31)) { extern void recomp_tick_timed(CPU *); recomp_tick_timed(g_cpu); }
     /* DS_SP_WATCH=<ss>:<sp> (hex): the first time that stack gets below the mark, say how it got there */
     static long watch = -2, watch_ss;
     if (watch == -2) { const char *w = getenv("DS_SP_WATCH"), *c = w ? strchr(w, ':') : NULL;

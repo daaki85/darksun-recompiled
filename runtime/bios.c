@@ -175,7 +175,11 @@ void irq_poll(CPU *cpu)
         if (now - last > 1000000) { last = now; trace("[irq] polls %u, IF off %u, in irq %u, irq0 pending %u, mask %02X, delivered %lu, div %u\n",
                                                     polls, no_if, in_irq, had0, g_pic_mask, g_ticks_delivered, g_pit_div); polls = no_if = in_irq = had0 = 0; }
     }
-    if (g_in_irq || !(cpu->flags & FLAG_IF)) return;
+    if (g_in_irq || !(cpu->flags & FLAG_IF)) {
+        static int mdbg = -1; static uint64_t mlast; if (mdbg < 0) mdbg = getenv("DS_TRACE_MOUSE") != NULL;
+        if (mdbg && host_us() - mlast > 1000000) { mlast = host_us(); fprintf(stderr, "[mouse] polls blocked: in_irq %d IF %d (cs:ip %04X:%04X)\n", g_in_irq, (cpu->flags & FLAG_IF) != 0, cpu->cs, cpu->ip); }
+        return;
+    }
     for (int irq = 0; irq < 8; irq++) {
         unsigned bit = 1u << irq;
         if (!(g_irq_pending & bit) || (g_pic_mask & bit)) continue;
@@ -189,9 +193,20 @@ void irq_poll(CPU *cpu)
 
 volatile int g_want_backtrace;
 
+void recomp_tick_timed(CPU *cpu)        /* from function entries: poll when a millisecond has passed */
+{
+    static uint64_t last;
+    uint64_t now = host_us();
+    if (now - last < 1000) return;
+    last = now;
+    recomp_tick(cpu);
+}
+
 void recomp_tick(CPU *cpu)
 {
     g_recomp_tick_budget = 2000;
+    { static int dbg = -1; static unsigned n; static uint64_t last; if (dbg < 0) dbg = getenv("DS_TRACE_MOUSE") != NULL;
+      if (dbg) { n++; if (host_us() - last > 1000000) { last = host_us(); fprintf(stderr, "[mouse] %u tick polls in the last second (cs:ip %04X:%04X in_irq %d IF %d)\n", n, cpu->cs, cpu->ip, g_in_irq, (cpu->flags & FLAG_IF) != 0); n = 0; } } }
     if (g_want_backtrace) {
         extern void dispatch_backtrace(void);
         g_want_backtrace = 0;
@@ -528,11 +543,31 @@ static int g_press_count[3], g_release_count[3];
 static int g_press_x[2], g_press_y[2], g_release_x[2], g_release_y[2];   /* where the last press / release was */
 static int g_mouse_shown;
 
+/* The button counts, the press and release positions and the handler's
+ * pending events are kept up to date on every read of the host's mouse, as a
+ * real driver keeps them from its hardware interrupt, so a program polling
+ * the driver from inside its own mouse handler (the mod's pop-up menus poll
+ * the press information there) still sees each click; only the handler's
+ * call waits until the last one has returned (mouse_poll). */
+static int g_mouse_ev, g_mouse_ev_x, g_mouse_ev_y, g_mouse_ev_b;   /* events for the handler, not yet delivered */
+
 static void mouse_pos(int *x, int *y, int *b)
 {
     host_mouse(x, y, b);
     *x = g_mx_min + *x * (g_mx_max - g_mx_min + 1) / 320;
     *y = g_my_min + *y * (g_my_max - g_my_min + 1) / 200;
+    int ev = 0;
+    if (g_mouse_last_x >= 0 && (*x != g_mouse_last_x || *y != g_mouse_last_y)) ev |= 1;
+    for (int k = 0; k < 2; k++) {
+        int was = (g_mouse_last_b >> k) & 1, is = (*b >> k) & 1;
+        if (is && !was) { ev |= 2 << (2 * k); g_press_count[k]++; g_press_x[k] = *x; g_press_y[k] = *y; }
+        if (!is && was) { ev |= 4 << (2 * k); g_release_count[k]++; g_release_x[k] = *x; g_release_y[k] = *y; }
+    }
+    g_mouse_last_x = *x; g_mouse_last_y = *y; g_mouse_last_b = *b;
+    if (ev) { g_mouse_ev |= ev; g_mouse_ev_x = *x; g_mouse_ev_y = *y; g_mouse_ev_b = *b; }
+    { static int dbg = -1; static unsigned reads; static uint64_t last; if (dbg < 0) dbg = getenv("DS_TRACE_MOUSE") != NULL;
+      if (dbg) { reads++; if (ev & ~1) fprintf(stderr, "[mouse] seen ev=%02X at %d,%d buttons %d (in_irq %d)\n", ev, *x, *y, *b, g_in_irq);
+                 if (host_us() - last > 1000000) { last = host_us(); fprintf(stderr, "[mouse] %u driver reads in the last second (in_irq %d)\n", reads, g_in_irq); reads = 0; } } }
 }
 
 void mouse_service(CPU *cpu)
@@ -541,7 +576,7 @@ void mouse_service(CPU *cpu)
     static int dbg = -1; if (dbg < 0) dbg = getenv("DS_TRACE_MOUSE") != NULL;
     if (dbg) {
         static uint64_t last03; static unsigned n03;
-        if (cpu->ax == 3) { n03++; if (host_us() - last03 > 1000000) { mouse_pos(&x, &y, &b); fprintf(stderr, "[mouse] fn 03 x%u in the last second: position %d,%d buttons %d (host %d,%d) range x %d-%d y %d-%d\n", n03, x, y, b, g_mouse_last_x, g_mouse_last_y, g_mx_min, g_mx_max, g_my_min, g_my_max); last03 = host_us(); n03 = 0; } }
+        if (cpu->ax == 3) { n03++; if (host_us() - last03 > 1000000) { mouse_pos(&x, &y, &b); fprintf(stderr, "[mouse] fn 03 x%u in the last second: position %d,%d buttons %d (host %d,%d) range x %d-%d y %d-%d handler %04X:%04X mask %02X in_irq %d IF %d\n", n03, x, y, b, g_mouse_last_x, g_mouse_last_y, g_mx_min, g_mx_max, g_my_min, g_my_max, g_mhandler_seg, g_mhandler_off, g_mhandler_mask, g_in_irq, (cpu->flags & FLAG_IF) != 0); last03 = host_us(); n03 = 0; } }
         else fprintf(stderr, "[mouse] fn %02X bx=%04X cx=%04X dx=%04X\n", cpu->ax, cpu->bx, cpu->cx, cpu->dx);
     }
     switch (cpu->ax) {
@@ -559,6 +594,7 @@ void mouse_service(CPU *cpu)
         cpu->bx = (uint16_t)(press ? g_press_count[k] : g_release_count[k]);
         if (press) g_press_count[k] = 0; else g_release_count[k] = 0;
         cpu->cx = (uint16_t)(press ? g_press_x[k] : g_release_x[k]); cpu->dx = (uint16_t)(press ? g_press_y[k] : g_release_y[k]);
+        if (dbg && cpu->bx) fprintf(stderr, "[mouse] fn %02X button %d -> count %u at %u,%u state %u\n", press ? 5 : 6, k, cpu->bx, cpu->cx, cpu->dx, cpu->ax);
         break; }
     case 0x07: g_mx_min = cpu->cx; g_mx_max = cpu->dx; break;
     case 0x08: g_my_min = cpu->cx; g_my_max = cpu->dx; break;
@@ -579,14 +615,10 @@ void mouse_poll(CPU *cpu)
 {
     int x, y, b;
     mouse_pos(&x, &y, &b);
-    int ev = 0;
-    if (x != g_mouse_last_x || y != g_mouse_last_y) ev |= 1;
-    for (int k = 0; k < 2; k++) {
-        int was = (g_mouse_last_b >> k) & 1, is = (b >> k) & 1;
-        if (is && !was) { ev |= 2 << (2 * k); g_press_count[k]++; g_press_x[k] = x; g_press_y[k] = y; }
-        if (!is && was) { ev |= 4 << (2 * k); g_release_count[k]++; g_release_x[k] = x; g_release_y[k] = y; }
-    }
-    g_mouse_last_x = x; g_mouse_last_y = y; g_mouse_last_b = b;
+    int ev = g_mouse_ev;
+    if (!ev) return;
+    x = g_mouse_ev_x; y = g_mouse_ev_y; b = g_mouse_ev_b;
+    g_mouse_ev = 0;
     if (!(ev & g_mhandler_mask) || !g_mhandler_seg) return;
     { static int dbg = -1; if (dbg < 0) dbg = getenv("DS_TRACE_MOUSE") != NULL;
       if (dbg && (ev & ~1)) fprintf(stderr, "[mouse] handler ev=%02X at %d,%d buttons %d\n", ev & g_mhandler_mask, x, y, b); }
