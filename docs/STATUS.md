@@ -269,7 +269,16 @@ window, and the character made starts with the fuller gear (the log:
 "starts with more gear: Sling"), which the Loader's Characters tab lists
 with THAC0 by weapon, saves, move, attacks and the gear worn. The
 class list works as in DOSBox: a human's one class is clicked off before
-another is clicked on (checked against DOSBox 0.74 with the same clicks).
+another is clicked on (checked against DOSBox 0.74 with the same clicks);
+a gladiator's DONE then offers two weapon specialties. The kit rows did
+not take a click here, nor in DOSBox with the Loader's dice log attached,
+with the same clicks: whatever that is, it is not this program's.
+
+The mod's 2.12.3 (its main branch, with the Loader's support for this
+program merged in) builds and runs the same way; its helper moved the
+overlays, so the addresses noted above the video memory are dropped with
+the misses there and found again (build_mod.sh). Its 1,289 unit tests pass
+under both Pythons here.
 
 **A second fault found by these tests, now fixed:** RECALL ended the
 program with "Stack overflow!". The helper restores the stored roll and
@@ -284,8 +293,21 @@ the way there), and the lifter gives such an address an entry of its own
 (`recomp_enter_ip`, a switch at the top of the function's body); an
 address a caller on the way owns is left to that caller's resume block.
 
-In play, after the arena: the party walks out spread (the mod's whole
-party in view, four figures), the figures dressed and with shadows;
+**A third fault, found against DOSBox and fixed:** after the arena bout
+the party stayed one figure, where DOSBox with the mod shows all four at
+the gate. The helper's SPREAD_GATHER knows a fight's end by the return
+address in the gather routine's caller's frame, and lifted calls push a
+stand-in offset there. The two call sites it reads (from the helper's
+source, GATHER_FROM_FIGHT and its segment) now push their real return
+address, which the runtime's dispatch takes as a return to the C caller
+(`real_returns` in the layout). Watching guest bytes as they change
+(`DS_PEEK=<lin>:<bytes>,...`) is what showed the flag never set.
+
+In play, after the arena: the party stands at the gate spread out, four
+figures (the mod's whole party in view), dressed and with shadows, and
+walks together; View Character shows the mod's coloured multi-class
+lines (Fighter/Druid/Psionic 2/2/2); a click on the templar at the
+balcony gets the game's "Your attack is blocked by a magical ward";
 the save window has the Loader's PAGE 1 to PAGE 4 buttons, PgDn and
 PgUp turn its pages and the page shown is greyed; the inventory shows
 each member's weapons with the mod's lines (the thri-kreen's chatkcha
