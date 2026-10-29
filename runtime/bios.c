@@ -527,6 +527,12 @@ static void mouse_pos(int *x, int *y, int *b)
 void mouse_service(CPU *cpu)
 {
     int x, y, b;
+    static int dbg = -1; if (dbg < 0) dbg = getenv("DS_TRACE_MOUSE") != NULL;
+    if (dbg) {
+        static uint64_t last03; static unsigned n03;
+        if (cpu->ax == 3) { n03++; if (host_us() - last03 > 1000000) { mouse_pos(&x, &y, &b); fprintf(stderr, "[mouse] fn 03 x%u in the last second: position %d,%d buttons %d (host %d,%d) range x %d-%d y %d-%d\n", n03, x, y, b, g_mouse_last_x, g_mouse_last_y, g_mx_min, g_mx_max, g_my_min, g_my_max); last03 = host_us(); n03 = 0; } }
+        else fprintf(stderr, "[mouse] fn %02X bx=%04X cx=%04X dx=%04X\n", cpu->ax, cpu->bx, cpu->cx, cpu->dx);
+    }
     switch (cpu->ax) {
     case 0x00: cpu->ax = 0xFFFF; cpu->bx = 2; g_mhandler_mask = 0; g_mouse_shown = 0; break;
     case 0x01: g_mouse_shown++; break;
