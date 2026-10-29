@@ -241,6 +241,7 @@ int host_run(int headless, double seconds, const char *shots, const char *input)
     }
     g_game_thread = SDL_CreateThreadWithStackSize(game_main, "game", 256u << 20, NULL);
     static uint32_t px[640 * 400];       /* mode 13h's 320x200 (or 240), or text mode's 640x400 */
+    static int pw = 320, ph = 200;       /* the picture as last drawn, shown in a 4:3 logical area pw x pw*3/4 */
     double next_shot = 1.0;
     int shot = 0;
     while (g_exit_code < 0) {
@@ -262,8 +263,11 @@ int host_run(int headless, double seconds, const char *shots, const char *input)
             if (e.type == SDL_MOUSEMOTION) {
                 float lx, ly; int wx = e.motion.x, wy = e.motion.y;
                 SDL_RenderWindowToLogical(ren, wx, wy, &lx, &ly);
-                g_mx = lx < 0 ? 0 : lx > 319 ? 319 : (int)lx;
-                g_my = ly < 0 ? 0 : ly > 199 ? 199 : (int)ly;
+                /* logical (pw x pw*3/4) to the picture's own pixels: a 320x200 picture
+                 * fills a 320x240 area, so y is scaled by 200/240 */
+                int x = (int)lx, y = (int)(ly * ph / (pw * 3 / 4));
+                g_mx = x < 0 ? 0 : x >= pw ? pw - 1 : x;
+                g_my = y < 0 ? 0 : y >= ph ? ph - 1 : y;
             }
             if (e.type == SDL_MOUSEBUTTONDOWN) g_mb |= e.button.button == SDL_BUTTON_LEFT ? 1 : 2;
             if (e.type == SDL_MOUSEBUTTONUP) g_mb &= ~(e.button.button == SDL_BUTTON_LEFT ? 1 : 2);
@@ -273,6 +277,7 @@ int host_run(int headless, double seconds, const char *shots, const char *input)
         if (!headless) {
             int w, h;
             vga_render(px, &w, &h);
+            pw = w; ph = h;
             SDL_Rect src = {0, 0, w, h};
             SDL_UpdateTexture(tex, &src, px, w * 4);
             SDL_RenderSetLogicalSize(ren, w, w * 3 / 4);               /* 4:3 */
