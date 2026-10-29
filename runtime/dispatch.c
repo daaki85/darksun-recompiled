@@ -179,6 +179,11 @@ static recomp_fn lookup(unsigned lin)
     return NULL;
 }
 
+static unsigned g_real[64];                  /* the real return addresses pushed by the calls now running (innermost last) */
+static int g_nreal;
+void recomp_real_return_push(unsigned lin) { if (g_nreal < 64) g_real[g_nreal++] = lin; }
+void recomp_real_return_pop(void) { if (g_nreal) g_nreal--; }
+
 int recomp_dispatch(CPU *cpu, unsigned seg, unsigned off)
 {
     unsigned lin = ((seg & 0xFFFF) << 4) + (off & 0xFFFF);
@@ -230,6 +235,9 @@ int recomp_dispatch(CPU *cpu, unsigned seg, unsigned off)
      * that pops its own return address and later jumps to it (Borland's
      * _setargv does: `pop [x] ... jmp [x]`) is returning to its C caller. */
     if ((off & 0xFFFF) == 0xFFFF) return 1;
+    /* ... or the real address a call site pushed because the mod's helper
+     * reads it off the stack: that callee is returning to its C caller too. */
+    if (g_nreal && g_real[g_nreal - 1] == lin) return 1;
     recomp_fn fn = lookup(lin);
     if (!fn) {
         extern int ail_driver_call(CPU *, unsigned, unsigned);

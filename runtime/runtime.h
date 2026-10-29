@@ -67,6 +67,8 @@ extern const int g_ngames;
 extern int g_in_int;                          /* depth of guest interrupt handlers running */
 void dispatch_reset_depth(void);
 void recomp_return(CPU *cpu, unsigned seg, unsigned off);
+void recomp_real_return_push(unsigned lin);    /* a call site pushed its real return address (the helper reads it) */
+void recomp_real_return_pop(void);
 extern uint16_t recomp_enter_ip;              /* a function entered in the middle starts at this ip (0: at its start) */
 void recomp_inside_miss(unsigned seg, unsigned off);   /* an interior address nothing enters at: noted for the next build */
 void dos_set_psp(uint16_t psp);

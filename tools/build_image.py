@@ -29,6 +29,7 @@ The game's own files are only read.
 import argparse
 import json
 import os
+import re
 import struct
 import sys
 
@@ -297,6 +298,19 @@ def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None, original
     # Upper memory blocks for the helper (segment, paragraphs): what is left
     # below the BIOS area (the interrupt vectors' stubs start at F000:FE00),
     # and the HMA. Its ring takes the first (best fit), its panel the HMA.
+    # Call sites whose return address the helper reads off the stack (its
+    # SPREAD_GATHER knows a fight's end by the gather routine's caller): the
+    # lifter pushes the real address there instead of its stand-in.
+    real_returns = []
+    if tsr_path and mod_dir:
+        asm = os.path.join(os.path.dirname(os.path.abspath(tsr_path)), 'dsclog.asm')
+        if os.path.exists(asm):
+            src = open(asm, encoding='latin-1').read()
+            para = re.search(r'SPREAD_FROM_DS\s+equ\s+0x4356\s*-\s*0x([0-9A-Fa-f]+)', src)
+            offs = re.findall(r'GATHER_FROM_FIGHT2?\s+equ\s+0x([0-9A-Fa-f]+)', src)
+            if para and offs:
+                cs = load + int(para.group(1), 16)
+                real_returns = [f'{cs * 16 + int(o, 16):05X}' for o in offs]
     umb = [[seg_next, 0xFFE0 - seg_next], [0xFFFF, 0x0FFF]] if tsr else []
     if tsr:
         tsr['moved_relocs'] = moved
@@ -311,7 +325,7 @@ def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None, original
         exe=os.path.basename(original or exe_path), exe_size=len(exe),
         disk_size=os.path.getsize(original) if original else len(exe),
         tsr=tsr, mod=dict(dir=os.path.abspath(mod_dir), patches=applied, vectors=vectors) if mod_dir else None,
-        int_sites=sites, int_originals=originals,
+        int_sites=sites, int_originals=originals, real_returns=real_returns,
         psp_seg=PSP_SEG, load_seg=load, env_seg=ENV_SEG, top_of_dos=TOP_OF_DOS,
         resident=[base, res_end],
         entry=dict(cs=(mz['cs'] + load) & 0xFFFF, ip=mz['ip']),

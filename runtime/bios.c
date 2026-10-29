@@ -202,9 +202,34 @@ void recomp_tick_timed(CPU *cpu)        /* from function entries: poll when a mi
     recomp_tick(cpu);
 }
 
+/* DS_PEEK=<lin>:<bytes>[,<lin>:<bytes>...] (hex): those guest bytes printed whenever they change
+ * (checked once a second), to watch a flag from outside. */
+static void peek_tick(CPU *cpu)
+{
+    static int on = -1; static uint64_t last; static unsigned at[8], len[8]; static int n; static uint8_t was[8][32];
+    if (on < 0) {
+        const char *e = getenv("DS_PEEK"); on = 0;
+        if (e) { char buf[256]; strncpy(buf, e, sizeof buf - 1); buf[sizeof buf - 1] = 0;
+            for (char *t = strtok(buf, ","); t && n < 8; t = strtok(NULL, ",")) {
+                char *c = strchr(t, ':'); at[n] = (unsigned)strtoul(t, NULL, 16); len[n] = c ? (unsigned)strtoul(c + 1, NULL, 16) : 1;
+                if (len[n] > 32) len[n] = 32; memset(was[n], 0xEE, 32); n++; }
+            on = n > 0; }
+    }
+    if (!on || host_us() - last < 1000000) return;
+    last = host_us();
+    for (int i = 0; i < n; i++) {
+        if (!memcmp(was[i], cpu->mem + at[i], len[i])) continue;
+        memcpy(was[i], cpu->mem + at[i], len[i]);
+        fprintf(stderr, "%8.3f [peek] %05X:", host_us() / 1e6, at[i]);
+        for (unsigned k = 0; k < len[i]; k++) fprintf(stderr, " %02X", cpu->mem[at[i] + k]);
+        fprintf(stderr, "\n");
+    }
+}
+
 void recomp_tick(CPU *cpu)
 {
     g_recomp_tick_budget = 2000;
+    peek_tick(cpu);
     { static int dbg = -1; static unsigned n; static uint64_t last; if (dbg < 0) dbg = getenv("DS_TRACE_MOUSE") != NULL;
       if (dbg) { n++; if (host_us() - last > 1000000) { last = host_us(); fprintf(stderr, "[mouse] %u tick polls in the last second (cs:ip %04X:%04X in_irq %d IF %d)\n", n, cpu->cs, cpu->ip, g_in_irq, (cpu->flags & FLAG_IF) != 0); n = 0; } } }
     if (g_want_backtrace) {

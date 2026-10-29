@@ -76,10 +76,11 @@ class SiteLifter(Lifter):
     they differ, jumps there through a switch over the function's labels (or
     dispatches, for an address outside the function)."""
 
-    def __init__(self, known_funcs, sites, seg, real_returns=False):
+    def __init__(self, known_funcs, sites, seg, real_returns=False, real_ret_sites=()):
         super().__init__(known_funcs=known_funcs)
         self.sites = sites          # function-relative IPs of the INT sites
         self.seg = seg
+        self.real_ret_sites = set(real_ret_sites)   # linear return addresses the helper reads off the stack
         self.used = False
         # The helper's near calls push their real return address: some of its
         # routines read an argument byte after the call through it (and one
@@ -109,6 +110,22 @@ class SiteLifter(Lifter):
             self._emit(f'if (cpu->ip != 0x{back:04X}) goto resume_{self.func_name}; cpu->cs = SEG_{self.seg:04X};',
                        'the callee went on elsewhere')
             self.used = True
+            return
+        if (inst.mnemonic == 'call' and inst.op1 and inst.op1.type == OpType.REL16
+                and (self.seg * 16 + inst.address + inst.length) in self.real_ret_sites
+                and (func_start + (inst.op1.disp & 0xFFFF)) in self.known_funcs):
+            # The helper reads this call's return address off the stack (the
+            # mod's SPREAD_GATHER: a fight's end is the gather routine called
+            # from here): the real one is pushed, and the callee's ret, finding
+            # it expected (recomp_real_return), returns here as for the stand-in.
+            target = self.known_funcs[func_start + (inst.op1.disp & 0xFFFF)]
+            ret = (inst.address + inst.length) & 0xFFFF
+            self._emit_label(inst.address)
+            self._emit(f'recomp_real_return_push(0x{self.seg * 16 + ret:05X}); push16(cpu, 0x{ret:04X});', 'near call: the real return address, which the helper reads')
+            self._emit(f'{target}(cpu); recomp_real_return_pop();', f'call {inst.op1!r}')
+            self.func_calls.add(target)
+            if getattr(self, 'unwind_sp', False):
+                self._emit('if (cpu->ss == _ss0 && (int16_t)(cpu->sp - _sp0) > 0) return;', 'a callee unwound past this frame')
             return
         if self.real_returns and inst.mnemonic == 'ret':
             # the real return address popped: the caller checks it
@@ -224,7 +241,8 @@ def main(argv=None):
         insns = fixed
         # every INT of the mod's gets the resume check: any handler may move the return address
         sites_here = {i.address for i in insns if i.mnemonic == 'int' and i.op1 and i.op1.disp in img.mod_vectors}
-        lf = SiteLifter(known, sites_here, cs, real_returns=(cs == img.tsr_cs))
+        lf = SiteLifter(known, sites_here, cs, real_returns=(cs == img.tsr_cs),
+                        real_ret_sites=[int(x, 16) for x in img.layout.get('real_returns', [])])
         lf.dispatch = True
         lf.far_base = 0
         lf.iret_frame = True
