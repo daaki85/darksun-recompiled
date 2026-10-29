@@ -102,9 +102,9 @@ game/ds1 --build build/ds1o --cd <mod>/obsidian-edition/dos`), and the
 program finds the mod's folder on its own when it sits in or beside its
 own, offering it in the choice box. The mod's Loader starts the program
 instead of DOSBox when the program is unzipped into or beside the mod's
-folder, or named once with `dsloader launch --recompiled <path to dsun>`;
-that is its `recompiled` branch (on top of 2.12.2, also
-docs/loader-recompiled.patch), which attaches its dice log and window to it.
+folder, or named once with `dsloader launch --recompiled <path to dsun>`,
+and attaches its dice log and window to it (in the mod's main branch
+since its pull request 78, after 2.12.3).
 
 **Windows** (cross-built from Linux): `tools/setup_mingw_sdl.sh` once, then
 `tools/package_windows.sh` makes `build/darksun-recompiled-windows-x64.zip`

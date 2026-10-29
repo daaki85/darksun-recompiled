@@ -159,8 +159,9 @@ address and jumps back through it later. Most of the time went on six ways
 the frame's or a return address could be off, each of which sent the game
 into the wrong code with a stack that no longer matched.
 
-The mod's Loader reads this program: with the change on the mod
-repository's `recompiled` branch (also docs/loader-recompiled.patch) it
+The mod's Loader reads this program: with the change made for it (the
+mod repository's pull request 78, merged into its main branch after
+2.12.3) it
 finds the memory by the mark at F000:FFC0, attaches to the helper's ring,
 and its dice log prints what the helper records: attached to a headless
 run during the arena fight (`python3 -m dsloader dicelog --pid $(pgrep -x
@@ -195,8 +196,8 @@ asks for it.
 
 The Loader starts this program instead of DOSBox when it finds it, unzipped
 into or beside the mod's folder, or once told where it is (`dsloader
-launch --recompiled <path to dsun>`; both on the mod repository's
-`recompiled` branch): `launch`, `play` and the window's "Start the game"
+launch --recompiled <path to dsun>`; both in the mod's main branch
+since pull request 78): `launch`, `play` and the window's "Start the game"
 run it with the game's folder and the mod's `dos` folder, and attach as
 they do to DOSBox. The program expects its memory image at `build/ds1o`
 beside itself, as the zip lays it out. The program started on its own
@@ -213,7 +214,7 @@ release fell between two polls of the mouse driver was lost; button
 changes are queued now.
 
 Every feature of the Loader, tried against the program the same way
-(its `recompiled` branch, then on 2.12.1): its unit tests, 1,272 of them, pass
+(the change for it, then on 2.12.1): its unit tests, 1,272 of them, pass
 under both Pythons here (the helper's emulated tests under the one with
 Unicorn, the window's under a display); two that read the machine's own
 settings are pinned to their own now. In the window: Characters, All

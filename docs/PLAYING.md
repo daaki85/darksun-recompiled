@@ -267,9 +267,10 @@ Two things to know. The mod's game in this program was built with the
 mod's patches as its settings have them by default; the content choices in
 the Loader's settings (Kalzith, the items) are in the data files and are
 honoured, but a patch switched off in the settings stays on here. And that
-part of the Loader is on the mod repository's `recompiled` branch, not yet
-in a release; until it is, the Loader starts DOSBox, and `dsun.exe` on its
-own is the way. Through the Loader, everything of the mod's has been seen
+part of the Loader is in the mod repository's main branch (its pull
+request 78, after 2.12.3), not yet in a release; a Loader from an older
+release starts DOSBox, and `dsun.exe` on its own is the way. Through the
+Loader, everything of the mod's has been seen
 working on this program: its window's party panel and dice log, and the
 combat log in the game (L on the map).
 
