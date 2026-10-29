@@ -17,6 +17,13 @@
 #include <string.h>
 #include <sys/stat.h>
 #include <setjmp.h>
+#include <signal.h>
+#ifndef _WIN32
+#include <unistd.h>
+#else
+#include <io.h>
+#include <process.h>
+#endif
 #include <ctype.h>
 #define SDL_MAIN_HANDLED          /* our main stays main; SDL must not rename it */
 #include <SDL.h>
@@ -412,8 +419,30 @@ static const GameDesc *choose_game(int headless)
     return found[pick];
 }
 
+/* A crash of the program itself (a bad host pointer, a stack blown by the
+ * guest): say where the guest was, keep the addresses found so far for the
+ * next build (they are otherwise written when the game ends), and go. */
+static void crashed(int sig)
+{
+    signal(sig, SIG_DFL);
+    fprintf(stderr, "[host] the program crashed (signal %d)\n", sig);
+    if (g_cpu) fprintf(stderr, "[host] guest at cs:ip=%04X:%04X ds=%04X ss:sp=%04X:%04X\n", g_cpu->cs, g_cpu->ip, g_cpu->ds, g_cpu->ss, g_cpu->sp);
+    extern void dispatch_backtrace(void); dispatch_backtrace();
+    extern void recomp_trace_last(int); recomp_trace_last(60);
+    extern void dispatch_dump_misses(const char *);
+    if (g_build_dir) { char p[1024]; snprintf(p, sizeof p, "%s/misses.txt", g_build_dir); dispatch_dump_misses(p); }
+    fflush(stderr);
+    _exit(128 + sig);
+}
+
 int main(int argc, char **argv)
 {
+    signal(SIGSEGV, crashed);
+    signal(SIGILL, crashed);
+    signal(SIGFPE, crashed);
+#ifndef _WIN32
+    signal(SIGBUS, crashed);
+#endif
 #ifdef _WIN32
     freopen("dsun.log", "w", stderr);        /* no terminal: the log goes to a file */
     setvbuf(stderr, NULL, _IOLBF, 0);

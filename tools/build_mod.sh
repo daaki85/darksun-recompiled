@@ -19,13 +19,14 @@ python3 tools/build_image.py "$MOD/dos/DSUNLOG.EXE" --out build/ds1o --tsr "$MOD
 # the overlays above it move with every helper release, so entries up there
 # from an earlier release point at nothing (the lifter skips those it can
 # see are stale; converge finds the new ones).
-if [ -f build/ds1o/misses.txt ]; then
-    python3 -c "
-m='build/ds1o/misses.txt'; keep=[x for x in open(m).read().split() if int(x,16) < 0xA0000]
-open(m,'w').write('\n'.join(keep)+'\n')"
-else
-    cp build/ds1/misses.txt build/ds1o/misses.txt 2>/dev/null || true
-fi
+# The plain game's list below the video memory is merged in: the game's own
+# code is the same, and a routine the plain game reached is one the mod's
+# game will.
+python3 -c "
+import os
+m='build/ds1o/misses.txt'; keep=set(x for x in open(m).read().split() if int(x,16) < 0xA0000) if os.path.exists(m) else set()
+if os.path.exists('build/ds1/misses.txt'): keep |= set(x for x in open('build/ds1/misses.txt').read().split() if int(x,16) < 0xA0000)
+open(m,'w').write('\n'.join(sorted(keep, key=lambda x: int(x, 16)))+'\n')"
 python3 tools/find_funcs.py build/ds1o | head -1
 python3 tools/lift.py build/ds1o | cut -c1-120
 python3 tools/lift_drivers.py game/ds1/RESOURCE.GFF build/ds1o | cut -c1-60
