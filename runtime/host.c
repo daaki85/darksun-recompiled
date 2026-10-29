@@ -147,6 +147,8 @@ static volatile int g_mx = 160, g_my = 100, g_mb;
  * polls (a quick click) are both seen; motion alone is not queued. */
 typedef struct { int x, y, b; } MouseEv;
 static MouseEv g_mq[64]; static volatile int g_mq_r, g_mq_w;
+static uint64_t g_mq_last;           /* when the last change was handed out */
+#define MOUSE_HOLD_US 60000          /* a change shows for this long at least: the games' pop-up menus poll the button */
 static void mouse_button(int b)
 {
     g_mb = b;
@@ -155,7 +157,12 @@ static void mouse_button(int b)
 }
 void host_mouse(int *x, int *y, int *b)
 {
-    if (g_mq_r != g_mq_w) { MouseEv e = g_mq[g_mq_r]; g_mq_r = (g_mq_r + 1) % 64; *x = e.x; *y = e.y; *b = e.b; return; }
+    static MouseEv cur = { 160, 100, 0 };
+    if (g_mq_r != g_mq_w) {
+        if (host_us() - g_mq_last >= MOUSE_HOLD_US) { cur = g_mq[g_mq_r]; g_mq_r = (g_mq_r + 1) % 64; g_mq_last = host_us(); }
+        *x = cur.x; *y = cur.y; *b = cur.b;          /* the last change, held a moment */
+        return;
+    }
     *x = g_mx; *y = g_my; *b = g_mb;
 }
 void host_mouse_set(int x, int y) { g_mx = x; g_my = y; }
