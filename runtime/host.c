@@ -142,8 +142,22 @@ static void key(SDL_Scancode s, int down)
 
 /* ---- mouse ---------------------------------------------------------------------- */
 static volatile int g_mx = 160, g_my = 100, g_mb;
-
-void host_mouse(int *x, int *y, int *b) { *x = g_mx; *y = g_my; *b = g_mb; }
+/* Button changes are queued with the position they happened at, one per
+ * poll of the guest's mouse driver, so a press and release between two
+ * polls (a quick click) are both seen; motion alone is not queued. */
+typedef struct { int x, y, b; } MouseEv;
+static MouseEv g_mq[64]; static volatile int g_mq_r, g_mq_w;
+static void mouse_button(int b)
+{
+    g_mb = b;
+    int n = (g_mq_w + 1) % 64;
+    if (n != g_mq_r) { g_mq[g_mq_w].x = g_mx; g_mq[g_mq_w].y = g_my; g_mq[g_mq_w].b = b; g_mq_w = n; }
+}
+void host_mouse(int *x, int *y, int *b)
+{
+    if (g_mq_r != g_mq_w) { MouseEv e = g_mq[g_mq_r]; g_mq_r = (g_mq_r + 1) % 64; *x = e.x; *y = e.y; *b = e.b; return; }
+    *x = g_mx; *y = g_my; *b = g_mb;
+}
 void host_mouse_set(int x, int y) { g_mx = x; g_my = y; }
 
 /* ---- scripted input ---------------------------------------------------------------- */
@@ -285,8 +299,8 @@ int host_run(int headless, double seconds, const char *shots, const char *input)
                 if (dbg) { int ww, wh; SDL_GetWindowSize(win, &ww, &wh);
                            fprintf(stderr, "[mouse] event %d,%d (window %dx%d) -> picture %d,%d of %dx%d\n", wx, wy, ww, wh, g_mx, g_my, pw, ph); }
             }
-            if (e.type == SDL_MOUSEBUTTONDOWN) g_mb |= e.button.button == SDL_BUTTON_LEFT ? 1 : 2;
-            if (e.type == SDL_MOUSEBUTTONUP) g_mb &= ~(e.button.button == SDL_BUTTON_LEFT ? 1 : 2);
+            if (e.type == SDL_MOUSEBUTTONDOWN) mouse_button(g_mb | (e.button.button == SDL_BUTTON_LEFT ? 1 : 2));
+            if (e.type == SDL_MOUSEBUTTONUP) mouse_button(g_mb & ~(e.button.button == SDL_BUTTON_LEFT ? 1 : 2));
         }
         run_actions(now);
         { extern void audio_pump(void); audio_pump(); }
