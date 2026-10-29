@@ -15,7 +15,17 @@ from dsloader import launch
 r = launch.prepare_patched_game('$PWD/game/ds1')
 sys.exit(r or 0)"
 python3 tools/build_image.py "$MOD/dos/DSUNLOG.EXE" --out build/ds1o --tsr "$MOD/dos/DSCLOG.EXE" --mod "$MOD"
-[ -f build/ds1o/misses.txt ] || cp build/ds1/misses.txt build/ds1o/misses.txt 2>/dev/null || true
+# The misses list carries over only below the video memory: the helper and
+# the overlays above it move with every helper release, so entries up there
+# from an earlier release point at nothing (the lifter skips those it can
+# see are stale; converge finds the new ones).
+if [ -f build/ds1o/misses.txt ]; then
+    python3 -c "
+m='build/ds1o/misses.txt'; keep=[x for x in open(m).read().split() if int(x,16) < 0xA0000]
+open(m,'w').write('\n'.join(keep)+'\n')"
+else
+    cp build/ds1/misses.txt build/ds1o/misses.txt 2>/dev/null || true
+fi
 python3 tools/find_funcs.py build/ds1o | head -1
 python3 tools/lift.py build/ds1o | cut -c1-120
 python3 tools/lift_drivers.py game/ds1/RESOURCE.GFF build/ds1o | cut -c1-60

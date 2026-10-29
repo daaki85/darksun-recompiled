@@ -172,7 +172,7 @@ probe stands in for the `mov cx` that sizes the click routine's switch; the
 finder now reads it from the bytes the INT replaced). The walk and the
 creation scripts run with no misses.
 
-The mod's releases 2.6.0 and 2.12.1 (84 and then 189 commits past the
+The mod's releases 2.6.0, 2.12.1 and 2.12.2 (84, 189 and then more commits past the
 version first built here) build and run the same way: `tools/helper_symbols.py`
 reads where each helper keeps the routines the builder must know about from
 its source, so the moved code needs no table change. 2.12.1 keeps its big
@@ -211,6 +211,22 @@ the mod's combat log in the game, drawn by the helper, and L again hides
 it. That session also caught a mouse fault: a click whose press and
 release fell between two polls of the mouse driver was lost; button
 changes are queued now.
+
+Every feature of the Loader, tried against the program the same way
+(its `recompiled` branch, then on 2.12.1): its unit tests, 1,272 of them, pass
+under both Pythons here (the helper's emulated tests under the one with
+Unicorn, the window's under a display); two that read the machine's own
+settings are pinned to their own now. In the window: Characters, All
+fields, Spells, Dialogue (the Announcer's lines captured from the game),
+Dice log with details and text size, Memory tools (locate by name, record
+bytes), Options, Freeze report (a zip with the memory image and the
+report, in crash-logs), Reconnect. On the command line against the live
+process: processes, find-text, dump, search and next (a value search
+narrowed twice), dicelog; and save (a save file's party) and checks
+(the scripts' skill checks) on their own. In the game: the combat log
+on L. When the game is killed under the Loader it writes its crash
+report, as it would for DOSBox closed from outside. Not captured on a
+screenshot yet: the names over the figures during the fight.
 
 ## Wake of the Ravager (GOG 1.1, DSUN.EXE 634,416 bytes)
 

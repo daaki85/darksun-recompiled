@@ -1,8 +1,8 @@
 diff --git a/CHANGELOG.md b/CHANGELOG.md
-index c4976f6..0015a96 100644
+index 3cfbc88..1c002c5 100644
 --- a/CHANGELOG.md
 +++ b/CHANGELOG.md
-@@ -6,6 +6,18 @@ For what a release brings, read its notes, in [`release-notes`](release-notes);
+@@ -6,6 +6,34 @@ For what a release brings, read its notes, in [`release-notes`](release-notes);
  for every change from the original game in one page, [the patch
  notes](PATCH-NOTES.md).
  
@@ -17,15 +17,31 @@ index c4976f6..0015a96 100644
 +  --recompiled <path to dsun.exe>` remembers it (`--dosbox` goes back), and
 +  `launch`, `play` and the window's **Start the game** then run it with the
 +  game's folder and the mod's `dos` folder (README, "Other ways to start").
++- **Fixes from a review** (after main, with 2.12.2, was merged in):
++  - The game's own DOS `DSUN.EXE` is never taken for the program: Windows, with no case in its
++    file names, found it as the `dsun.exe` beside the mod's folder when the mod was unzipped in
++    the game's, and the Loader then started it in place of DOSBox and failed. A program found or
++    named must be one of the computer's own (a Windows PE or an ELF: `launch.native_program`).
++  - Which one runs is said as the game starts, in the dice log (and `launch`'s and `play`'s output):
++    `Starting Shattered Lands from ... in DOSBox` or `... as Dark Sun Recompiled (its path)`
++    (`launch.started_line`).
++  - The closing line goes by what was started (`launch.STARTED`), not by the settings at the
++    time, and names Dark Sun Recompiled with Windows' crash codes as DOSBox's are; it no longer
++    looks for the program at all.
++  - The search for the game's memory reads its 4 MB chunks overlapping by the longest mark (18
++    bytes, `DARKSUN-RECOMPILED`), not the BIOS date's 8, so the mark is found across two chunks;
++    its error names Dark Sun Recompiled too.
++  - Tests: `test_the_games_dos_program_is_not_it`, `test_started_and_closed_lines`,
++    `test_recompiled_mark_across_two_chunks`; the stand-in programs written as Windows programs.
 +
- ## Pull request #74 ([merged 2026-10-27](https://github.com/daaki85/darksun-obsidian-edition/pull/74))
+ ## Pull request #75 ([merged 2026-10-29](https://github.com/daaki85/darksun-obsidian-edition/pull/75))
  
- **Fixed** (from an outside audit of 2.12.0)
+ Obsidian Edition 2.12.2 ([release notes](release-notes/v2.12.2.md)).
 diff --git a/obsidian-edition/README.md b/obsidian-edition/README.md
-index e4c0f52..99dabc3 100644
+index 9153abb..9708141 100644
 --- a/obsidian-edition/README.md
 +++ b/obsidian-edition/README.md
-@@ -227,6 +227,30 @@ If anything goes wrong it says so in a message box and writes the details to
+@@ -227,6 +227,32 @@ If anything goes wrong it says so in a message box and writes the details to
  **Checking a save file:** drag a `SAVEnn.SAV` file from the game folder onto
  **`Show Save.bat`** to see the party it holds.
  
@@ -35,8 +51,10 @@ index e4c0f52..99dabc3 100644
 +`darksun-recompiled-windows-x64.zip` into this folder (so that
 +`recompiled\dsun.exe` is here, or `dsun.exe` itself) or next to this
 +folder, and the Loader starts that program instead of DOSBox from then on,
-+the dice log and the Loader's window attached as usual. A program
-+elsewhere is named once:
++the dice log and the Loader's window attached as usual. As the game starts,
++the dice log says which one runs (`... in DOSBox` or `... as Dark Sun Recompiled`
++and where it is). The game's own `DSUN.EXE` is never taken for it, even with
++this folder in the game's. A program elsewhere is named once:
 +
 +```
 +dsloader launch --recompiled "C:\path\to\dsun.exe"
@@ -57,7 +75,7 @@ index e4c0f52..99dabc3 100644
  
  **Updating.** Unzip the new release into a folder of its own and copy
 diff --git a/obsidian-edition/dsloader/__main__.py b/obsidian-edition/dsloader/__main__.py
-index d6a4643..b938589 100644
+index d6a4643..77caa3c 100644
 --- a/obsidian-edition/dsloader/__main__.py
 +++ b/obsidian-edition/dsloader/__main__.py
 @@ -211,6 +211,14 @@ def cmd_dicelog(args) -> None:
@@ -75,6 +93,25 @@ index d6a4643..b938589 100644
      game_dir = launch.find_game_dir(args.game_dir)
      if game_dir is None:
          import tkinter
+@@ -238,8 +246,8 @@ def _game_dir(args) -> str:
+ def cmd_launch(args) -> None:
+     from . import launch
+     game_dir = _game_dir(args)
+-    print(f"Starting Shattered Lands from {game_dir}")
+     dosbox, problem = launch.launch(game_dir)
++    print(launch.started_line(game_dir))
+     if problem:
+         print(f"The dice log can't run with this copy of the game ({problem}); starting the game without it.")
+     from .viewer import run
+@@ -280,7 +288,7 @@ def cmd_play(args) -> None:
+             tell(f"The in-game additions can't run with this copy of the game ({problem}). "
+                  "The game starts without them.")
+             return
+-        note(f"Started Shattered Lands from {game_dir}")
++        note(launch.started_line(game_dir))
+         settings = launch.load_settings()
+         guest = None
+         while guest is None and dosbox.poll() is None:  # DOSBox takes a moment to start
 @@ -365,6 +373,10 @@ def main(argv=None) -> int:
      s.add_argument("--fullscreen", dest="fullscreen", action="store_true", default=None,
                     help="start DOSBox full screen, as GOG does (remembered; --windowed undoes it)")
@@ -98,10 +135,10 @@ index d6a4643..b938589 100644
  
      s = sub.add_parser("dicelog", parents=[common], help="print the game's dice rolls as they happen")
 diff --git a/obsidian-edition/dsloader/guestmem.py b/obsidian-edition/dsloader/guestmem.py
-index 801fb9c..c168d3f 100644
+index 801fb9c..70dc32e 100644
 --- a/obsidian-edition/dsloader/guestmem.py
 +++ b/obsidian-edition/dsloader/guestmem.py
-@@ -20,6 +20,10 @@ from .process import ProcessError, ProcessMemory
+@@ -20,6 +20,11 @@ from .process import ProcessError, ProcessMemory
  
  BIOS_DATE_ADDR = 0xFFFF5
  BIOS_DATE = b"01/01/92"
@@ -109,11 +146,16 @@ index 801fb9c..c168d3f 100644
 +# memory and leaves its name at F000:FFC0; DSCLOG's ring sits over the date there.
 +RECOMPILED_ADDR = 0xFFFC0
 +RECOMPILED_MARK = b"DARKSUN-RECOMPILED"
++_OVERLAP = max(len(BIOS_DATE), len(RECOMPILED_MARK))  # (a mark across two chunks found in the first)
  MIN_GUEST_SIZE = 0x100000  # 1 MB: the date string alone lives just below this
  _CHUNK = 4 * 1024 * 1024
  
-@@ -108,16 +112,17 @@ def locate(proc: ProcessMemory, base: Optional[int] = None) -> GuestMemory:
-                 chunk = proc.read(start, min(_CHUNK + len(BIOS_DATE), region.end - start))
+@@ -105,19 +110,20 @@ def locate(proc: ProcessMemory, base: Optional[int] = None) -> GuestMemory:
+         for offset in range(0, region.size, _CHUNK):
+             start = region.start + offset
+             try:
+-                chunk = proc.read(start, min(_CHUNK + len(BIOS_DATE), region.end - start))
++                chunk = proc.read(start, min(_CHUNK + _OVERLAP, region.end - start))
              except ProcessError:
                  continue
 -            for m in re.finditer(re.escape(BIOS_DATE), chunk):
@@ -139,12 +181,13 @@ index 801fb9c..c168d3f 100644
 +                        return GuestMemory(proc, candidate, region.end - candidate)
      raise GuestMemoryError(
          "Could not find DOSBox guest RAM (no BIOS signature found). "
-         "Is this DOSBox, and has it finished starting?")
+-        "Is this DOSBox, and has it finished starting?")
++        "Is this DOSBox (or Dark Sun Recompiled), and has it finished starting?")
 diff --git a/obsidian-edition/dsloader/launch.py b/obsidian-edition/dsloader/launch.py
-index 3665065..e465098 100644
+index 3665065..5dc9a4a 100644
 --- a/obsidian-edition/dsloader/launch.py
 +++ b/obsidian-edition/dsloader/launch.py
-@@ -55,8 +55,56 @@ def _find_file(folder: str, name: str) -> Optional[str]:
+@@ -55,8 +55,74 @@ def _find_file(folder: str, name: str) -> Optional[str]:
  
  
  def is_game_dir(folder: str) -> bool:
@@ -168,9 +211,27 @@ index 3665065..e465098 100644
 +RECOMPILED_EXE = "dsun.exe" if os.name == "nt" else "dsun"
 +
 +
++def native_program(path: str) -> bool:
++    """Whether PATH is a program of the computer's own (a Windows PE, or an ELF): not the game's DOS
++    DSUN.EXE, which Windows, with no case in its file names, also finds as dsun.exe (a mod unzipped
++    in the game's folder has it beside it)."""
++    try:
++        with open(path, "rb") as f:
++            head = f.read(64)
++            if head[:4] == b"\x7fELF":
++                return True
++            if head[:2] != b"MZ" or len(head) < 64:
++                return False
++            f.seek(int.from_bytes(head[0x3C:0x40], "little"))
++            return f.read(4) == b"PE\0\0"
++    except (OSError, ValueError):
++        return False
++
++
 +def found_recompiled_program(here: str = HERE) -> Optional[str]:
 +    """Dark Sun Recompiled's program where a player would put it: in this folder, in a folder
-+    named after it, or beside this folder; None when there is none."""
++    named after it, or beside this folder; None when there is none (a file of its name that is no
++    program of the computer's own, the game's DOS DSUN.EXE above all, isn't it: native_program)."""
 +    import glob as _glob
 +    parent = os.path.dirname(here)
 +    candidates = [os.path.join(here, "recompiled", RECOMPILED_EXE), os.path.join(here, RECOMPILED_EXE),
@@ -179,7 +240,7 @@ index 3665065..e465098 100644
 +    candidates += sorted(_glob.glob(os.path.join(parent, "darksun-recompiled*", RECOMPILED_EXE)))
 +    candidates += sorted(_glob.glob(os.path.join(parent, "darksun-recompiled*", "windows", RECOMPILED_EXE)))
 +    for c in candidates:
-+        if os.path.isfile(c):
++        if os.path.isfile(c) and native_program(c):
 +            return c
 +    return None
 +
@@ -191,7 +252,7 @@ index 3665065..e465098 100644
 +    path = (load_settings() if settings is None else settings).get("recompiled")
 +    if path is False:
 +        return None
-+    if isinstance(path, str) and path and os.path.isfile(path):
++    if isinstance(path, str) and path and os.path.isfile(path) and native_program(path):
 +        return path
 +    return found_recompiled_program()
 +
@@ -202,24 +263,49 @@ index 3665065..e465098 100644
  
  
  def candidate_dirs() -> List[str]:
-@@ -384,7 +432,9 @@ CRASH_CODES = {0xC0000005: "an access violation", 0xC00000FD: "a stack overflow"
+@@ -383,15 +449,30 @@ def prepare_patched_game(game_dir: str, settings: Optional[dict] = None) -> Opti
+ CRASH_CODES = {0xC0000005: "an access violation", 0xC00000FD: "a stack overflow", 0xC0000409: "a stack buffer overrun"}
  
  
++# what launch() last started: the recompiled program's path, or None for DOSBox (closed_line,
++# started_line: by what was started, not by what the settings say now)
++STARTED: Optional[str] = None
++
++
++def started_line(game_dir: str) -> str:
++    """The log's line for the game started from GAME_DIR: in DOSBox, or as Dark Sun Recompiled
++    (which program), so a player sees which one runs."""
++    if STARTED:
++        return f"Starting Shattered Lands from {game_dir} as Dark Sun Recompiled ({STARTED})."
++    return f"Starting Shattered Lands from {game_dir} in DOSBox."
++
++
  def closed_line(code: int) -> str:
 -    """The log's line for DOSBox closing with exit code CODE."""
-+    """The log's line for DOSBox (or the recompiled program) closing with exit code CODE."""
-+    if recompiled_program() is not None:
-+        return "The game closed." if code == 0 else f"The game closed with exit code {code}."
++    """The log's line for DOSBox (or the recompiled program, if that was started) closing with exit
++    code CODE."""
++    name = "Dark Sun Recompiled" if STARTED else "DOSBox"
      if code == 0:
-         return "DOSBox closed."
+-        return "DOSBox closed."
++        return f"{name} closed."
      known = CRASH_CODES.get(code & 0xFFFFFFFF)
-@@ -541,7 +591,21 @@ def write_crash_report(text: str, now: float, folder: str = CRASH_DIR, kind: str
+     if known:
+-        return (f"DOSBox closed: it crashed ({known}, code {code & 0xFFFFFFFF:08X}h). That is DOSBox "
++        return (f"{name} closed: it crashed ({known}, code {code & 0xFFFFFFFF:08X}h). That is {name} "
+                 "itself failing, not the game stopping with an error.")
+-    return f"DOSBox closed with exit code {code}."
++    return f"{name} closed with exit code {code}."
+ 
+ 
+ # GAMEEND.COM, run after the game, notes in GAMEEND.TXT (in DOS_DIR) how the game stopped with an
+@@ -541,7 +622,25 @@ def write_crash_report(text: str, now: float, folder: str = CRASH_DIR, kind: str
  
  
  def launch(game_dir: str) -> Tuple[subprocess.Popen, Optional[str]]:
 -    """Start the game. Returns DOSBox's process and, if the dice log can't run, why."""
 +    """Start the game. Returns DOSBox's process (or the recompiled program's) and, if the dice log
 +    can't run, why."""
++    global STARTED
 +    program = recompiled_program()
 +    if program is not None:
 +        if not _find_file(game_dir, "DSUN.EXE"):
@@ -232,7 +318,10 @@ index 3665065..e465098 100644
 +                os.remove(old)
 +            except OSError:
 +                pass
-+        return subprocess.Popen(recompiled_command(program, game_dir), cwd=os.path.dirname(os.path.abspath(program))), None
++        proc = subprocess.Popen(recompiled_command(program, game_dir), cwd=os.path.dirname(os.path.abspath(program)))
++        STARTED = program
++        return proc, None
++    STARTED = None
      dosbox_dir = _find_file(game_dir, "DOSBOX")
      settings_conf = _find_file(game_dir, "dosbox_darksun.conf") or _find_file(
          os.path.join(game_dir, "__support", "app"), "dosbox_darksun.conf")
@@ -250,19 +339,103 @@ index c44fa88..a686e69 100644
  
  
  if sys.platform == "win32":
+diff --git a/obsidian-edition/dsloader/viewer.py b/obsidian-edition/dsloader/viewer.py
+index 069b62b..de6a2bc 100644
+--- a/obsidian-edition/dsloader/viewer.py
++++ b/obsidian-edition/dsloader/viewer.py
+@@ -808,7 +808,8 @@ class Viewer:
+         if problem:
+             self.status.set(f"Starting the game without the dice log: it can't run with this copy ({problem}).")
+         else:
+-            self.status.set(f"Starting Shattered Lands from {game_dir}...")
++            self.status.set(launch.started_line(game_dir))
++        self._append_dice([launch.started_line(game_dir)])  # (DOSBox or Dark Sun Recompiled: which runs)
+         self.next_try = time.monotonic() + RETRY_SECONDS
+         self._start_state()
+ 
+diff --git a/obsidian-edition/tests/test_guestmem.py b/obsidian-edition/tests/test_guestmem.py
+index e2fa7c3..d3a2564 100644
+--- a/obsidian-edition/tests/test_guestmem.py
++++ b/obsidian-edition/tests/test_guestmem.py
+@@ -46,3 +46,20 @@ class GuardTests(unittest.TestCase):
+ 
+ if __name__ == "__main__":
+     unittest.main()
++
++
++class LocateTests(unittest.TestCase):
++    def test_recompiled_mark_across_two_chunks(self):
++        """Dark Sun Recompiled's mark (F000:FFC0, 18 bytes) found where it starts in one 4 MB chunk
++        of the search and ends in the next (the chunks overlap by the longest mark, not the BIOS
++        date's 8 bytes)."""
++        from dsloader import guestmem
++        from dsloader.process import Region
++        base = guestmem._CHUNK - guestmem.RECOMPILED_ADDR - 5  # (the mark's first 5 bytes in the first chunk)
++        proc = FakeProcess(base + 0x110000)
++        proc.regions = lambda: [Region(0, len(proc.mem))]
++        for i in range(32):  # (an IVT: the BIOS's handlers at F000:xxxx)
++            proc.mem[base + i * 4 + 2:base + i * 4 + 4] = (0xF000).to_bytes(2, "little")
++        at = base + guestmem.RECOMPILED_ADDR
++        proc.mem[at:at + len(guestmem.RECOMPILED_MARK)] = guestmem.RECOMPILED_MARK
++        self.assertEqual(guestmem.locate(proc).base, base)
 diff --git a/obsidian-edition/tests/test_launch.py b/obsidian-edition/tests/test_launch.py
-index ef2256a..367c1ce 100644
+index ef2256a..984e8b9 100644
 --- a/obsidian-edition/tests/test_launch.py
 +++ b/obsidian-edition/tests/test_launch.py
-@@ -19,6 +19,44 @@ def make_game(root: str, cloud_saves: bool) -> str:
+@@ -18,7 +18,87 @@ def make_game(root: str, cloud_saves: bool) -> str:
+     return game
  
  
++def native(path: str) -> None:
++    """A stand-in for a Windows program: an MZ header pointing at a PE signature."""
++    head = bytearray(0x48)
++    head[:2], head[0x3C:0x40], head[0x40:0x44] = b"MZ", (0x40).to_bytes(4, "little"), b"PE\0\0"
++    with open(path, "wb") as f:
++        f.write(head)
++
++
  class LaunchTests(unittest.TestCase):
++    def test_the_games_dos_program_is_not_it(self):
++        """The game's own DSUN.EXE (DOS: an MZ header, no PE) beside the mod's folder, as when the
++        mod is unzipped in the game's folder (Windows finds it as dsun.exe), is not the recompiled
++        program; a Windows program of that name is; and a named path that is no program is passed
++        over."""
++        with tempfile.TemporaryDirectory() as d:
++            mod = os.path.join(d, "mod")
++            os.mkdir(mod)
++            beside = os.path.join(d, launch.RECOMPILED_EXE)
++            with open(beside, "wb") as f:
++                f.write(b"MZ" + bytes(0x3A) + (0x40).to_bytes(4, "little") + b"\x0e\x1f\xba\x0e")
++            self.assertFalse(launch.native_program(beside))
++            self.assertIsNone(launch.found_recompiled_program(mod))
++            native(beside)
++            self.assertTrue(launch.native_program(beside))
++            self.assertEqual(launch.found_recompiled_program(mod), beside)
++            dos = os.path.join(d, "DSUN.EXE")
++            with open(dos, "wb") as f:
++                f.write(b"MZ" + bytes(0x60))
++            self.assertNotEqual(launch.recompiled_program({"recompiled": dos}), dos)
++
++    def test_started_and_closed_lines(self):
++        """The log says which runs, and names it when it closes, by what was started."""
++        saved = launch.STARTED
++        try:
++            launch.STARTED = None
++            self.assertIn("in DOSBox", launch.started_line("G"))
++            self.assertEqual(launch.closed_line(0), "DOSBox closed.")
++            launch.STARTED = "C:/dsr/dsun.exe"
++            self.assertIn("as Dark Sun Recompiled (C:/dsr/dsun.exe)", launch.started_line("G"))
++            self.assertEqual(launch.closed_line(0), "Dark Sun Recompiled closed.")
++            self.assertEqual(launch.closed_line(3), "Dark Sun Recompiled closed with exit code 3.")
++            self.assertIn("Dark Sun Recompiled closed: it crashed (an access violation", launch.closed_line(0xC0000005))
++        finally:
++            launch.STARTED = saved
++
 +    def test_the_recompiled_program_instead_of_dosbox(self):
 +        with tempfile.TemporaryDirectory() as d:
 +            os.mkdir(os.path.join(d, "recompiled"))
 +            program = os.path.join(d, "recompiled", "dsun.exe")   # (not DSUN.EXE: the game's own)
-+            open(program, "w").close()
++            native(program)
 +            game = os.path.join(d, "game")
 +            os.mkdir(game)
 +            open(os.path.join(game, "DSUN.EXE"), "w").close()      # the data files, no DOSBox
@@ -276,12 +449,12 @@ index ef2256a..367c1ce 100644
 +            mod = os.path.join(d, "mod")
 +            os.makedirs(os.path.join(mod, "recompiled"))
 +            self.assertIsNone(launch.found_recompiled_program(mod))
-+            open(os.path.join(mod, "recompiled", launch.RECOMPILED_EXE), "w").close()
++            native(os.path.join(mod, "recompiled", launch.RECOMPILED_EXE))
 +            self.assertEqual(launch.found_recompiled_program(mod), os.path.join(mod, "recompiled", launch.RECOMPILED_EXE))
 +            os.remove(os.path.join(mod, "recompiled", launch.RECOMPILED_EXE))
 +            os.makedirs(os.path.join(d, "darksun-recompiled-windows-x64", "windows"))
 +            beside = os.path.join(d, "darksun-recompiled-windows-x64", "windows", launch.RECOMPILED_EXE)
-+            open(beside, "w").close()
++            native(beside)
 +            self.assertEqual(launch.found_recompiled_program(mod), beside)
 +            self.assertEqual(launch.recompiled_command(program, game),
 +                             [program, "--game", game, "--cd", launch.DOS_DIR])
@@ -291,8 +464,6 @@ index ef2256a..367c1ce 100644
 +                launch.save_settings(dict(settings))
 +                self.assertTrue(launch.is_game_dir(game))       # DSUN.EXE is enough with the program
 +                self.assertFalse(launch.is_game_dir(d))
-+                self.assertEqual(launch.closed_line(0), "The game closed.")
-+                self.assertEqual(launch.closed_line(3), "The game closed with exit code 3.")
 +            finally:
 +                launch.SETTINGS = saved
 +

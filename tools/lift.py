@@ -179,6 +179,9 @@ def main(argv=None):
             ins.address = ip
             ins.offset = cs * 16 + ip
             insns.append(ins)
+        if not insns:
+            print(f'  {lin:05X}: no instructions (a stale misses.txt entry?), skipped')
+            continue
         ranges.append((lin, cs * 16 + max(i.address + i.length for i in insns)))
         # Every instruction that can fall through must be followed by the one
         # it falls into: the lifter emits them in order and C falls through.

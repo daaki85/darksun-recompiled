@@ -103,7 +103,7 @@ program finds the mod's folder on its own when it sits in or beside its
 own, offering it in the choice box. The mod's Loader starts the program
 instead of DOSBox when the program is unzipped into or beside the mod's
 folder, or named once with `dsloader launch --recompiled <path to dsun>`;
-that is its `recompiled` branch (on top of 2.12.1, also
+that is its `recompiled` branch (on top of 2.12.2, also
 docs/loader-recompiled.patch), which attaches its dice log and window to it.
 
 **Windows** (cross-built from Linux): `tools/setup_mingw_sdl.sh` once, then
