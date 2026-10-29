@@ -16,6 +16,12 @@
 #include <time.h>
 #include <unistd.h>
 #include <fcntl.h>
+#ifdef _WIN32
+#include <io.h>
+#endif
+#ifndef O_BINARY
+#define O_BINARY 0      /* Windows (MinGW) opens files in text mode unless told: a Ctrl-Z ends a read, LF becomes CR LF */
+#endif
 #include <strings.h>
 
 #define MAXF 64
@@ -249,6 +255,9 @@ static int builtin_file(const char *name)
     if (strcasecmp(base, "SOUND.CFG")) return -1;
     FILE *f = tmpfile();
     if (!f) return -1;
+#ifdef _WIN32
+    _setmode(fileno(f), O_BINARY);
+#endif
     fwrite(SOUND_CFG, 1, sizeof SOUND_CFG, f);
     fflush(f);
     int fd = dup(fileno(f));
@@ -433,7 +442,7 @@ void dos_service(CPU *cpu)
     case 0x3C: case 0x5B: {
         guest_str(cpu, cpu->ds, cpu->dx, name, sizeof name);
         host_path(name, path, sizeof path, 0);
-        int fd = open(path, O_RDWR | O_CREAT | O_TRUNC, 0644);
+        int fd = open(path, O_RDWR | O_CREAT | O_TRUNC | O_BINARY, 0644);
         trace("[dos] create %s -> %s\n", name, fd >= 0 ? "ok" : "failed");
         int h = fd >= 0 ? new_handle(fd) : -1;
         if (h < 0) { if (fd >= 0) close(fd); fail(cpu, fd >= 0 ? 4 : 3); break; }
@@ -447,8 +456,8 @@ void dos_service(CPU *cpu)
         if (bfd >= 0) { int h = new_handle(bfd); trace("[dos] open %s -> the runtime's own\n", name);
                   if (h < 0) { close(bfd); fail(cpu, 4); } else { cpu->ax = (uint16_t)h; set_cf(cpu, 0); } break; }
         if (!host_path(name, path, sizeof path, 1)) { trace("[dos] open %s: not found\n", name); fail(cpu, 2); break; }
-        int fd = open(path, mode == 0 ? O_RDONLY : O_RDWR);
-        if (fd < 0 && mode) fd = open(path, O_RDONLY);
+        int fd = open(path, (mode == 0 ? O_RDONLY : O_RDWR) | O_BINARY);
+        if (fd < 0 && mode) fd = open(path, O_RDONLY | O_BINARY);
         trace("[dos] open %s (mode %d) -> %s (ss:sp %04X:%04X)\n", name, mode, fd >= 0 ? "ok" : "failed", cpu->ss, cpu->sp);
         int h = fd >= 0 ? new_handle(fd) : -1;
         if (h < 0) { if (fd >= 0) close(fd); fail(cpu, fd >= 0 ? 4 : 5); break; }
