@@ -203,8 +203,19 @@ static volatile int g_exit_code = -1;
 static SDL_Thread *g_game_thread;
 extern int game_main(void *arg);
 
+static volatile int g_hold;      /* the game ended with an error on its text screen: keep it up until a key */
+
 void host_exit(int code)
 {
+    /* A game that ends by itself with an error (its own words on the text
+     * screen, as with a missing file) stays on screen until a key or the
+     * window's close, so the player can read it; not when scripted. */
+    if (code != 0 && !g_headless && vga_text_mode() && SDL_ThreadID() == SDL_GetThreadID(g_game_thread)) {
+        fprintf(stderr, "[host] the game ended with code %d; its screen stays until a key is pressed\n", code);
+        g_hold = 1;
+        extern void audio_close(void); audio_close();
+        for (;;) SDL_Delay(1000);
+    }
     g_exit_code = code;
     { extern void audio_close(void); audio_close(); }
     { extern void opl_report(void); opl_report(); }
@@ -258,7 +269,7 @@ int host_run(int headless, double seconds, const char *shots, const char *input)
                 static int full;
                 full = !full;
                 SDL_SetWindowFullscreen(win, full ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
-            } else if (e.type == SDL_KEYDOWN && !e.key.repeat) key(e.key.keysym.scancode, 1);
+            } else if (e.type == SDL_KEYDOWN && !e.key.repeat) { if (g_hold) { g_exit_code = 1; break; } key(e.key.keysym.scancode, 1); }
             if (e.type == SDL_KEYUP && e.key.keysym.scancode != SDL_SCANCODE_F11) key(e.key.keysym.scancode, 0);
             if (e.type == SDL_MOUSEMOTION) {
                 /* SDL's renderer, with a logical size set, rewrites mouse events into

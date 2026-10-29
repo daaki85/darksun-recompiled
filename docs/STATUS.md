@@ -92,8 +92,16 @@ it. CREATE CHARACTERS opens the roster (VIEW CHARACTER).
 - Listen to the output on a machine with a sound device; compare timing
   against DOSBox.
 - Clean up misses.txt handling (only real entry points should be kept).
-- Run the Windows build on a Windows machine (it cross-compiles; untested
-  there).
+- Windows: the build runs on the owner's machine now (both games found
+  where GOG Galaxy put them, the mod's folder found beside the program).
+  Its first runs found three faults no Linux run could: files opened in
+  text mode (a GFF read stopped at a Ctrl-Z), `tmpfile()` wanting the
+  drive's root (the runtime's SOUND.CFG stand-in failed and the game
+  looked for an MT-32), and the mouse scaled twice (SDL's renderer
+  already rewrites mouse events into its logical size). All three fixed;
+  the mouse fix awaits the owner's confirmation. Sound through a real
+  device is still unheard; the audio callback path, run here through
+  SDL's disk driver, gives continuous music.
 - Wake of the Ravager: further into Tyr; CD volume through the mixer.
 
 Character creation turned up a mouse-driver bug: INT 33h functions 5 and 6

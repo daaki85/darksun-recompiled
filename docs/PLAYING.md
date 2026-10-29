@@ -286,9 +286,11 @@ in this build; its dice log is.
 - **The CD's files are missing** (Wake of the Ravager): the game folder
   has no `cd` folder and no `game.gog` to make it from, or the folder could
   not be written. See [Wake of the Ravager's CD](#wake-of-the-ravagers-cd).
-- **The game stops or the screen goes wrong**: start the program with its
-  log redirected to a file (see [Starting a game](#starting-a-game)) and
-  do what you did again. Lines saying `no function at ...` mean the game
+- **The game stops or the screen goes wrong**: on Windows the program's
+  log is `dsun.log`, written beside `dsun.exe` on every start (on Linux,
+  redirect its standard error to a file, see
+  [Starting a game](#starting-a-game)). Do what you did again and keep
+  that file. Lines saying `no function at ...` mean the game
   reached code that has not been translated yet; the addresses are also
   written to `misses.txt` in the build folder, and the next build of the
   program includes them. Report the log, what you were doing, and which
@@ -298,7 +300,14 @@ in this build; its dice log is.
   when the default fails.
 - **The pointer does not match the mouse**: the game's pointer follows the
   mouse scaled to the picture; with the window resized to an unusual shape,
-  the black bars around the picture are outside the game.
+  the black bars around the picture are outside the game. If it is
+  wrong in some other way, start the program once from a command prompt
+  with `set DS_TRACE_MOUSE=1` first: the log then has a line per mouse
+  movement with what Windows reported and what the game was given, and
+  the game's own requests to the mouse driver.
+- **The game quits with a message of its own** (such as a file it could
+  not find): its text screen stays up until you press a key, and the
+  message is in the log too.
 
 ## What is not there yet
 
