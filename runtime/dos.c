@@ -18,6 +18,7 @@
 #include <fcntl.h>
 #ifdef _WIN32
 #include <io.h>
+#include <windows.h>
 #endif
 #ifndef O_BINARY
 #define O_BINARY 0      /* Windows (MinGW) opens files in text mode unless told: a Ctrl-Z ends a read, LF becomes CR LF */
@@ -248,20 +249,32 @@ static const uint8_t SOUND_CFG[] = {
     0,0,0x01,0x00,0x04,0x00,0x08,0x00,0x0b,0x00,0x00,
 };
 
-static int builtin_file(const char *name)
+static int is_builtin(const char *name)
 {
     const char *base = strrchr(name, '\\');
     base = base ? base + 1 : (name[1] == ':' ? name + 2 : name);
-    if (strcasecmp(base, "SOUND.CFG")) return -1;
+    return strcasecmp(base, "SOUND.CFG") == 0;
+}
+
+static int builtin_file(const char *name)
+{
+    if (!is_builtin(name)) return -1;
+    int fd;
+#ifdef _WIN32
+    /* (not tmpfile(): Windows's wants the drive's root, which is not writable) */
+    char dir[MAX_PATH], tmp[MAX_PATH];
+    if (!GetTempPathA(sizeof dir, dir) || !GetTempFileNameA(dir, "dsn", 0, tmp)) return -1;
+    fd = open(tmp, O_RDWR | O_BINARY | O_TRUNC | _O_TEMPORARY, 0600);
+    if (fd < 0) return -1;
+    if (write(fd, SOUND_CFG, sizeof SOUND_CFG) != (int)sizeof SOUND_CFG) { close(fd); return -1; }
+#else
     FILE *f = tmpfile();
     if (!f) return -1;
-#ifdef _WIN32
-    _setmode(fileno(f), O_BINARY);
-#endif
     fwrite(SOUND_CFG, 1, sizeof SOUND_CFG, f);
     fflush(f);
-    int fd = dup(fileno(f));
+    fd = dup(fileno(f));
     fclose(f);
+#endif
     lseek(fd, 0, SEEK_SET);
     return fd;
 }
@@ -453,6 +466,8 @@ void dos_service(CPU *cpu)
         int mode = cpu->al & 3;
         if (!strncasecmp(name, "EMMXXXX0", 8) || !strncasecmp(name, "MSCD", 4)) { fail(cpu, 2); break; }
         int bfd = mode == 0 ? builtin_file(name) : -1;
+        if (bfd < 0 && mode == 0 && is_builtin(name))
+            fprintf(stderr, "[dos] could not make the runtime's own %s (no temporary file): the game folder's is read\n", name);
         if (bfd >= 0) { int h = new_handle(bfd); trace("[dos] open %s -> the runtime's own\n", name);
                   if (h < 0) { close(bfd); fail(cpu, 4); } else { cpu->ax = (uint16_t)h; set_cf(cpu, 0); } break; }
         if (!host_path(name, path, sizeof path, 1)) { trace("[dos] open %s: not found\n", name); fail(cpu, 2); break; }
