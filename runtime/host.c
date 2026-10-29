@@ -261,22 +261,18 @@ int host_run(int headless, double seconds, const char *shots, const char *input)
             } else if (e.type == SDL_KEYDOWN && !e.key.repeat) key(e.key.keysym.scancode, 1);
             if (e.type == SDL_KEYUP && e.key.keysym.scancode != SDL_SCANCODE_F11) key(e.key.keysym.scancode, 0);
             if (e.type == SDL_MOUSEMOTION) {
-                /* Window coordinates to the picture's own pixels, worked out here
-                 * from the window's size (the picture is the largest 4:3 area in it,
-                 * centred, as the renderer's logical size lays it out) rather than
-                 * through the renderer, whose conversion counts in another space
-                 * on some Windows set-ups. A 320x200 picture fills a 4:3 area, so
-                 * y is scaled by 200/240 as well. */
-                int wx = e.motion.x, wy = e.motion.y, ww, wh;
-                SDL_GetWindowSize(win, &ww, &wh);
-                int rw = ww, rh = ww * 3 / 4;
-                if (rh > wh) { rh = wh; rw = wh * 4 / 3; }
-                int ox = (ww - rw) / 2, oy = (wh - rh) / 2;
-                int x = rw > 0 ? (wx - ox) * pw / rw : 0, y = rh > 0 ? (wy - oy) * ph / rh : 0;
+                /* SDL's renderer, with a logical size set, rewrites mouse events into
+                 * logical coordinates by itself (pw x pw*3/4, the 4:3 area the picture
+                 * fills): scaling them again here by the window's size left the
+                 * pointer covering a third of a big window. Only the picture's height
+                 * is left to apply: a 320x200 picture fills a 320x240 area. */
+                int wx = e.motion.x, wy = e.motion.y;
+                int x = wx, y = wy * ph / (pw * 3 / 4);
                 g_mx = x < 0 ? 0 : x >= pw ? pw - 1 : x;
                 g_my = y < 0 ? 0 : y >= ph ? ph - 1 : y;
                 static int dbg = -1; if (dbg < 0) dbg = getenv("DS_TRACE_MOUSE") != NULL;
-                if (dbg) fprintf(stderr, "[mouse] window %d,%d of %dx%d -> picture %d,%d of %dx%d\n", wx, wy, ww, wh, g_mx, g_my, pw, ph);
+                if (dbg) { int ww, wh; SDL_GetWindowSize(win, &ww, &wh);
+                           fprintf(stderr, "[mouse] event %d,%d (window %dx%d) -> picture %d,%d of %dx%d\n", wx, wy, ww, wh, g_mx, g_my, pw, ph); }
             }
             if (e.type == SDL_MOUSEBUTTONDOWN) g_mb |= e.button.button == SDL_BUTTON_LEFT ? 1 : 2;
             if (e.type == SDL_MOUSEBUTTONUP) g_mb &= ~(e.button.button == SDL_BUTTON_LEFT ? 1 : 2);
