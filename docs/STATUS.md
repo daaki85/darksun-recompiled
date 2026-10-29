@@ -256,6 +256,43 @@ arena, so not tried: the Look box (the party's first fight is later), a
 charged item's box and a scroll (the party has none yet), the manual
 check (the sewers), and the rule changes that show only in play.
 
+The creation screen's features, through the Loader (29 October): the
+screen opens from the roster's NEW with the mod's SUM line; the die
+rerolls, one roll a click, and the dice log shows each score as "best of
+four 4d4 (...) +4", the prime requisite raised, the six scores' sum and
+the hit points and PSP; STORE keeps a roll and RECALL brings it back
+after a reroll (the log shows the scores going back, the HP and PSP
+with them); KITS opens the class's kit page (NO KIT, MYRMIDON, SENTINEL,
+RAVAGER for a fighter); DONE opens the mod's PICK A WEAPON SPECIALTY
+window, and the character made starts with the fuller gear (the log:
+"starts with more gear: Sling"), which the Loader's Characters tab lists
+with THAC0 by weapon, saves, move, attacks and the gear worn. The
+class list works as in DOSBox: a human's one class is clicked off before
+another is clicked on (checked against DOSBox 0.74 with the same clicks).
+
+**A second fault found by these tests, now fixed:** RECALL ended the
+program with "Stack overflow!". The helper restores the stored roll and
+then jumps far into the middle of the die routine, with a frame it built
+itself, to have the game show the hit points, PSP, AC and damage as
+after a roll. A lifted function could only be entered at its start, so
+the jump was left for the resume block of the click routine, which could
+not continue there either, and the game went on with the helper's frame
+still on the stack. Now a resume block that cannot continue notes the
+address (`inside.txt` beside `misses.txt`, with the lifted functions on
+the way there), and the lifter gives such an address an entry of its own
+(`recomp_enter_ip`, a switch at the top of the function's body); an
+address a caller on the way owns is left to that caller's resume block.
+
+In play, after the arena: the party walks out spread (the mod's whole
+party in view, four figures), the figures dressed and with shadows;
+the save window has the Loader's PAGE 1 to PAGE 4 buttons, PgDn and
+PgUp turn its pages and the page shown is greyed; the inventory shows
+each member's weapons with the mod's lines (the thri-kreen's chatkcha
+with its three damage lines); the Effects screen shows the kit and
+weapon-spec lines. Still untried: a fight the player controls (Tab,
+Enter and the ring; the Look box on a monster), talking to the new
+people (Kalzith), a shop, a charged item, a scroll, thief skills in play.
+
 ## Wake of the Ravager (GOG 1.1, DSUN.EXE 634,416 bytes)
 
 The same pipeline, pointed at `game/ds2` with `--args "-W0 -L"` and the CD
