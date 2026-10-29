@@ -225,8 +225,20 @@ process: processes, find-text, dump, search and next (a value search
 narrowed twice), dicelog; and save (a save file's party) and checks
 (the scripts' skill checks) on their own. In the game: the combat log
 on L. When the game is killed under the Loader it writes its crash
-report, as it would for DOSBox closed from outside. Not captured on a
-screenshot yet: the names over the figures during the fight.
+report, as it would for DOSBox closed from outside.
+
+The mod's features in the game itself, through the Loader, at the arena:
+the names over the figures (Fireball and Fear float over their casters in
+the scripted fight, with the mod's monster boxes), View Character with
+the five saves, MOVE and THAC0, the inventory screen with THAC0, the
+saves, REAC, DEF and each weapon's THAC0 (the Loader's numbers; the
+game's own come back without it, as the mod says), the USE screen's
+SPELLS LEFT line on the preserver's list and none on the psionic lists,
+and the Effects screen's kit and weapon-spec lines (WILD FIGHTING,
+SPECIALIZED IN LONG SWORD, GYTHKA; KIT: ARCANIST). Not reachable at the
+arena, so not tried: the Look box (the party's first fight is later), a
+charged item's box and a scroll (the party has none yet), the manual
+check (the sewers), and the rule changes that show only in play.
 
 ## Wake of the Ravager (GOG 1.1, DSUN.EXE 634,416 bytes)
 
