@@ -203,8 +203,14 @@ beside itself, as the zip lays it out. The program started on its own
 picks the mod's build when its `--cd` folder holds `DSUNLOG.EXE` (the
 Loader's command line), with `--mod`, or from the choice box.
 
-Not yet: the combat-log panel seen on screen through the Loader's window
-(it needs a display and the viewer; the helper has the memory for it now).
+Seen working through the Loader's own window, started by `dsloader launch`
+with the program (under a virtual display, driven by xdotool): the Loader
+attaches to the program's memory, its party panel shows the characters,
+its dice log fills with the arena fight's rolls, and L on the map opens
+the mod's combat log in the game, drawn by the helper, and L again hides
+it. That session also caught a mouse fault: a click whose press and
+release fell between two polls of the mouse driver was lost; button
+changes are queued now.
 
 ## Wake of the Ravager (GOG 1.1, DSUN.EXE 634,416 bytes)
 

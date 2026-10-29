@@ -269,8 +269,9 @@ the Loader's settings (Kalzith, the items) are in the data files and are
 honoured, but a patch switched off in the settings stays on here. And that
 part of the Loader is on the mod repository's `recompiled` branch, not yet
 in a release; until it is, the Loader starts DOSBox, and `dsun.exe` on its
-own is the way. The mod's combat-log panel on screen is not yet verified
-in this build; its dice log is.
+own is the way. Through the Loader, everything of the mod's has been seen
+working on this program: its window's party panel and dice log, and the
+combat log in the game (L on the map).
 
 ## When something goes wrong
 
@@ -318,4 +319,3 @@ in this build; its dice log is.
 - MT-32 or General MIDI music.
 - Party transfer with the Obsidian Edition's additions to a party (its
   own items): the utility is SSI's, and knows the original game's items.
-- The mod's combat-log panel seen on screen in the recompiled build.
