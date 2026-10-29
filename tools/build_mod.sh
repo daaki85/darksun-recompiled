@@ -26,7 +26,11 @@ python3 -c "
 import os
 m='build/ds1o/misses.txt'; keep=set(x for x in open(m).read().split() if int(x,16) < 0xA0000) if os.path.exists(m) else set()
 if os.path.exists('build/ds1/misses.txt'): keep |= set(x for x in open('build/ds1/misses.txt').read().split() if int(x,16) < 0xA0000)
-open(m,'w').write('\n'.join(sorted(keep, key=lambda x: int(x, 16)))+'\n')"
+open(m,'w').write('\n'.join(sorted(keep, key=lambda x: int(x, 16)))+'\n')
+i='build/ds1o/inside.txt'                  # (the same for the entries in the middle of functions)
+if os.path.exists(i):
+    lines=[l for l in open(i).read().splitlines() if l.split() and int(l.split()[0],16) < 0xA0000]
+    open(i,'w').write(''.join(l+'\n' for l in lines))"
 python3 tools/find_funcs.py build/ds1o | head -1
 python3 tools/lift.py build/ds1o | cut -c1-120
 python3 tools/lift_drivers.py game/ds1/RESOURCE.GFF build/ds1o | cut -c1-60
