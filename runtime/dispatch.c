@@ -289,7 +289,7 @@ void recomp_return(CPU *cpu, unsigned seg, unsigned off)
      * to it). */
     if (!lookup(lin) && g_game->tsr_cs && (g_in_int || cpu->cs == g_game->tsr_cs) && game_code(lin) && inside_function(lin)) {
         static int shown;
-        if (shown++ < 10 && getenv("DS_TRACE_INT")) trace("[dispatch] a handler sends the game on to %04X:%04X\n", seg, off);
+        if (shown++ < 10 && getenv("DS_TRACE_INT")) { trace("[dispatch] a handler sends the game on to %04X:%04X (ss:sp %04X:%04X)\n", seg, off, cpu->ss, cpu->sp); dispatch_backtrace(); }
         cpu->cs = (uint16_t)seg; cpu->ip = (uint16_t)off;
         return;
     }
