@@ -312,9 +312,24 @@ the save window has the Loader's PAGE 1 to PAGE 4 buttons, PgDn and
 PgUp turn its pages and the page shown is greyed; the inventory shows
 each member's weapons with the mod's lines (the thri-kreen's chatkcha
 with its three damage lines); the Effects screen shows the kit and
-weapon-spec lines. Still untried: a fight the player controls (Tab,
-Enter and the ring; the Look box on a monster), talking to the new
-people (Kalzith), a shop, a charged item, a scroll, thief skills in play.
+weapon-spec lines.
+
+Later the same night, further: the party's first real fight (walked south
+in the arena to the Monster Trainer's lines), through the Loader: the
+mod's Tab chooses an enemy ("Chosen with Tab: Slig (18 HP) - Enter
+attacks" in the dice log, then the Screamer Beetle), Enter attacks, the
+game's end-of-move menu follows, several rounds with no miss; every screen
+(V, I, U with the mod's PSIONICS and KINETICS tabs, E, M, O) opens and
+closes; a save made from the EXIT menu (the game then exits, as it does)
+is listed under its name in the mod's LOAD window and loads, the party
+spread at the gate; the LOAD button looks greyed with the row chosen in
+DOSBox too, and Enter loads. The Windows build was run under Wine 9 with
+the mod: the picture fills the window, and the pointer sits under the
+host's at the default size, after a resize to 480x360 and after one to
+1600x978. docs/TEST-SESSION.md is the order to try things in on Windows.
+Still untried: the Look box on a monster (the right-clicks missed them),
+talking to the new people (Kalzith), a shop, a charged item, a scroll,
+thief skills in play.
 
 ## Wake of the Ravager (GOG 1.1, DSUN.EXE 634,416 bytes)
 
