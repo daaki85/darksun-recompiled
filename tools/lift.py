@@ -220,6 +220,7 @@ def main(argv=None):
             insns.append(ins)
         if not insns:
             print(f'  {lin:05X}: no instructions (a stale misses.txt entry?), skipped')
+            known.pop(lin, None)                # (no body: no dispatch entry either, or the link fails)
             continue
         ranges.append((lin, cs * 16 + max(i.address + i.length for i in insns)))
         # Every instruction that can fall through must be followed by the one
