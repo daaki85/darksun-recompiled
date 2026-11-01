@@ -565,7 +565,7 @@ static int g_mx_min, g_mx_max = 639, g_my_min, g_my_max = 199;
 static uint16_t g_mhandler_mask, g_mhandler_seg, g_mhandler_off;
 static int g_mouse_last_x = -1, g_mouse_last_y = -1, g_mouse_last_b;
 static int g_press_count[3], g_release_count[3];
-static int g_press_x[2], g_press_y[2], g_release_x[2], g_release_y[2];   /* where the last press / release was */
+static int g_press_x[3], g_press_y[3], g_release_x[3], g_release_y[3];   /* where the last press / release was */
 static int g_mouse_shown;
 
 /* The button counts, the press and release positions and the handler's
@@ -583,7 +583,7 @@ static void mouse_pos(int *x, int *y, int *b)
     *y = g_my_min + *y * (g_my_max - g_my_min + 1) / 200;
     int ev = 0;
     if (g_mouse_last_x >= 0 && (*x != g_mouse_last_x || *y != g_mouse_last_y)) ev |= 1;
-    for (int k = 0; k < 2; k++) {
+    for (int k = 0; k < 3; k++) {                 /* left, right, middle: events 02/04, 08/10, 20/40 */
         int was = (g_mouse_last_b >> k) & 1, is = (*b >> k) & 1;
         if (is && !was) { ev |= 2 << (2 * k); g_press_count[k]++; g_press_x[k] = *x; g_press_y[k] = *y; }
         if (!is && was) { ev |= 4 << (2 * k); g_release_count[k]++; g_release_x[k] = *x; g_release_y[k] = *y; }
@@ -613,7 +613,7 @@ void mouse_service(CPU *cpu)
                               (cpu->dx - g_my_min) * 200 / (g_my_max - g_my_min + 1)); break;
     case 0x05: case 0x06: {                 /* button press / release information (the game's pop-up menus) */
         int press = cpu->ax == 5;
-        int k = cpu->bx < 2 ? cpu->bx : 0;
+        int k = cpu->bx < 3 ? cpu->bx : 0;
         mouse_pos(&x, &y, &b);
         cpu->ax = (uint16_t)b;
         cpu->bx = (uint16_t)(press ? g_press_count[k] : g_release_count[k]);

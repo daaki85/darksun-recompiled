@@ -323,8 +323,10 @@ int host_run(int headless, double seconds, const char *shots, const char *input)
                 if (dbg) { int ww, wh; SDL_GetWindowSize(win, &ww, &wh);
                            fprintf(stderr, "[mouse] event %d,%d (window %dx%d) -> picture %d,%d of %dx%d\n", wx, wy, ww, wh, g_mx, g_my, pw, ph); }
             }
-            if (e.type == SDL_MOUSEBUTTONDOWN) mouse_button(g_mb | (e.button.button == SDL_BUTTON_LEFT ? 1 : 2));
-            if (e.type == SDL_MOUSEBUTTONUP) mouse_button(g_mb & ~(e.button.button == SDL_BUTTON_LEFT ? 1 : 2));
+            /* the driver's bits: 1 left, 2 right, 4 middle (the mod scrolls the map with the middle one held) */
+            int bit = e.button.button == SDL_BUTTON_LEFT ? 1 : e.button.button == SDL_BUTTON_RIGHT ? 2 : e.button.button == SDL_BUTTON_MIDDLE ? 4 : 0;
+            if (e.type == SDL_MOUSEBUTTONDOWN) mouse_button(g_mb | bit);
+            if (e.type == SDL_MOUSEBUTTONUP) mouse_button(g_mb & ~bit);
         }
         run_actions(now);
         { extern void audio_pump(void); audio_pump(); }
