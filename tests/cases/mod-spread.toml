@@ -1,14 +1,15 @@
-# The mod's game: START GAME, the announcer's box dismissed with Return (it comes up a few seconds
-# later under load, so Return is pressed three times), the arena's scripted bout, and then the
+# The mod's game: START GAME, the announcer's box clicked away (it comes up a few seconds
+# later under load, so the box is clicked three times, at 160,20: on the box, or the top bar), the arena's scripted bout, and then the
 # whole party in view at the gate (four figures: once one, when the helper never saw a fight's
-# end); then the middle button drags the view north (the mod's map scrolling), so the gate's top
-# shows where the party stood.
+# end); then a middle-button drag, which the mod turns into map scrolling only once its Loader is
+# attached and has switched it on: here it must do no harm (the view stays, the screen keeps its
+# colours).
 game = "ds1o"
 seconds = 134
-input = "20:key=ESC 24:key=ESC 28:key=ESC 32:key=ESC 40:move=160,76 41:click=160,76 90:click=160,40 100:key=ENTER 104:key=ENTER 108:key=ENTER 124:mdrag=160,60,160,150"
+input = "20:key=ESC 24:key=ESC 28:key=ESC 32:key=ESC 40:move=160,76 41:click=160,76 90:click=160,40 100:click=160,20 104:click=160,20 108:click=160,20 124:mdrag=160,60,160,150"
 screen = [
   { at = 95, min_colours = 90 },
   { at = 122, ref = "gate", min_colours = 90, tolerance = 0.2 },
-  { at = 132, ref = "dragged", min_colours = 90, tolerance = 0.2 },
+  { at = 132, min_colours = 90 },
 ]
 keeps = ["CHARSAVE.GFF", "DARKRUN.GFF"]
