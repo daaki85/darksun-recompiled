@@ -218,7 +218,10 @@ static void run_actions(double now)
         } else if (!strcmp(a->what, "@rdrag")) {         /* the right button held from one point to another: the game's pop-up menus */
             g_mx = a->a; g_my = a->b; g_mb = 2; SDL_Delay(300); g_mx = a->c; g_my = a->d; SDL_Delay(300); g_mb = 0;
         } else if (!strcmp(a->what, "@mdrag")) {         /* the middle button held from one point to another: the mod drags the map with it */
-            g_mx = a->a; g_my = a->b; g_mb = 4; SDL_Delay(300); g_mx = a->c; g_my = a->d; SDL_Delay(300); g_mb = 0;
+            /* (in steps, as a hand drags: the mod follows the pointer's moves while the button is held) */
+            g_mx = a->a; g_my = a->b; SDL_Delay(100); g_mb = 4; SDL_Delay(200);
+            for (int k = 1; k <= 8; k++) { g_mx = a->a + (a->c - a->a) * k / 8; g_my = a->b + (a->d - a->b) * k / 8; SDL_Delay(60); }
+            SDL_Delay(200); g_mb = 0;
         } else if (!strcmp(a->what, "@move")) { g_mx = a->a; g_my = a->b; }
         else {
             /* key=NAME[/HOLD_MS]: SDL's key names, and a few short ones */
