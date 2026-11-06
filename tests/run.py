@@ -26,6 +26,9 @@ import tomllib
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DSUN = os.environ.get('DSUN', os.path.join(ROOT, 'build', 'cmake', 'dsun'))
+# A case with `game = "ds1o"` runs Shattered Lands with the Obsidian Edition mod (build/ds1o,
+# tools/build_mod.sh): the mod's obsidian-edition folder is $DS_MOD, by default beside this repository.
+MOD = os.environ.get('DS_MOD', os.path.join(ROOT, '..', 'daaki85', 'darksun-obsidian-edition', 'obsidian-edition'))
 # A case with `game = "ds2"` is Wake of the Ravager: the same program, its
 # data folder and its CD; `game = "ct"` is the character transfer utility,
 # run with both game folders (its files, for `writes` and `keeps`, are Wake
@@ -60,7 +63,7 @@ def run_case(path, update):
         os.remove(f)
     cmd = [DSUN, '--headless', '--seconds', str(case['seconds']), '--shots', shots]
     game = case.get('game', 'ds1')
-    game_dir = os.path.join(ROOT, 'game', 'ds2' if game == 'ct' else game)
+    game_dir = os.path.join(ROOT, 'game', 'ds2' if game == 'ct' else 'ds1' if game == 'ds1o' else game)
     kept = {}
     for pattern in case.get('keeps', []):         # the game rewrites these (its roster, CHARSAVE.GFF)
         for f in glob.glob(os.path.join(game_dir, pattern)):
@@ -72,6 +75,8 @@ def run_case(path, update):
         placed.append(d)
     if game == 'ct':
         cmd += ['--transfer', '--ds1', 'game/ds1', '--ds2', 'game/ds2', '--build', 'build/ct']
+    elif game == 'ds1o':                            # Shattered Lands with the Obsidian Edition mod
+        cmd += ['--game', 'game/ds1', '--build', 'build/ds1o', '--mod', MOD]
     else:
         cmd += ['--game', f'game/{game}', '--build', f'build/{game}']
     if case.get('input'):
@@ -80,7 +85,7 @@ def run_case(path, update):
     log = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=case['seconds'] + 60).stderr
     open(os.path.join(shots, 'log.txt'), 'w').write(log)
     problems = []
-    for bad in ('no function at', '[sp]', 'unhandled', 'fatal:', 'is not code'):
+    for bad in ('no function at', '[sp]', 'unhandled', 'fatal:', 'is not code', 'Stack overflow', 'not the one this build was lifted from'):
         n = log.count(bad)
         if n and bad not in case.get('allow', []):
             problems.append(f'{n} x "{bad}" in the log')

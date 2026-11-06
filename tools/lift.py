@@ -189,6 +189,15 @@ def main(argv=None):
             if any(int(t, 16) in owner for t in toks[1:]):
                 continue
             inside.setdefault(owner[0], []).append(at - funcs[owner[0]]['cs'] * 16)
+    for x in img.layout.get('interior_entries', []):   # (from the helper's source: RS_TAIL)
+        at = int(x, 16)
+        owner = [l for l, v in funcs.items() if any(v['cs'] * 16 + ip == at for ip in v['ips'][1:])]
+        if owner:
+            inside.setdefault(owner[0], [])
+            if at - funcs[owner[0]]['cs'] * 16 not in inside[owner[0]]:
+                inside[owner[0]].append(at - funcs[owner[0]]['cs'] * 16)
+        else:
+            print(f'  interior entry {at:05X} (the layout) is in no function, skipped')
     entry_wrappers = {}                         # lin -> wrapper name (extra dispatch entries)
     for stub, target in img.stub_target.items():
         if target in known:
@@ -223,6 +232,20 @@ def main(argv=None):
             known.pop(lin, None)                # (no body: no dispatch entry either, or the link fails)
             continue
         ranges.append((lin, cs * 16 + max(i.address + i.length for i in insns)))
+        if cs == img.tsr_cs:
+            # The helper's own continuations: `push cs / push word .label` builds a far return
+            # address into the middle of a routine, which a game routine's retf (or the die
+            # routine's tail) comes back to. Each such label is an entry in the middle of the
+            # function (recomp_enter_ip), found here rather than one run at a time as a miss.
+            for i in range(len(insns) - 1):
+                a, b = insns[i], insns[i + 1]
+                if (a.mnemonic == 'push' and a.op1 and a.op1.type == OpType.SREG and a.op1.reg == 1
+                        and b.mnemonic == 'push' and b.op1 and b.op1.type == OpType.IMM16):
+                    target = b.op1.disp & 0xFFFF
+                    if target in f['ips'][1:]:
+                        inside.setdefault(lin, [])
+                        if target not in inside[lin]:
+                            inside[lin].append(target)
         # Every instruction that can fall through must be followed by the one
         # it falls into: the lifter emits them in order and C falls through.
         # Where it does not (code that jumps into the middle of an instruction,

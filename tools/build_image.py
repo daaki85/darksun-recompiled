@@ -311,6 +311,16 @@ def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None, original
             if para and offs:
                 cs = load + int(para.group(1), 16)
                 real_returns = [f'{cs * 16 + int(o, 16):05X}' for o in offs]
+    # Where the helper jumps into the middle of a game routine: RS_TAIL, the die routine's
+    # tail (a file offset in the creation overlay), reached by a far jump after a recall. The
+    # lifter gives that address an entry of its own (tools/lift.py, recomp_enter_ip).
+    interior_entries = []
+    if tsr_path and mod_dir and os.path.exists(asm):
+        for m_ in re.finditer(r'RS_TAIL\s+equ\s+0x([0-9A-Fa-f]+)\s*-\s*0x([0-9A-Fa-f]+)', src):
+            file_off = int(m_.group(1), 16)
+            for mod in modules:
+                if mod.get('seg') is not None and mod['file'] <= file_off < mod['file'] + mod['size']:
+                    interior_entries.append(f'{mod["seg"] * 16 + file_off - mod["file"]:05X}')
     umb = [[seg_next, 0xFFE0 - seg_next], [0xFFFF, 0x0FFF]] if tsr else []
     if tsr:
         tsr['moved_relocs'] = moved
@@ -325,7 +335,7 @@ def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None, original
         exe=os.path.basename(original or exe_path), exe_size=len(exe),
         disk_size=os.path.getsize(original) if original else len(exe),
         tsr=tsr, mod=dict(dir=os.path.abspath(mod_dir), patches=applied, vectors=vectors) if mod_dir else None,
-        int_sites=sites, int_originals=originals, real_returns=real_returns,
+        int_sites=sites, int_originals=originals, real_returns=real_returns, interior_entries=interior_entries,
         psp_seg=PSP_SEG, load_seg=load, env_seg=ENV_SEG, top_of_dos=TOP_OF_DOS,
         resident=[base, res_end],
         entry=dict(cs=(mz['cs'] + load) & 0xFFFF, ip=mz['ip']),

@@ -1,0 +1,10 @@
+# The mod's creation screen: NEW on the roster, STORE, a reroll, RECALL. RECALL once ended the
+# program with "Stack overflow!" (the helper jumps into the middle of the die routine).
+game = "ds1o"
+seconds = 78
+input = "20:key=ESC 24:key=ESC 28:key=ESC 32:key=ESC 40:move=160,90 41:click=160,90 50:rclick=65,55 53:move=130,57 55:click=130,57 64:click=113,192 66:click=155,96 70:click=172,192"
+screen = [
+  { at = 62, min_colours = 60 },
+  { at = 76, ref = "recalled", min_colours = 60, tolerance = 0.08 },
+]
+keeps = ["CHARSAVE.GFF"]

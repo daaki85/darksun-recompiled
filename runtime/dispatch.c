@@ -289,7 +289,7 @@ void recomp_return(CPU *cpu, unsigned seg, unsigned off)
      * to it). */
     if (!lookup(lin) && g_game->tsr_cs && (g_in_int || cpu->cs == g_game->tsr_cs) && game_code(lin) && inside_function(lin)) {
         static int shown;
-        if (shown++ < 10 && getenv("DS_TRACE_INT")) { trace("[dispatch] a handler sends the game on to %04X:%04X (ss:sp %04X:%04X)\n", seg, off, cpu->ss, cpu->sp); dispatch_backtrace(); }
+        if (shown++ < 200 && getenv("DS_TRACE_INT")) { trace("[dispatch] a handler sends the game on to %04X:%04X (ss:sp %04X:%04X)\n", seg, off, cpu->ss, cpu->sp); dispatch_backtrace(); }
         cpu->cs = (uint16_t)seg; cpu->ip = (uint16_t)off;
         return;
     }
@@ -303,7 +303,13 @@ void dispatch_near(CPU *cpu, unsigned seg, unsigned off)
 
 void dispatch_far(CPU *cpu, unsigned seg, unsigned off)
 {
+    uint16_t s0 = cpu->sp, ss0 = cpu->ss;
     if (!recomp_dispatch(cpu, seg, off)) cpu->sp += 4;
+    /* DS_TRACE_INT: a far call whose callee came back with the stack not where a retf leaves it */
+    static int dbg = -1; if (dbg < 0) dbg = getenv("DS_TRACE_INT") != NULL;
+    if (dbg && (cpu->ss != ss0 || cpu->sp != (uint16_t)(s0 + 4)))
+        trace("[dispatch] far call to %04X:%04X came back with ss:sp %04X:%04X, not %04X:%04X (cs:ip now %04X:%04X)\n",
+              seg, off, cpu->ss, cpu->sp, ss0, (uint16_t)(s0 + 4), cpu->cs, cpu->ip);
 }
 
 void recomp_missing(CPU *cpu, const char *name)

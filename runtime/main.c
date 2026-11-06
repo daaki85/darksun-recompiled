@@ -513,6 +513,24 @@ int main(int argc, char **argv)
     FILE *f = fopen(path, "rb");
     if (!f) { fprintf(stderr, "cannot open %s (run tools/build_image.py)\n", path); return 1; }
     size_t n = fread(g_cpu->mem, 1, MEM_SIZE, f);
+    extern const char *g_cd_dir;
+    if (g_game->tsr_cs && g_cd_dir) {
+        /* The mod's helper in its dos folder must be the one this build was lifted from: its
+         * code is in the image, and a newer helper's routines sit elsewhere (every run of it
+         * would end in "no function at B....", or worse). Its file has a 32-byte header. */
+        char hp[1100]; snprintf(hp, sizeof hp, "%s/DSCLOG.EXE", g_cd_dir);
+        FILE *hf = fopen(hp, "rb");
+        if (hf) {
+            static unsigned char head[2048 + 32];
+            size_t got = fread(head, 1, sizeof head, hf); fclose(hf);
+            int diff = 0;
+            for (size_t i = 32; i < got; i++) if (head[i] != g_cpu->mem[(unsigned)g_game->tsr_cs * 16 + i - 32]) diff++;
+            if (diff > 64) {
+                fprintf(stderr, "[main] the mod's helper %s is not the one this build was lifted from (%d of %zu bytes differ): rebuild with tools/build_mod.sh\n", hp, diff, got - 32);
+                say(headless, "The Obsidian Edition's helper (DSCLOG.EXE in its dos folder) is a different release from the one this program was built with. The mod may misbehave; a program built from this release of the mod is needed (tools/build_mod.sh).");
+            }
+        }
+    }
     fclose(f);
     if (n != MEM_SIZE) { fprintf(stderr, "%s is short\n", path); return 1; }
     bios_init(g_cpu);
