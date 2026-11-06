@@ -103,6 +103,13 @@ it. CREATE CHARACTERS opens the roster (VIEW CHARACTER).
   device is still unheard; the audio callback path, run here through
   SDL's disk driver, gives continuous music.
 - Wake of the Ravager: further into Tyr; CD volume through the mixer.
+- MT-32 music, if wanted: the games' MIDI drivers (ADV 2 and 19) speak to an
+  MT-32 through an MPU-401 at port 330h, and the music is written for its
+  patches, so a General MIDI synthesizer would play the wrong instruments.
+  The way is Munt (libmt32emu) behind an MPU-401 port emulation, with the
+  player's own MT-32 ROMs named in dsun.ini, and the runtime's SOUND.CFG
+  stand-in choosing the MT-32 driver when they are there. A few hundred
+  lines plus the library's cross-build; the owner's call.
 
 Character creation turned up a mouse-driver bug: INT 33h functions 5 and 6
 (button press and release information) answered with the button state

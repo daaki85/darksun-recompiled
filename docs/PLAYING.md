@@ -322,6 +322,11 @@ combat log in the game (L on the map).
 - A CRT look: none. The display settings are three lines in `dsun.ini`
   (see [While you play](#while-you-play)); the window's size and full screen
   are remembered from the last run.
-- MT-32 or General MIDI music.
+- MT-32 music. The games' MIDI drivers are for the Roland MT-32 only (no
+  General MIDI driver exists for them), so the music plays through the
+  games' AdLib and Sound Blaster FM drivers, as GOG's Wake of the Ravager
+  is set up. MT-32 sound would need an MT-32 emulator (Munt) and the MT-32's
+  own ROMs, which are not free to ship: each player would supply them, as
+  for DOSBox. Not built.
 - Party transfer with the Obsidian Edition's additions to a party (its
   own items): the utility is SSI's, and knows the original game's items.
