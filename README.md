@@ -48,6 +48,15 @@ cmake --build build/cmake
 ./build/cmake/dsun                      # finds game/ds1 (and game/ds2) itself
 ```
 
+`tools/build_all.sh` runs those steps for every game folder present (and the mod's
+build with the mod's folder as its argument), seeding each build with the
+entry-point lists the repository keeps in `entries/` (`tools/entries.sh`: the
+addresses the finder cannot see statically, found by runs and saved after a
+convergence; the mod's lists are kept per helper release, by its md5). The
+GitHub workflow (`.github/workflows/build.yml`) does the same and runs the
+regression suite, given the game folders at a private URL in the secret
+`GAME_ARCHIVE_URL`.
+
 **Wake of the Ravager** goes through the same steps with `game/ds2` and
 `build/ds2`, plus its command line and its CD: GOG starts it as `DSUN -W0 -L`,
 and its data CD is `game.gog`, a raw MODE2/2352 track (2,048 data bytes at

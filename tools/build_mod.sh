@@ -32,6 +32,10 @@ sh tools/entries.sh seed build/ds1o "$MOD"
 python3 tools/find_funcs.py build/ds1o | head -1
 python3 tools/lift.py build/ds1o | cut -c1-120
 python3 tools/lift_drivers.py game/ds1/RESOURCE.GFF build/ds1o | cut -c1-60
-cmake -S . -B build/cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DGAME_BUILDS="$PWD/build/ds1;$PWD/build/ds1o;$PWD/build/ds2;$PWD/build/ct" >/dev/null
+[ -n "$SKIP_CMAKE" ] && exit 0                      # (tools/build_all.sh configures and compiles itself)
+BUILDS="$PWD/build/ds1;$PWD/build/ds1o"
+[ -d build/ds2/gen ] && BUILDS="$BUILDS;$PWD/build/ds2"
+[ -d build/ct/gen ] && BUILDS="$BUILDS;$PWD/build/ct"
+cmake -S . -B build/cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DGAME_BUILDS="$BUILDS" >/dev/null
 cmake --build build/cmake 2>&1 | grep -E "error|FAILED" || true
 echo "run: build/cmake/dsun --mod $MOD   (or --game game/ds1 --build build/ds1o --cd $MOD/dos)"

@@ -158,6 +158,7 @@ static void key(SDL_Scancode s, int down)
 }
 
 /* ---- mouse ---------------------------------------------------------------------- */
+int g_window_w, g_window_h, g_fullscreen, g_scale_linear;   /* display settings (dsun.ini), set by main.c */
 static volatile int g_mx = 160, g_my = 100, g_mb;
 /* Button changes are queued with the position they happened at, one per
  * poll of the guest's mouse driver, so a press and release between two
@@ -286,9 +287,15 @@ int host_run(int headless, double seconds, const char *shots, const char *input)
     g_lock = SDL_CreateMutex();
     parse_input(input);
     SDL_Window *win = NULL; SDL_Renderer *ren = NULL; SDL_Texture *tex = NULL;
+    static int full;                                /* full screen now (F11, or dsun.ini's fullscreen=1) */
     if (!headless) {
+        /* dsun.ini's display lines (runtime/main.c reads them): window=WxH, fullscreen=0|1,
+         * scale=nearest|linear; the window's size and full screen are written back at exit */
+        int ww = g_window_w > 0 ? g_window_w : 960, wh = g_window_h > 0 ? g_window_h : 720;
+        full = g_fullscreen;
+        SDL_SetHint(SDL_HINT_RENDER_SCALE_QUALITY, g_scale_linear ? "linear" : "nearest");
         win = SDL_CreateWindow("Dark Sun Recompiled", SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED,
-                               960, 720, SDL_WINDOW_RESIZABLE);
+                               ww, wh, SDL_WINDOW_RESIZABLE | (full ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0));
         ren = SDL_CreateRenderer(win, -1, SDL_RENDERER_PRESENTVSYNC);
         SDL_RenderSetLogicalSize(ren, 320, 240);
         tex = SDL_CreateTexture(ren, SDL_PIXELFORMAT_ARGB8888, SDL_TEXTUREACCESS_STREAMING, 640, 400);
@@ -303,14 +310,19 @@ int host_run(int headless, double seconds, const char *shots, const char *input)
         double now = host_us() / 1e6;
         SDL_Event e;
         while (SDL_PollEvent(&e)) {
-            if (e.type == SDL_QUIT) host_exit(0);
+            if (e.type == SDL_QUIT) {
+                /* the window as it is, for next time (dsun.ini: window=, fullscreen=) */
+                int cw, ch; SDL_GetWindowSize(win, &cw, &ch);
+                if (!full && cw > 0 && ch > 0) host_remember_window(cw, ch);
+                host_remember_fullscreen(full);
+                host_exit(0);
+            }
             /* F11, or Alt+Enter, switches between the window and full screen (the game's 4:3
              * picture scaled to fit); neither reaches the game */
             int fs_key = e.type == SDL_KEYDOWN && !e.key.repeat &&
                          (e.key.keysym.scancode == SDL_SCANCODE_F11 ||
                           (e.key.keysym.scancode == SDL_SCANCODE_RETURN && (e.key.keysym.mod & KMOD_ALT)));
             if (fs_key) {
-                static int full;
                 full = !full;
                 SDL_SetWindowFullscreen(win, full ? SDL_WINDOW_FULLSCREEN_DESKTOP : 0);
             } else if (e.type == SDL_KEYDOWN && !e.key.repeat) { if (g_hold) { g_exit_code = 1; break; } key(e.key.keysym.scancode, 1); }

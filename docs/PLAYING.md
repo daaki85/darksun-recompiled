@@ -168,6 +168,10 @@ and no game.gog: the CD's files are missing` when it finds neither.
 - **The window** opens at three times the game's size and can be resized;
   the picture keeps its 4:3 shape. **F11** or **Alt+Enter** switches to full
   screen and back. Closing the window ends the game at once, without saving.
+  The size and full screen are remembered for the next start in `dsun.ini`
+  beside the program (`window=960x720`, `fullscreen=0`); a third line,
+  `scale=linear`, smooths the picture instead of the sharp pixels
+  (`scale=nearest`, the default).
 - **The mouse** is the game's: the pointer is the game's own pointer, drawn
   by the game. The right button opens the games' pop-up menus (on the
   character roster, a right click on a slot gives NEW / ADD / CANCEL).
@@ -315,8 +319,9 @@ combat log in the game (L on the map).
 
 - Play past the opening of either game: untested. Expect errors and report
   them.
-- A settings file, scaling filters, a CRT look: none. Window or full screen
-  is the only choice.
+- A CRT look: none. The display settings are three lines in `dsun.ini`
+  (see [While you play](#while-you-play)); the window's size and full screen
+  are remembered from the last run.
 - MT-32 or General MIDI music.
 - Party transfer with the Obsidian Edition's additions to a party (its
   own items): the utility is SSI's, and knows the original game's items.

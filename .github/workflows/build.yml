@@ -1,0 +1,34 @@
+# Builds the program and runs the regression suite. The games are not in the repository: the
+# workflow needs an archive of the game folders (game/ds1, and game/ds2 with its game.gog) at a
+# private URL in the secret GAME_ARCHIVE_URL (a tar.gz; curl must get it with no login), and
+# builds nothing without it, since every line of the lifted program comes from DSUN.EXE.
+name: build
+on: [push, pull_request, workflow_dispatch]
+jobs:
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+        with: { submodules: recursive }
+      - name: Packages
+        run: |
+          sudo apt-get update -q
+          sudo apt-get install -y -q cmake ninja-build libsdl2-dev python3-pil
+      - name: The games
+        env: { URL: "${{ secrets.GAME_ARCHIVE_URL }}" }
+        run: |
+          if [ -z "$URL" ]; then echo "no GAME_ARCHIVE_URL secret: the build needs the games"; exit 0; fi
+          mkdir -p game && curl -sSL "$URL" | tar -xz -C game
+          ls game/ds1/DSUN.EXE
+      - name: Build
+        run: |
+          [ -f game/ds1/DSUN.EXE ] || exit 0
+          sh tools/build_all.sh
+      - name: Regression suite
+        run: |
+          [ -f build/cmake/dsun ] || exit 0
+          python3 tests/run.py
+      - name: Keep the logs of failed cases
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with: { name: test-logs, path: build/tests/*/log.txt }

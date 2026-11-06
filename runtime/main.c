@@ -170,6 +170,20 @@ static const char *remembered(const char *tag)         /* dsun.ini's folder for 
     return hit;
 }
 
+static void remember(const char *tag, const char *dir);
+void host_remember_window(int w, int h) { char v[32]; snprintf(v, sizeof v, "%dx%d", w, h); remember("window", v); }
+void host_remember_fullscreen(int on) { remember("fullscreen", on ? "1" : "0"); }
+
+static void display_settings(void)                       /* dsun.ini: window=WxH, fullscreen=0|1, scale=nearest|linear */
+{
+    extern int g_window_w, g_window_h, g_fullscreen, g_scale_linear;
+    const char *v = remembered("window");
+    if (v && sscanf(v, "%dx%d", &g_window_w, &g_window_h) != 2) g_window_w = g_window_h = 0;
+    if (g_window_w < 320 || g_window_h < 200 || g_window_w > 16384 || g_window_h > 16384) g_window_w = g_window_h = 0;
+    v = remembered("fullscreen"); g_fullscreen = v && v[0] == '1';
+    v = remembered("scale"); g_scale_linear = v && !strcmp(v, "linear");
+}
+
 static void remember(const char *tag, const char *dir)   /* dsun.ini: this game's folder (the others' lines kept) */
 {
     char path[1100]; ini_path(path, sizeof path);
@@ -183,11 +197,11 @@ static void remember(const char *tag, const char *dir)   /* dsun.ini: this game'
     }
     f = fopen(path, "w");
     if (!f) return;
-    fprintf(f, "# Dark Sun Recompiled: where each game is (written when a game was found; edit or delete freely)\n");
+    fprintf(f, "# Dark Sun Recompiled: where each game is, and the display (window=WxH, fullscreen=0|1, scale=nearest|linear); edit or delete freely\n");
     for (int i = 0; i < nk; i++) if (keep[i][0] != '#') fputs(keep[i], f);
     fprintf(f, "%s=%s\n", tag, dir);
     fclose(f);
-    fprintf(stderr, "[main] %s remembered in %s\n", dir, path);
+    if (strcmp(tag, "window") && strcmp(tag, "fullscreen")) fprintf(stderr, "[main] %s remembered in %s\n", dir, path);
 }
 
 static const char *gog_folder(const GameDesc *g)       /* the game in one of GOG's usual places */
@@ -540,6 +554,7 @@ int main(int argc, char **argv)
     { extern int audio_init(void); extern int audio_wav_open(const char *);
       if (!getenv("DS_NO_AUDIO")) audio_init();
       if (wav && !audio_wav_open(wav)) fprintf(stderr, "cannot write %s\n", wav); }
+    display_settings();
     return host_run(headless, seconds, shots, input);
 }
 
