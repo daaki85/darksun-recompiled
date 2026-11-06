@@ -4,6 +4,7 @@
 set -e
 B=${1:-build/ds1}
 cd "$(dirname "$0")/.."
+sh tools/entries.sh seed "$B"            # the lists the build converged on, from the repository
 python3 tools/find_funcs.py "$B"
 python3 tools/lift.py "$B"
 python3 tools/lift_drivers.py "${GAME:-game/ds1}/RESOURCE.GFF" "$B"

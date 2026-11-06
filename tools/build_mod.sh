@@ -15,22 +15,20 @@ from dsloader import launch
 r = launch.prepare_patched_game('$PWD/game/ds1')
 sys.exit(r or 0)"
 python3 tools/build_image.py "$MOD/dos/DSUNLOG.EXE" --out build/ds1o --tsr "$MOD/dos/DSCLOG.EXE" --mod "$MOD"
-# The misses list carries over only below the video memory: the helper and
-# the overlays above it move with every helper release, so entries up there
-# from an earlier release point at nothing (the lifter skips those it can
-# see are stale; converge finds the new ones).
-# The plain game's list below the video memory is merged in: the game's own
-# code is the same, and a routine the plain game reached is one the mod's
-# game will.
+# The entry-point lists depend on the helper's release (the helper and the overlays above the
+# video memory move with it): what a run found is kept above the video memory only for the same
+# helper (entries/ds1o-<md5>, tools/entries.sh), and the plain game's list below it is merged in
+# (its code is the same; a routine the plain game reached is one the mod's game will).
 python3 -c "
-import os
-m='build/ds1o/misses.txt'; keep=set(x for x in open(m).read().split() if int(x,16) < 0xA0000) if os.path.exists(m) else set()
+import os, hashlib
+m='build/ds1o/misses.txt'; i='build/ds1o/inside.txt'
+keep=set(x for x in open(m).read().split() if int(x,16) < 0xA0000) if os.path.exists(m) else set()
 if os.path.exists('build/ds1/misses.txt'): keep |= set(x for x in open('build/ds1/misses.txt').read().split() if int(x,16) < 0xA0000)
 open(m,'w').write('\n'.join(sorted(keep, key=lambda x: int(x, 16)))+'\n')
-i='build/ds1o/inside.txt'                  # (the same for the entries in the middle of functions)
 if os.path.exists(i):
     lines=[l for l in open(i).read().splitlines() if l.split() and int(l.split()[0],16) < 0xA0000]
     open(i,'w').write(''.join(l+'\n' for l in lines))"
+sh tools/entries.sh seed build/ds1o "$MOD"
 python3 tools/find_funcs.py build/ds1o | head -1
 python3 tools/lift.py build/ds1o | cut -c1-120
 python3 tools/lift_drivers.py game/ds1/RESOURCE.GFF build/ds1o | cut -c1-60
