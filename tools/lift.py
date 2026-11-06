@@ -238,10 +238,10 @@ def main(argv=None):
             # routine's tail) comes back to. Each such label is an entry in the middle of the
             # function (recomp_enter_ip), found here rather than one run at a time as a miss.
             for i in range(len(insns) - 1):
-                a, b = insns[i], insns[i + 1]
-                if (a.mnemonic == 'push' and a.op1 and a.op1.type == OpType.SREG and a.op1.reg == 1
-                        and b.mnemonic == 'push' and b.op1 and b.op1.type == OpType.IMM16):
-                    target = b.op1.disp & 0xFFFF
+                p_, q_ = insns[i], insns[i + 1]
+                if (p_.mnemonic == 'push' and p_.op1 and p_.op1.type == OpType.SREG and p_.op1.reg == 1
+                        and q_.mnemonic == 'push' and q_.op1 and q_.op1.type == OpType.IMM16):
+                    target = q_.op1.disp & 0xFFFF
                     if target in f['ips'][1:]:
                         inside.setdefault(lin, [])
                         if target not in inside[lin]:
