@@ -327,6 +327,33 @@ DOSBox too, and Enter loads. The Windows build was run under Wine 9 with
 the mod: the picture fills the window, and the pointer sits under the
 host's at the default size, after a resize to 480x360 and after one to
 1600x978. docs/TEST-SESSION.md is the order to try things in on Windows.
+The mod's branch moved to its 2.13 helper (and again, within the week); the
+program follows it with `tools/build_mod.sh`, and what that took (6 November):
+
+- **The middle mouse button never reached the game**: every button but the
+  left had been passed as the right one, so the mod's map drag did nothing
+  on the program. Fixed (runtime/host.c, bios.c; the input script has
+  `mdrag=` for it).
+- **RECALL with the 2.13 helper** ended in "Stack overflow!": the helper now
+  reaches the die routine's tail through a frame the overlay manager may
+  rewrite, and the tail's entry (RS_TAIL) had been noted by hand for the
+  2.12 layout. build_image.py now reads RS_TAIL from the helper's source
+  into the layout (`interior_entries`), and the lifter makes the helper's
+  own `push cs / push word .label` continuations entries up front, so a new
+  helper release needs fewer convergence runs (the pens path still found
+  two more; `inside.txt` and `misses.txt` carry the rest).
+- **A helper-match check at start**: the mod's DSCLOG.EXE is compared with
+  the helper in the image; a different release is said plainly (a box and
+  the log) instead of ending in missing code later.
+- **The mod's build is in the regression suite**: `game = "ds1o"` cases run
+  it with `$DS_MOD`; `mod-recall` (STORE, reroll, RECALL) and `mod-spread`
+  (the party in view at the gate after the bout, then the middle-button
+  drag) guard this week's faults. "Stack overflow" and a helper mismatch
+  count as failures.
+- The one-off hit-point drop seen on K'ratchek after a readied-spell click
+  (1 November) did not come back: the same steps headless from the same
+  save, with the dice log attached, change nothing. Kept on the watch list.
+
 Still untried: the Look box on a monster (the right-clicks missed them),
 talking to the new people (Kalzith), a shop, a charged item, a scroll,
 thief skills in play.
