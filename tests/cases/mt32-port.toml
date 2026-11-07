@@ -1,0 +1,11 @@
+# The MT-32 path without a synthesizer: DS_MT32_PORT puts the MPU-401 on port 330h with nothing
+# behind it, the runtime's SOUND.CFG stand-in then chooses the game's MT-32 driver (ADV 2), and
+# the intro's music must come out of the port as MIDI (counted at exit). The ROMs themselves are
+# the player's; they never reach a test.
+seconds = 45
+input = "20:key=ESC 24:key=ESC 28:key=ESC 32:key=ESC"
+env = { DS_MT32_PORT = "1" }
+log_has = ["MPU-401 on port 330h", "MIDI bytes"]
+screen = [
+  { at = 40, min_colours = 40 },
+]

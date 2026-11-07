@@ -82,13 +82,17 @@ def run_case(path, update):
     if case.get('input'):
         cmd += ['--input', case['input']]
     env = dict(os.environ, DS_QUIET='', DS_CLOCK='1000000000')   # the clock pinned: the same dice every run
-    log = subprocess.run(cmd, cwd=ROOT, capture_output=True, text=True, timeout=case['seconds'] + 60).stderr
+    env.update(case.get('env', {}))                 # a case's own variables (DS_MT32_PORT, ...)
+    log = subprocess.run(cmd, cwd=ROOT, env=env, capture_output=True, text=True, timeout=case["seconds"] + 60).stderr
     open(os.path.join(shots, 'log.txt'), 'w').write(log)
     problems = []
     for bad in ('no function at', '[sp]', 'unhandled', 'fatal:', 'is not code', 'Stack overflow', 'not the one this build was lifted from'):
         n = log.count(bad)
         if n and bad not in case.get('allow', []):
             problems.append(f'{n} x "{bad}" in the log')
+    for text in case.get('log_has', []):           # lines the log must carry
+        if text not in log:
+            problems.append(f'the log lacks "{text}"')
     for chk in case.get('screen', []):
         at = chk['at']                            # a second, or "final": the screen the program ended on
         shot = os.path.join(shots, 'final.bmp' if at == 'final' else f'shot_{at:03d}.bmp')
