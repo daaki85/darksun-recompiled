@@ -26,6 +26,7 @@ cp third_party/nuked-opl3/LICENSE "$OUT/LICENSE-nuked-opl3.txt"
 cp third_party/licenses/SDL2.txt "$OUT/LICENSE-SDL2.txt"
 cp third_party/licenses/stb_vorbis.txt "$OUT/LICENSE-stb_vorbis.txt"
 cp third_party/spleen/LICENSE "$OUT/LICENSE-spleen.txt"      # the text-mode font
+[ -f third_party/munt/mt32emu/COPYING.LESSER.txt ] && cp third_party/munt/mt32emu/COPYING.LESSER.txt "$OUT/LICENSE-mt32emu.txt"   # the MT-32 emulator (LGPL 2.1)
 # The memory images made from the owner's own DSUN.EXEs, for the owner's own
 # use: they are the games' code, as the program itself is.
 for T in ds1 ds1o ds2 ct; do

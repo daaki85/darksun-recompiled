@@ -20,6 +20,9 @@ What changed, newest first. The dates are the commits'.
 - A text error screen that waits for a key; `dsun.log` beside the program; a crash handler that
   writes the call chain and the addresses for the next build.
 
+- MT-32 music through Munt's mt32emu, with the player's own ROMs (`mt32roms=` in dsun.ini):
+  an MPU-401 at port 330h, the games' own MT-32 driver, the output mixed with the digital sound.
+
 **Faults found and fixed along the way** (docs/STATUS.md has each)
 - Interrupts and the mouse polled on time in loops the lifter's tick points miss.
 - The mod's helper spans the text screen; the text-mode support no longer clears it.

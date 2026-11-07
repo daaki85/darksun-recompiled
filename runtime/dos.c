@@ -249,6 +249,19 @@ static const uint8_t SOUND_CFG[] = {
     0,0,0x01,0x00,0x04,0x00,0x08,0x00,0x0b,0x00,0x00,
 };
 
+/* The same with an MT-32 on an MPU-401 at 330h (GOG's Shattered Lands SOUND.CFG
+ * as shipped: mt32mpu.adv, ADV 2, with the Sound Blaster Pro digital sound),
+ * chosen when the MT-32's ROMs are there (runtime/mpu.c). */
+static const uint8_t SOUND_CFG_MT32[] = {
+    0x30,0x03,0x02,0x00,0xff,0xff,0xff,0xff,0x78,0x00,0x20,0x02,0x05,0x00,0x01,0x00,
+    0x01,0x00,0x7b,0x00,0x01,0x00,'m','t','3','2','m','p','u','.','a','d','v',
+    0,0,0,'s','b','p','d','i','g','.','a','d','v',0,0,0,
+    0,0x04,0x00,0x03,0x00,0x08,0x00,0x02,0x00,0x00,
+};
+extern int mpu_available(void);
+#define SOUND_CFG_BYTES (mpu_available() ? SOUND_CFG_MT32 : SOUND_CFG)
+#define SOUND_CFG_LEN   (mpu_available() ? sizeof SOUND_CFG_MT32 : sizeof SOUND_CFG)
+
 static int is_builtin(const char *name)
 {
     const char *base = strrchr(name, '\\');
@@ -266,11 +279,11 @@ static int builtin_file(const char *name)
     if (!GetTempPathA(sizeof dir, dir) || !GetTempFileNameA(dir, "dsn", 0, tmp)) return -1;
     fd = open(tmp, O_RDWR | O_BINARY | O_TRUNC | _O_TEMPORARY, 0600);
     if (fd < 0) return -1;
-    if (write(fd, SOUND_CFG, sizeof SOUND_CFG) != (int)sizeof SOUND_CFG) { close(fd); return -1; }
+    if (write(fd, SOUND_CFG_BYTES, SOUND_CFG_LEN) != (int)SOUND_CFG_LEN) { close(fd); return -1; }
 #else
     FILE *f = tmpfile();
     if (!f) return -1;
-    fwrite(SOUND_CFG, 1, sizeof SOUND_CFG, f);
+    fwrite(SOUND_CFG_BYTES, 1, SOUND_CFG_LEN, f);
     fflush(f);
     fd = dup(fileno(f));
     fclose(f);

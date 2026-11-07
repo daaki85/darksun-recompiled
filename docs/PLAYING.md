@@ -208,6 +208,22 @@ ship, which is why). MT-32 and General MIDI are not supported.
 On Linux, ALSA may print a few configuration errors at start when no sound
 device is configured; they are harmless.
 
+### MT-32 music
+
+The games were scored for the Roland MT-32, and GOG's Shattered Lands copy
+even asks for one; without it the program plays the Sound Blaster Pro FM
+music GOG's Wake of the Ravager is set up with. The program carries an MT-32
+emulator (Munt's mt32emu) and plays through it when it has the MT-32's own
+ROMs, which are Roland's and not shipped here:
+
+1. Put `MT32_CONTROL.ROM` and `MT32_PCM.ROM` (or a CM-32L's
+   `CM32L_CONTROL.ROM` and `CM32L_PCM.ROM`) in a folder of your own.
+2. Add a line to `dsun.ini` beside the program: `mt32roms=C:\path\to\the\folder`.
+3. Start the program: the log's `[mt32]` line says the ROMs were taken and the
+   music comes from the MT-32; the game's own SOUND.CFG is still never read.
+
+Without the line, or with the files missing, the FM music plays as before.
+
 ## Taking a party to Wake of the Ravager
 
 *Wake of the Ravager* can start with the characters of a *Shattered Lands*
@@ -322,11 +338,7 @@ combat log in the game (L on the map).
 - A CRT look: none. The display settings are three lines in `dsun.ini`
   (see [While you play](#while-you-play)); the window's size and full screen
   are remembered from the last run.
-- MT-32 music. The games' MIDI drivers are for the Roland MT-32 only (no
-  General MIDI driver exists for them), so the music plays through the
-  games' AdLib and Sound Blaster FM drivers, as GOG's Wake of the Ravager
-  is set up. MT-32 sound would need an MT-32 emulator (Munt) and the MT-32's
-  own ROMs, which are not free to ship: each player would supply them, as
-  for DOSBox. Not built.
+- MT-32 music needs the MT-32's ROMs, which are not free to ship (see
+  [Sound](#sound)); without them the music is the games' FM music.
 - Party transfer with the Obsidian Edition's additions to a party (its
   own items): the utility is SSI's, and knows the original game's items.

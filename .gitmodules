@@ -5,3 +5,6 @@
 [submodule "third_party/nuked-opl3"]
 	path = third_party/nuked-opl3
 	url = https://github.com/nukeykt/Nuked-OPL3
+[submodule "third_party/munt"]
+	path = third_party/munt
+	url = https://github.com/munt/munt.git

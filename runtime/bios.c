@@ -261,12 +261,14 @@ int opl_port_in(uint16_t port, uint8_t *v);
 int opl_port_out(uint16_t port, uint8_t v);
 int sb_port_in(uint16_t port, uint8_t *v);
 int sb_port_out(uint16_t port, uint8_t v);
+int mpu_port_in(uint16_t port, uint8_t *v);
+int mpu_port_out(uint16_t port, uint8_t v);
 
 uint8_t port_in8(CPU *cpu, uint16_t port)
 {
     (void)cpu;
     if (port >= 0x3B0 && port <= 0x3DF) return vga_port_in(port);
-    { uint8_t v; if (opl_port_in(port, &v)) return v; if (sb_port_in(port, &v)) return v; }
+    { uint8_t v; if (opl_port_in(port, &v)) return v; if (sb_port_in(port, &v)) return v; if (mpu_port_in(port, &v)) return v; }
     switch (port) {
     case 0x20: return 0;
     case 0x21: return g_pic_mask;
@@ -287,6 +289,7 @@ void port_out8(CPU *cpu, uint16_t port, uint8_t val)
     if (port >= 0x3B0 && port <= 0x3DF) { vga_port_out(port, val); return; }
     if (opl_port_out(port, val)) return;
     if (sb_port_out(port, val)) return;
+    if (mpu_port_out(port, val)) return;
     switch (port) {
     case 0x20: case 0xA0: return;                 /* EOI */
     case 0x21: g_pic_mask = val; return;

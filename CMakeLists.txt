@@ -9,13 +9,32 @@
 # GAME_BUILDS lists the folders the lifts went into (build/ds1;build/ds1o;build/ds2;build/ct by
 # default); every one that has gen/ is built into the one program.
 cmake_minimum_required(VERSION 3.20)
-project(DarkSunRecompiled C)
+project(DarkSunRecompiled C CXX)
 
 set(CMAKE_C_STANDARD 11)
 set(GAME_BUILDS "${CMAKE_SOURCE_DIR}/build/ds1;${CMAKE_SOURCE_DIR}/build/ds1o;${CMAKE_SOURCE_DIR}/build/ds2;${CMAKE_SOURCE_DIR}/build/ct"
     CACHE STRING "folders with gen/ from tools/lift.py, one per game")
 
 find_package(SDL2 REQUIRED)
+
+# The MT-32: Munt's mt32emu (third_party/munt, LGPL 2.1), built in as a static library with
+# its C interface; the player's ROMs make it play (runtime/mpu.c). MT32=OFF leaves it out.
+option(MT32 "MT-32 music through Munt's mt32emu (the player supplies the ROMs)" ON)
+if(MT32 AND EXISTS "${CMAKE_SOURCE_DIR}/third_party/munt/mt32emu/CMakeLists.txt")
+    set(libmt32emu_SHARED OFF CACHE BOOL "" FORCE)
+    set(libmt32emu_C_INTERFACE ON CACHE BOOL "" FORCE)
+    set(libmt32emu_CPP_INTERFACE OFF CACHE BOOL "" FORCE)
+    set(libmt32emu_WITH_INTERNAL_RESAMPLER ON CACHE BOOL "" FORCE)
+    set(libmt32emu_BUILD_TESTING OFF CACHE BOOL "" FORCE)
+    set(libmt32emu_WITH_VERSION_TAGGING OFF CACHE BOOL "" FORCE)
+    set(libmt32emu_INSTALL_DEFAULT_LOCALE OFF CACHE BOOL "" FORCE)
+    add_subdirectory(third_party/munt/mt32emu EXCLUDE_FROM_ALL)
+    set(HAVE_MT32 TRUE)
+    message(STATUS "MT-32 emulation: mt32emu built in")
+else()
+    set(HAVE_MT32 FALSE)
+    message(STATUS "MT-32 emulation: off (MT32=OFF, or third_party/munt missing: git submodule update --init)")
+endif()
 
 set(GEN_SOURCES)
 set(GAME_TAGS)
@@ -48,11 +67,17 @@ file(WRITE "${GAMES_C}.new" "${GAMES_SRC}")
 configure_file("${GAMES_C}.new" "${GAMES_C}" COPYONLY)
 add_executable(dsun
     runtime/main.c runtime/host.c runtime/bios.c runtime/dos.c runtime/vga.c
-    runtime/dispatch.c runtime/aildrv.c runtime/opl.c runtime/audio.c runtime/sb.c runtime/cd.c runtime/iso.c
+    runtime/dispatch.c runtime/aildrv.c runtime/opl.c runtime/audio.c runtime/sb.c runtime/cd.c runtime/iso.c runtime/mpu.c
     third_party/nuked-opl3/opl3.c ${GAMES_C} ${GEN_SOURCES})
 target_include_directories(dsun PRIVATE
     runtime third_party/pcrecomp/runtime/recomp16 third_party/nuked-opl3 third_party/stb)
 target_link_libraries(dsun PRIVATE SDL2::SDL2 m)
+if(HAVE_MT32)
+    target_compile_definitions(dsun PRIVATE DS_MT32)
+    target_link_libraries(dsun PRIVATE mt32emu)
+    target_include_directories(dsun PRIVATE "${CMAKE_BINARY_DIR}/third_party/munt/mt32emu/include" "${CMAKE_SOURCE_DIR}/third_party/munt/mt32emu/include")
+    set_target_properties(dsun PROPERTIES LINKER_LANGUAGE CXX)
+endif()
 # Generated code is machine-written: labels go unused, temporaries shadow.
 set_source_files_properties(${GEN_SOURCES} PROPERTIES COMPILE_OPTIONS
     "-w;-fno-strict-aliasing")

@@ -174,8 +174,11 @@ static void remember(const char *tag, const char *dir);
 void host_remember_window(int w, int h) { char v[32]; snprintf(v, sizeof v, "%dx%d", w, h); remember("window", v); }
 void host_remember_fullscreen(int on) { remember("fullscreen", on ? "1" : "0"); }
 
+const char *g_mt32_roms;                                /* dsun.ini: mt32roms=<folder with the MT-32's ROMs> (or DS_MT32_ROMS) */
+
 static void display_settings(void)                       /* dsun.ini: window=WxH, fullscreen=0|1, scale=nearest|linear */
 {
+    { const char *r = getenv("DS_MT32_ROMS"); if (!r) r = remembered("mt32roms"); if (r && *r) g_mt32_roms = strdup(r); }
     extern int g_window_w, g_window_h, g_fullscreen, g_scale_linear;
     const char *v = remembered("window");
     if (v && sscanf(v, "%dx%d", &g_window_w, &g_window_h) != 2) g_window_w = g_window_h = 0;
