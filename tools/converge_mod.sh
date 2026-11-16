@@ -1,6 +1,6 @@
 #!/bin/sh
-# converge_mod.sh [MOD]: the mod's build converged: the creation screen's RECALL, the arena's
-# start and (with the playtest kit's save pens-kurzak-door, $PENS_SAVE) the pens' USE screen are
+# converge_mod.sh [MOD]: the mod's build converged: the creation screen's RECALL and its DONE
+# (the weapon window, the psionic picks), the arena's start and (with the playtest kit's save pens-kurzak-door, $PENS_SAVE) the pens' USE screen are
 # run headless, side by side, each on its own copy of the game folder and of the build's lists;
 # every address in the helper's segment a run found no function at is kept (a screen's handlers
 # come one after another: a miss ends the handler early, not the run), an address in the game's
@@ -13,6 +13,7 @@ MOD=$(cd "$MOD" && pwd)
 S=$R/build/converge; mkdir -p $S; cd $R
 RECALL="20:key=ESC 24:key=ESC 28:key=ESC 32:key=ESC 40:move=160,90 41:click=160,90 50:rclick=65,55 53:move=130,57 55:click=130,57 64:click=113,192 66:click=155,96 70:click=172,192"
 ARENA="20:key=ESC 24:key=ESC 28:key=ESC 32:key=ESC 40:move=160,76 41:click=160,76 90:click=160,40 100:click=160,160 115:click=160,170 130:click=170,150"
+DONE="20:key=ESC 24:key=ESC 28:key=ESC 32:key=ESC 40:move=160,90 41:click=160,90 50:rclick=65,55 53:move=130,57 55:click=130,57 64:click=270,182 70:click=72,46 76:click=123,62 80:click=123,62 84:click=123,62 88:click=123,62"   # (2.17: DONE, the weapon window, PICK A PSIONIC POWER's four picks)
 PENS="20:key=ESC 24:key=ESC 28:key=ESC 32:key=ESC 40:move=160,106 41:click=160,106 50:click=130,55 56:click=250,48 90:key=u 93:click=60,125 96:click=180,60 99:click=160,104 102:key=ESC 105:click=160,104 110:key=u 114:key=ESC 117:click=157,92 121:key=u"
 SAVE=${PENS_SAVE:-$MOD/../playtest/saves/pens-kurzak-door}
 prep() {  # NAME: a copy of the game and of the build's lists for one run
@@ -24,7 +25,7 @@ run() {  # NAME SECONDS SCRIPT, in the background
   timeout $(( $2 + 60 )) build/cmake/dsun --mod $MOD --game $S/g_$1 --build $S/b_$1 --headless --seconds $2 --input "$3" > $S/$1.log 2>&1 &
 }
 for round in $(seq 1 40); do
-  prep recall; prep arena; run recall 80 "$RECALL"; run arena 150 "$ARENA"
+  prep recall; prep arena; prep done; run recall 80 "$RECALL"; run arena 150 "$ARENA"; run done 96 "$DONE"
   if [ -f "$SAVE/SAVE01.SAV" ]; then
     prep pens; cp $SAVE/SAVE01.SAV $SAVE/DARKSAVE.GFF $SAVE/CHARSAVE.GFF $S/g_pens/; run pens 125 "$PENS"
   fi
@@ -33,15 +34,16 @@ for round in $(seq 1 40); do
 import os, re
 S = os.environ['S']
 before = open('build/ds1o/misses.txt').read().split(); known = set(before)
-new = []
-for n in ('recall', 'arena', 'pens'):
+new = []; seen = 0
+for n in ('recall', 'arena', 'done', 'pens'):
     if not os.path.exists(f'{S}/{n}.log'): continue
     log = open(f'{S}/{n}.log', errors='replace').read()
     found = [(a, int(sp, 16)) for a, sp in
              re.findall(r'no function at ([0-9A-F]{5}) \(ds=[0-9A-F]+ ss:sp=[0-9A-F]+:([0-9A-F]+)\)', log)]
     keep = []
     for i, (a, sp) in enumerate(found):
-        if sp < 0x1000: break                        # the stack gone: nothing after this is real
+        if sp < 0x1000: break
+        seen += 1                        # the stack gone: nothing after this is real
         if a in known or a in new or a in keep: continue
         if 0xA0000 <= int(a, 16) < 0xC0000 or (i == 0 and int(a, 16) < 0xA0000): keep.append(a)
     new += keep
@@ -55,8 +57,8 @@ for n in ('recall', 'arena', 'pens'):
         if add:
             open('build/ds1o/inside.txt', 'a').write(''.join(l + '\n' for l in add)); print(f"  {n}: {len(add)} interior")
 open('build/ds1o/misses.txt', 'w').write('\n'.join(before + new) + '\n')
-print('new', len(new), new)
-open(f'{S}/newcount', 'w').write(str(len(new)))
+print('new', len(new), new, '' if not seen else f'({seen} miss(es) in all: a relift)')
+open(f'{S}/newcount', 'w').write(str(seen))     # (a miss already on the list, noted by a run outside this loop, still wants the relift)
 PY
   [ "$(cat $S/newcount)" = 0 ] && { echo "clean after round $round"; break; }
   python3 tools/find_funcs.py build/ds1o | head -1
