@@ -15,6 +15,10 @@ What changed, newest first. The dates are the commits'.
   (`window=`, `fullscreen=`, `scale=`).
 - The Obsidian Edition mod built in (`build/ds1o`): the mod's patched game and its resident
   helper lifted together; its Loader starts the program and reads it; its dice match DOSBox's.
+- Lifted against the mod's 2.17.1 helper (`entries/ds1o-11675dcf`): the psionic picks at
+  creation on the program (`DS_RULES`, the mod's rule switches as its Loader sets them; the real
+  return address under the grant routines' frames); `tools/converge_mod.sh` runs four scripts
+  side by side and keeps every helper address a run finds; a fourteenth suite case, `mod-done`.
 - The mouse: SDL's logical coordinates, a queue with a 60 ms hold for the games' polling, the
   middle button for the mod's map drag; keys; F11 for full screen.
 - A text error screen that waits for a key; `dsun.log` beside the program; a crash handler that
@@ -24,6 +28,10 @@ What changed, newest first. The dates are the commits'.
   an MPU-401 at port 330h, the games' own MT-32 driver, the output mixed with the digital sound.
 
 **Faults found and fixed along the way** (docs/STATUS.md has each)
+- The mod's least-scores patch's `call .here / pop si` was lifted as a call, and the creation
+  screen's die routine returned with the stack ten bytes high (Obsidian Edition 2.17.1).
+- The helper's rules were never on without its Loader, and DONE's grants were taken for START
+  GAME's: no weapon window, no psionic picks (2.17.1).
 - Interrupts and the mouse polled on time in loops the lifter's tick points miss.
 - The mod's helper spans the text screen; the text-mode support no longer clears it.
 - The helper's jumps into the middle of a routine (RECALL) enter it there; the call sites it
@@ -34,4 +42,4 @@ What changed, newest first. The dates are the commits'.
 **Tooling**
 - `tools/build_all.sh`, `tools/entries.sh` (the converged entry lists kept per build and per
   helper release), `tools/converge_mod.sh`, `tools/package_windows.sh`, a regression suite
-  (`tests/run.py`, twelve cases, the mod's included) and a GitHub workflow for it.
+  (`tests/run.py`, fourteen cases, the mod's included) and a GitHub workflow for it.

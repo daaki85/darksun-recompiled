@@ -363,6 +363,52 @@ program follows it with `tools/build_mod.sh`, and what that took (6 November):
   (1 November) did not come back: the same steps headless from the same
   save, with the dice log attached, change nothing. Kept on the watch list.
 
+The mod released 2.17.0 and 2.17.1 on 11 November (psionic powers picked at
+creation, the manual in the zip, Kurzak's doorway); the program was lifted
+against 2.17.1's helper on 16 November (`entries/ds1o-11675dcf`), and what
+that took:
+
+- **The creation screen's die routine returned to nowhere**: the mod's
+  least-scores patch (dos/least_scores.asm, in the game's own overlay code)
+  learns where it runs with `call .here / .here: pop si`, and the lifter
+  made the call a C call: the routine's tail ran twice and popped the
+  caller's frame with it, so every convergence run died at second 55 with
+  the stack ten bytes high. A call to the next instruction now pushes its
+  address and goes on (tools/lift.py).
+- **The helper's rules were off**: its rule switches live in its header,
+  written by the mod's Loader when it attaches, so a headless run had none
+  of them and DONE went straight to the roster, past 2.17's weapon window
+  and psionic picks, with no way to reach that code. `DS_RULES=<hex>`
+  (runtime/main.c) writes them as the Loader does, finding the header by
+  its signature; the convergence and the suite set the Loader's defaults
+  (`game.rules_from_settings`).
+- **DONE's grants were taken for START GAME's**: the grant handler tells
+  the two apart by the return address under its interrupt frame, where
+  the lifted game had its stand-in, so every new character got the game's
+  own powers and never its picks. DONE's calls to the grant routines now
+  push the real address (build_image.py, `real_returns`, from
+  `PSI_FROM_DONE` and `CR_FROM_DONE` in the helper's source).
+- **The interior-entry switch** was written into the middle of a `goto` to
+  a secondary entry when a helper function had both (a compile error on
+  one relift). On its own line now.
+- **Convergence, in parallel**: 2.17.1's helper needed about 190 entries
+  (2.16's, seven): tools/converge_mod.sh runs four scripts side by side on
+  their own copies of the game (RECALL, DONE with the weapon window and the
+  four picks, the arena's start, the pens' USE screen) and keeps every
+  helper-segment address a run reports until its stack goes, instead of
+  one run after another keeping the first; a round takes four minutes and
+  finds up to a dozen. The shared VEC_CR_SPELLS sites (the INT followed by
+  the site's number, reached through `rl_sites`'s pushed address and
+  `ret 2`) are why there are so many: each handler returns to the game
+  through the dispatcher, and each is an entry.
+- The suite's fourteen cases pass on the new build (the mod's three with
+  2.17.1 and the rules on); the new `mod-done` covers DONE on the creation
+  screen: PICK A WEAPON SPECIALTY, PICK A PSIONIC POWER with its discipline
+  button and the list closing up after each of four picks, the roster.
+- A fresh container's set-up: innoextract does not place GOG's starting
+  saves (`__support/save`), without which the game quits at START GAME and
+  the transfer utility finds no roster; tools/build_all.sh copies them.
+
 Still untried: the Look box on a monster (the right-clicks missed them),
 talking to the new people (Kalzith), a shop, a charged item, a scroll,
 thief skills in play.
