@@ -28,6 +28,14 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DSUN = os.environ.get('DSUN', os.path.join(ROOT, 'build', 'cmake', 'dsun'))
 # A case with `game = "ds1o"` runs Shattered Lands with the Obsidian Edition mod (build/ds1o,
 # tools/build_mod.sh): the mod's obsidian-edition folder is $DS_MOD, by default beside this repository.
+def mod_rules():
+    """The mod's rules as its Loader's defaults (or the settings beside it) set them: without
+    them the helper's rule-gated code never runs."""
+    out = subprocess.run([sys.executable, '-c', 'from dsloader import game, launch; print("%08X" % game.rules_from_settings(launch.load_settings()))'],
+                         cwd=MOD, capture_output=True, text=True)
+    return out.stdout.strip() or 'FF3FFFF5'
+
+
 MOD = os.environ.get('DS_MOD', os.path.join(ROOT, '..', 'daaki85', 'darksun-obsidian-edition', 'obsidian-edition'))
 # A case with `game = "ds2"` is Wake of the Ravager: the same program, its
 # data folder and its CD; `game = "ct"` is the character transfer utility,
@@ -82,6 +90,8 @@ def run_case(path, update):
     if case.get('input'):
         cmd += ['--input', case['input']]
     env = dict(os.environ, DS_QUIET='', DS_CLOCK='1000000000')   # the clock pinned: the same dice every run
+    if case.get('game') == 'ds1o' and 'DS_RULES' not in env:    # the mod's rule switches, as its Loader sets them (runtime/main.c)
+        env['DS_RULES'] = mod_rules()
     env.update(case.get('env', {}))                 # a case's own variables (DS_MT32_PORT, ...)
     log = subprocess.run(cmd, cwd=ROOT, env=env, capture_output=True, text=True, timeout=case["seconds"] + 60).stderr
     open(os.path.join(shots, 'log.txt'), 'w').write(log)

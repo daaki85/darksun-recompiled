@@ -260,6 +260,12 @@ per-function constant.)
 - `tools/lift.py --spcheck`: every function reports a stack or BP it leaves
   unbalanced.
 - `DS_WATCH=<linear>`: every write to an address, with the call chain.
+- `DS_RULES=<hex>`: the mod's rule switches (its Loader's `game.RULE_*`,
+  all 32 bits) written into the helper's header after it installs, as the
+  Loader does when it attaches. Without a Loader the helper's rules are
+  off, and its rule-gated code (the creation screen's weapon window and
+  psionic picks, among much else) never runs: the convergence and the
+  suite set the Loader's defaults (`game.rules_from_settings`).
 - A miss prints the call chain and the bytes at the address; a timeout prints
   the last functions entered and where the game is.
 - `DS_TRACE_XMS`, `DS_TRACE_OPL`; `DS_DUMP=<linear>:<n>` prints memory at each

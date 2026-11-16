@@ -16,6 +16,11 @@ ARENA="20:key=ESC 24:key=ESC 28:key=ESC 32:key=ESC 40:move=160,76 41:click=160,7
 DONE="20:key=ESC 24:key=ESC 28:key=ESC 32:key=ESC 40:move=160,90 41:click=160,90 50:rclick=65,55 53:move=130,57 55:click=130,57 64:click=270,182 70:click=72,46 76:click=123,62 80:click=123,62 84:click=123,62 88:click=123,62"   # (2.17: DONE, the weapon window, PICK A PSIONIC POWER's four picks)
 PENS="20:key=ESC 24:key=ESC 28:key=ESC 32:key=ESC 40:move=160,106 41:click=160,106 50:click=130,55 56:click=250,48 90:key=u 93:click=60,125 96:click=180,60 99:click=160,104 102:key=ESC 105:click=160,104 110:key=u 114:key=ESC 117:click=157,92 121:key=u"
 SAVE=${PENS_SAVE:-$MOD/../playtest/saves/pens-kurzak-door}
+# The mod's rule switches as its Loader would set them (its defaults, or the settings beside it):
+# without them the helper's rule-gated code (the creation screen's weapon window and psionic
+# picks among it) never runs, and no run would find its entries (DS_RULES, runtime/main.c).
+[ -n "$DS_RULES" ] || DS_RULES=$(cd "$MOD" && python3 -c "from dsloader import game, launch; print('%08X' % game.rules_from_settings(launch.load_settings()))")
+export DS_RULES; echo "rules $DS_RULES"
 prep() {  # NAME: a copy of the game and of the build's lists for one run
   rm -rf $S/g_$1 $S/b_$1; cp -r game/ds1 $S/g_$1; mkdir -p $S/b_$1; rm -f $S/g_$1/SAVE01.SAV
   cp build/ds1o/image.bin build/ds1o/layout.json build/ds1o/functions.json build/ds1o/misses.txt $S/b_$1/

@@ -67,6 +67,22 @@ int game_main(void *arg)
         }
         g_tsr_running = 0;
         dispatch_reset_depth();
+        /* DS_RULES=<hex>: the mod's rule switches (its Loader's game.RULE_*, all 32 bits), written
+         * into the helper's header as the Loader does when it attaches (+170 the low word, +270 the
+         * high): without a Loader the helper's rules are off, and the creation screen's weapon
+         * window and psionic picks (2.17), among others, never show. The Loader's own run of this
+         * program writes them itself. */
+        if (getenv("DS_RULES")) {
+            unsigned long r = strtoul(getenv("DS_RULES"), NULL, 16);
+            unsigned hdr = 0;                     /* the header's signature, on a paragraph, where the install left it (the Loader scans the same way) */
+            for (unsigned a = 0; a + 8 < 0x100000 && !hdr; a += 16)
+                if (!memcmp(cpu->mem + a, "DSCLOGva", 8)) hdr = a;
+            if (hdr) {
+                cpu->mem[hdr + 170] = r & 0xFF; cpu->mem[hdr + 171] = (r >> 8) & 0xFF;
+                cpu->mem[hdr + 270] = (r >> 16) & 0xFF; cpu->mem[hdr + 271] = (r >> 24) & 0xFF;
+                trace("[main] the helper's rules set to %08lX at %05X (DS_RULES)\n", r, hdr);
+            } else fprintf(stderr, "[main] DS_RULES: the helper's header was not found\n");
+        }
         dos_set_psp(g_game->psp);
     }
     cpu->ds = cpu->es = g_game->psp;
