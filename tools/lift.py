@@ -88,6 +88,17 @@ class SiteLifter(Lifter):
         self.real_returns = real_returns
 
     def lift_instruction(self, inst, func_start):
+        if (inst.mnemonic == 'call' and inst.op1 and inst.op1.type == OpType.REL16
+                and (inst.op1.disp & 0xFFFF) == ((inst.address + inst.length) & 0xFFFF)):
+            # `call .here / .here: pop si`: the mod's least-scores patch (dos/least_scores.asm)
+            # learns where it runs. Not a call: the next instruction's address pushed, as the
+            # hardware does, and on. (Lifted as a call, the routine's tail ran twice and popped
+            # the caller's frame with it: the creation screen's die routine then returned to
+            # nowhere, 2026-11-16.)
+            nxt = (inst.address + inst.length) & 0xFFFF
+            self._emit_label(inst.address)
+            self._emit(f'push16(cpu, 0x{nxt:04X});', 'call to the next instruction: its address, read by the pop')
+            return
         if (self.real_returns and inst.mnemonic == 'call' and inst.op1 and inst.op1.type == OpType.REL16
                 and (func_start + (inst.op1.disp & 0xFFFF)) in self.known_funcs):
             target = self.known_funcs[func_start + (inst.op1.disp & 0xFFFF)]
