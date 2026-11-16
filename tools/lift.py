@@ -304,7 +304,7 @@ def main(argv=None):
         body = body.replace('(CPU *cpu)\n{', f'(CPU *cpu)\n{{\n    cpu->cs = 0x{cs:04X};', 1)
         if lin in inside:
             cases = ''.join(f'        case 0x{ip:04X}: recomp_enter_ip = 0; goto L_{name}_{ip:06X};\n' for ip in sorted(inside[lin]))
-            k = body.index(f'L_{name}_')          # before the first instruction
+            k = body.rfind('\n', 0, body.index(f'L_{name}_')) + 1   # the line of the first instruction (or of the goto to a secondary entry)
             body = body[:k] + f'    if (recomp_enter_ip) switch (recomp_enter_ip) {{\n{cases}    }}\n' + body[k:]
             for ip in inside[lin]:
                 w = f'{name}__at_{ip:04X}'
