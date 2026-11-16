@@ -311,6 +311,17 @@ def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None, original
             if para and offs:
                 cs = load + int(para.group(1), 16)
                 real_returns = [f'{cs * 16 + int(o, 16):05X}' for o in offs]
+            # ... and the calls DONE on the creation screen makes to the grant routines
+            # (PSI_FROM_DONE, CR_FROM_DONE: the INT's way back, less the routine's into DONE): the
+            # helper tells DONE's call from START GAME's by the return address under the INT's
+            # frame, and with the stand-in there every new character got the game's powers and
+            # spells, never its picks (2026-11-16). The second number is the return address, a
+            # file offset in the creation overlay.
+            for m_ in re.finditer(r'\w+_FROM_DONE\s+equ\s+0x([0-9A-Fa-f]+)\s*-\s*0x([0-9A-Fa-f]+)', src):
+                file_off = int(m_.group(2), 16)
+                for mod in modules:
+                    if mod.get('seg') is not None and mod['file'] <= file_off < mod['file'] + mod['size']:
+                        real_returns.append(f'{mod["seg"] * 16 + file_off - mod["file"]:05X}')
     # Where the helper jumps into the middle of a game routine: RS_TAIL, the die routine's
     # tail (a file offset in the creation overlay), reached by a far jump after a recall. The
     # lifter gives that address an entry of its own (tools/lift.py, recomp_enter_ip).
