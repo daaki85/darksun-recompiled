@@ -8,6 +8,7 @@ set -e
 cd "$(dirname "$0")/.."
 MOD=${1:-$MOD}
 [ -f game/ds1/DSUN.EXE ] || { echo "no game in game/ds1 (innoextract the GOG installer there)"; exit 1; }
+for g in ds1 ds2; do for f in game/$g/__support/save/*; do [ -f "$f" ] && [ ! -f "game/$g/$(basename "$f")" ] && cp "$f" "game/$g/"; done; done 2>/dev/null   # the starting saves GOG's installer places (innoextract doesn't)
 [ -d third_party/pcrecomp/tools ] || git submodule update --init --recursive
 tools/apply_patches.sh >/dev/null 2>&1 || true
 python3 tools/build_image.py game/ds1/DSUN.EXE --out build/ds1 | tail -1

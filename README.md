@@ -39,6 +39,7 @@ cd darksun-recompiled
 tools/apply_patches.sh        # this project's fixes to pcrecomp (patches/pcrecomp)
 # the game: innoextract the GOG installer, or copy an installed game folder
 innoextract -s -d game/ds1 setup_dark_sun_shattered_lands_1.1_cs_\(28043\).exe
+cp -n game/ds1/__support/save/* game/ds1/   # the starting saves GOG's installer puts in place (innoextract doesn't; the game quits at START GAME without them)
 python3 tools/build_image.py game/ds1/DSUN.EXE --out build/ds1
 python3 tools/find_funcs.py build/ds1
 python3 tools/lift.py build/ds1
@@ -58,7 +59,7 @@ regression suite, given the game folders at a private URL in the secret
 `GAME_ARCHIVE_URL`.
 
 **Wake of the Ravager** goes through the same steps with `game/ds2` and
-`build/ds2`, plus its command line and its CD: GOG starts it as `DSUN -W0 -L`,
+`build/ds2` (its starting saves too: `cp -n game/ds2/__support/save/* game/ds2/`), plus its command line and its CD: GOG starts it as `DSUN -W0 -L`,
 and its data CD is `game.gog`, a raw MODE2/2352 track (2,048 data bytes at
 offset 24 of each 2,352-byte sector). The program unpacks it into
 `game/ds2/cd` the first time it starts the game (`runtime/iso.c`) and uses
