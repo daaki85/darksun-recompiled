@@ -1,0 +1,17 @@
+# The mod's creation screen, 2.17: NEW on the roster, DONE (270,182); with the Loader's rules
+# (DS_RULES, set by the suite for the mod's cases) a warrior gets the mod's PICK A WEAPON
+# SPECIALTY window (the first weapon clicked), then PICK A PSIONIC POWER for its four picks
+# (the first icon, 123,62; the list closes up after each, so the same place takes the next),
+# which closes on the last, and the roster shows the character. Without the real return
+# address under the grant routine's interrupt frame, the helper took DONE's grants for START
+# GAME's and gave the game's own powers, no picks (build_image.py, real_returns).
+game = "ds1o"
+seconds = 96
+input = "20:key=ESC 24:key=ESC 28:key=ESC 32:key=ESC 40:move=160,90 41:click=160,90 50:rclick=65,55 53:move=130,57 55:click=130,57 64:click=270,182 70:click=72,46 76:click=123,62 80:click=123,62 84:click=123,62 88:click=123,62"
+screen = [
+  { at = 67, ref = "weapons", min_colours = 60, tolerance = 0.12 },
+  { at = 73, ref = "powers",  min_colours = 60, tolerance = 0.12 },
+  { at = 86, ref = "lastpick", min_colours = 60, tolerance = 0.12 },
+  { at = 94, ref = "roster",  min_colours = 60, tolerance = 0.25 },
+]
+keeps = ["CHARSAVE.GFF"]
