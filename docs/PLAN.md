@@ -95,7 +95,7 @@ the intro plays (SSI logo, AD&D screen).
 
 ## Phase 8: Shattered Lands figures in Wake of the Ravager
 
-A resource-override layer between the game and its GFF files, a table mapping
+Examined in [FIGURES.md](FIGURES.md). A resource-override layer between the game and its GFF files, a table mapping
 each sequel figure to its Shattered Lands equivalent, and handling of the size
 difference (the sequel's figures are larger).
 
