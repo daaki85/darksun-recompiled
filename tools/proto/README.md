@@ -21,5 +21,6 @@ into `sl_figures.py`.
   Checked: an unchanged rewrite reads back the same; adding changes only the two offset tables.
 - `gffw.py`: rewrites a GFF with chunks added (a new index after the data); checked to read back
   unchanged with no changes.
-- `shadows.py`: **don't use**: it wrote shadow tiles into `GMAP`, which turned out to be per-cell
+- `shadows.py`: **don't use**: it read the map 112 wide (it is 128 wide, 98 rows: docs/FIGURES.md)
+  and wrote shadow tiles into `GMAP`, which turned out to be per-cell
   flags (0, 64, 192), not the drawn tile map. How WR draws its ground is not known yet.

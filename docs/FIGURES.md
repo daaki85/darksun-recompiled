@@ -15,7 +15,7 @@ holds no data from either game. Its pictures are made on the owner's machine and
 ## In short
 
 The engine draws a figure the same way in both games. The objects, the frame format, the
-animation scripts and their 36 slots all match, and so does the map grid (16×16 tiles, 112×112).
+animation scripts and their 36 slots all match, and so does the map grid (16×16 tiles, 98 rows of 128).
 That leaves four differences, all in the data, each one mechanical to convert:
 
 | | Shattered Lands (`SEGOBJEX.GFF`) | Wake of the Ravager (`OBJEX.GFF`) |
@@ -245,11 +245,36 @@ On top of the squash, in the game (scripts in `tools/proto/`, as they ran):
   their object pointing at it (81 objects, OJFF 32100 on, set in the `ETAB`). Over all of Tyr,
   solid 2x2 patches of the shadow colour went from 5,546 to 484, of which the walls' own dark details
   make 446 with no shadows at all. Seen in the game: clean checkerboards.
-- **Not understood yet: WR's ground.** `GMAP` holds per-cell flags (0, 64, 192), not tiles. `MAP`
-  (1-91) doesn't match the screen's ground at any grid offset with Tyr's `TILE`s. Shadows drawn
-  into the ground, as SL does, need that worked out from the game's drawing code first.
-- An entity's map-pixel place: (x - 896, y + 24) in Tyr, from the camera (screen = x - camera x).
-  `tools/proto/gffw.py` adds chunks to a GFF (a new index after the data).
+- **WR's ground:** worked out below ([how WR draws its ground](#how-wr-draws-its-ground)).
+  `tools/proto/gffw.py` adds chunks to a plain-index GFF (a new index after the data).
+
+## How WR draws its ground
+
+Worked out 2026-11-20 from the game (Tyr, the opening ambush) and its region loader.
+
+- **The map is 98 rows of 128 tiles,** not 112 x 112: 12,544 bytes either way. WR's region loader
+  (DSUN.EXE file offset 2B5xxh; SL's at 26Exxh) reads `TILE`, then `RMAP` into the far pointer at
+  DS:29EFh, or `MAP ` there if the region has no `RMAP` (Tyr hasn't; SL's regions have `RMAP`, WR's
+  `MAP `), then `GMAP` into DS:0538h, then walks `GMAP` as 98 rows of 128 bytes (`shl ax,7`),
+  clearing bit 20h of each. `RMAP`/`MAP ` hold tile numbers (`TILE` chunks, 16 x 16); `GMAP` holds
+  per-cell flags (0, 64, 192 seen in Tyr).
+- **Placement:** tile (c, r) is drawn at map pixel (16c, 16r); the screen shows map pixels minus
+  the camera (DS:1408h, x and y), exactly. Entities use the same map pixels: an object's anchor
+  (OJFF +2, +4) sits at its `ETAB` (x, y), raised by its height. (An earlier note here gave
+  "(x - 896, y + 24)": that came from reading the map 112 wide, and was wrong.)
+- **Checked:** the game's frame, rebuilt exactly from a grab (DOSBox shows the 320 x 200 frame
+  with every pixel doubled across and rows repeated 2 or 3 times in a fixed pattern, so the first
+  row of each repeat is exact; every pixel then matched a palette colour, a 6-bit value v shown as
+  v x 4 + v / 16), matched Tyr's tiles at 103 of 103 blocks, with the screen's top-left at map
+  column 63, row 85.5 for camera (1008, 1368). Tyr drawn offline from these rules (ground from
+  `MAP `, objects from the `ETAB` in rising y) matches the game's frame wall for wall; only the
+  people the scripts place at run time and the interface are missing. SL's slave pens drawn from
+  `RMAP` as 128 x 98 come out as their maze of cells.
+- **The frame isn't in guest memory** as a 320 x 200 buffer the kit can read (no run of its
+  bytes found in the 16 MB); the grab is the way to an exact frame.
+- **What it opens:** SL-style shadows drawn into the ground, by giving the cells beside walls
+  darkened copies of their tiles in `MAP ` (tile numbers up to 255; Tyr has 94). Whether anything
+  in the game reads a cell's tile number for its own purposes isn't known yet.
 
 ## Still open
 
