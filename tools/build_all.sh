@@ -7,6 +7,9 @@
 set -e
 cd "$(dirname "$0")/.."
 MOD=${1:-$MOD}
+# OPENDS: a checkout of https://github.com/VirInvictus/opends; when given, its curated function names
+# go in as comments above the lifted functions (tools/syms.py). Nothing else depends on them.
+names() { [ -z "$OPENDS" ] || python3 tools/syms.py "build/$1" "game/$2/DSUN.EXE" "$OPENDS/tools/ovr-map/syms/$2.toml" | tail -1; }
 [ -f game/ds1/DSUN.EXE ] || { echo "no game in game/ds1 (innoextract the GOG installer there)"; exit 1; }
 for g in ds1 ds2; do for f in game/$g/__support/save/*; do [ -f "$f" ] && [ ! -f "game/$g/$(basename "$f")" ] && cp "$f" "game/$g/"; done; done 2>/dev/null   # the starting saves GOG's installer places (innoextract doesn't)
 [ -d third_party/pcrecomp/tools ] || git submodule update --init --recursive
@@ -14,6 +17,7 @@ tools/apply_patches.sh >/dev/null 2>&1 || true
 python3 tools/build_image.py game/ds1/DSUN.EXE --out build/ds1 | tail -1
 sh tools/entries.sh seed build/ds1
 python3 tools/find_funcs.py build/ds1 | head -1
+names ds1 ds1
 python3 tools/lift.py build/ds1 | tail -1
 python3 tools/lift_drivers.py game/ds1/RESOURCE.GFF build/ds1 | tail -1
 BUILDS="$PWD/build/ds1"
@@ -21,6 +25,7 @@ if [ -f game/ds2/DSUN.EXE ]; then
   python3 tools/build_image.py game/ds2/DSUN.EXE --out build/ds2 --args "-W0 -L" | tail -1
   sh tools/entries.sh seed build/ds2
   python3 tools/find_funcs.py build/ds2 | head -1
+  names ds2 ds2
   python3 tools/lift.py build/ds2 | tail -1
   python3 tools/lift_drivers.py game/ds2/RESOURCE.GFF build/ds2 | tail -1
   BUILDS="$BUILDS;$PWD/build/ds2"
