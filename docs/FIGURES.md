@@ -187,7 +187,21 @@ objects need repainting in Shattered Lands' style. What the first look found:
 - **A refill keeps WR's angle.** Filling WR's wall shapes with SL brick (outline, windows, roof
   tiles and shading kept) looks like SL's material, but WR draws walls as tall faces seen almost
   head-on, and SL from higher above (shorter faces, their tops showing). A true SL look means
-  redrawing walls and items at SL's angle. The angles are to be measured next.
+  redrawing walls and items at SL's angle.
+- **The angles, measured.** A known-square inset in SL (object 685) is 21 by 19 pixels: seen from
+  about 65 degrees above the horizontal. WR's open barrel rims (2355, 2361) are 14 by 11: about
+  50 degrees. SL's slave pens screenshot shows the rest: wall tops are big brick surfaces, front
+  faces a short band of rubble, and walls cast long diagonal shadows on the floor.
+- **SL's walls are tile arrangements.** Matching the pens screenshot back to region 41's tiles at
+  every grid offset (59 blocks matched) gives the parts: 28 the floor, 26 shadowed floor, 70 the
+  shadow's diagonal edge, 57/58 a rubble block's lit top over 61/62 its darker face, 25 a brick wall
+  face, 96/97 brick column tops (with floor at their edge), 2-7 plain brick.
+- **Piece by piece breaks the scene** (tried in the game, 2026-11-20). WR's wall block 330 rebuilt
+  as an SL rubble block half as tall, its pillars 350 and 353 as brick columns, its table 516 as
+  SL's bench 170 (each picture's size kept, its top clear, so its base stays: an object's record
+  anchors its picture by +2 x and +4 y, the bottom centre). The game drew them, but WR's walls are
+  several overlapping pictures that assume its angle: shortening one opened a hole where what was
+  behind shows through. The angle can only change for all of a region's structures at once.
 - Matching surfaces by colour alone picks sand and grass, not masonry: textures have to be chosen
   by material.
 
