@@ -77,9 +77,13 @@ batch_names = {'915': 'water elemental', '2538': 'air elemental', '2540': 'fire 
                '2425': 'defiler', '3893': 'shadow', '2409': 'notaku', '2420': 'templar (purple robe)'}
 for p in batch:
     add('Creature', int(p), 'party', batch_names.get(p, ''), batch_names.get(p, ''), 'done', 'SL figure swapped in')
+RESTYLED = set(json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'people-restyle.json')))['restyle'])
 for p, v in sorted(props.items(), key=lambda kv: int(kv[0])):
     users = ', '.join(sorted(set(v.get('users', []))))[:80]
-    if v.get('confidence') in ('good', 'fair'):
+    if v.get('confidence') in ('good', 'fair') and int(p) in RESTYLED:
+        add('Person', int(p), 'recolour', v.get('wr_what', ''), users, 'restyled, not yet seen in the game',
+            "WR's own art restyled (SL's nearest figure had the wrong shape)")
+    elif v.get('confidence') in ('good', 'fair'):
         add('Person', int(p), 'recolour', v.get('wr_what', ''), users, "dressed, not yet seen in the game",
             f"SL {v.get('sl_picture')} dressed in WR's colours")
     elif v.get('confidence') == 'none':
@@ -109,7 +113,7 @@ arrow) and the same frames after the change (right). Everything is drawn in Rava
 
 - **Party:** the Obsidian Edition's figures (Shattered Lands' party with the mod's elves and half-elves).
 - **Creature:** a Shattered Lands figure of the same kind swapped in.
-- **Person:** a Shattered Lands figure matched by look, dressed in Ravager's colours part by part, as the Obsidian Edition makes its half-elves (`tools/proto/people_dress.py`).
+- **Person:** a Shattered Lands figure matched by look, dressed in Ravager's colours part by part, as the Obsidian Edition makes its half-elves (`tools/proto/people_dress.py`); where Shattered Lands' nearest figure had the wrong shape (no legs, a loincloth for a robe, the wrong size), Ravager's own art restyled instead (`tools/proto/people-restyle.json`).
 - **No SL equivalent:** Ravager's own figure restyled to sit with Shattered Lands' figures.
 - **Map artwork (squashed):** tables, chairs, beds and other objects on the map, lowered to two-thirds of
   their height toward their base, as Shattered Lands' steeper view shows them (walls keep their height).
