@@ -18,8 +18,10 @@ The style's rules, in the order they are applied:
      neighbour of its own shade takes the shade most of its neighbours have.
   5b. Clean edges (lines.py): the silhouette and every shade boundary redrawn as straights and
      regular steps (1:1, 1:2, 1:3 and their turns); a staircase of uneven steps gets even ones.
-  5c. Fewer, bigger shade shapes: on the skin and the trousers a patch of one shade under 4 pixels
-     takes its neighbours' shade. The skin's lightest shade comes only from the marks' lights.
+  5c. Fewer, bigger shade shapes: on the trousers a patch of one shade under 4 pixels takes its
+     neighbours' shade. Not on the skin (round 7): SL draws skin busy, in small clusters of many
+     tones, so its light carries a fixed per-pixel jitter (TEXTURE) and its shade boundaries are
+     left as they fall (UNCLEANED).
   6. Inner lines. Where one part passes in front of another (an arm over the chest, the near leg
      over the far one), the part behind gets a line: black where the near part is on its upper left
      (the shadow it casts), the material's darkest shade elsewhere. An arm or hand against the torso,
@@ -52,7 +54,9 @@ LIGHT = np.array([-0.65, -0.25, 0.72]); LIGHT = LIGHT / np.linalg.norm(LIGHT)   
 
 # each material's shades, SL palette numbers dark to light (all colours SL's own figures use)
 RAMPS = {
-    'skin':  [158, 159, 176, 177, 161],          # violet, lit blue (WR 150, 148, 172, 171, 27)
+    'skin':  [158, 159, 176, 177, 161, 220],     # violet darks, blue lights, as WR's jann (L 12 22 35 45
+                                                 # 60 68; WR 150, 148, 172, 171, 27, 128): SL's man's
+                                                 # skin spans L 19-79, so ours runs as high
     'hair':  [208, 207, 205],                    # black, brown-grey streaks (WR 231, 230, 200)
     'cloth': [129, 136, 138, 140, 142],          # orange trousers (WR 223, 199, 198, 196, 205)
     'sash':  [64, 183, 167],                     # gold sash (WR 206, 18, 100)
@@ -69,7 +73,9 @@ SHADE = dict(ambient=0.15, diffuse=0.85, depth=0.03, hollow=0.5, hollow_r=1.5)
 CUTS = {1: [], 3: [0.35, 0.8], 4: [0.3, 0.6, 0.92], 5: [0.3, 0.5, 0.75, 0.97]}
 # the skin's own: the shadow side one flat shade (159: the near-black is kept for the black areas,
 # rule 6c, and lines), two lit shades; its lightest only in the marks' one-pixel lights
-CUTS_OF = {'skin': [0.0, 0.5, 0.8, 9]}
+# (round 7: the shares of SL's man's skin tones - the near-black only in lines, about 15% shadow,
+# a quarter each of the two mid-tones, then 17%, 12% and 6% lit)
+CUTS_OF = {'skin': [-99, 0.15, 0.53, 0.88, 1.12]}
 LINE_GAP = 1.4                   # depth gap (1x pixels) between parts that earns a line (rule 6)
 ALWAYS = {frozenset(pair) for pair in (('arm_l', 'torso'), ('arm_r', 'torso'), ('hand_l', 'torso'),
           ('hand_r', 'torso'), ('leg_l', 'leg_r'), ('head', 'torso'), ('hand_l', 'arm_l'), ('hand_r', 'arm_r'),
@@ -78,12 +84,16 @@ ALWAYS = {frozenset(pair) for pair in (('arm_l', 'torso'), ('arm_r', 'torso'), (
 SEAMS = {('hair', 'skin'): 'darker'}
 # the gold sits on black, as SL's wristbands do: these materials' pixels touching it go black
 EDGED = {'gold': {'skin'}, 'sash': {'skin', 'cloth'}}
-MERGED = ('skin', 'cloth')       # the materials rule 5c merges small patches in
+MERGED = ('cloth',)              # the materials rule 5c merges small patches in (round 7: not the
+                                 # skin, which SL draws busy: small clusters, many tones)
+UNCLEANED = ('skin',)            # materials whose shade boundaries rule 5b leaves as they fall
+TEXTURE = {'skin': 0.2}          # a fixed per-pixel jitter added to the light before banding (rule 4)
 HOLLOW_BLACK = 0.6               # a pixel this deep in a hollow (1x pixels) is black (rule 6c)
 FAR_BLACK = 1.5                  # a limb this far behind the torso (1x pixels) has its shadow black
 OUTLINE = 'inside'               # rule 7: 'outside' (a ring round the figure, rounds 1-5), 'inside'
                                  # (SL's way: no ring; the shadow-side edge pixels take their material's
                                  # darkest shade) or 'none'
+EDGE_SHADE = 1                   # rule 7': the shade index the shadow-side edge pixels take (at most)
 MARK_TOL = 1.2                   # how far (1x pixels) a mark may sit behind the surface and still show
 # a material's light before it is cut into shades: (contrast, offset); the hair is dark and its
 # locks need more contrast to break into clumps at 1x, skin and cloth a little more than the light
@@ -164,14 +174,18 @@ def reduce(dep, nrm, mat, prt, ton, centre):
     return out_m, out_v, out_p, out_d, out_h
 
 
+NOISE = np.random.default_rng(7).uniform(-1, 1, (H1, W1))   # (TEXTURE's jitter)
+
+
 def bands(m, v):
     """Light into each material's shade index (rule 4)."""
     s = np.zeros(m.shape, int)
     for k, name in enumerate(MATS):
         sel = m == k
         gain, off = TONE.get(name, (1, 0))
-        cuts = CUTS_OF.get(name, CUTS[len(RAMPS[name])])
-        s[sel] = np.searchsorted(cuts, (v[sel] - 0.5) * gain + 0.5 + off)
+        cuts = CUTS_OF[name] if name in CUTS_OF else CUTS[len(RAMPS[name])]
+        jit = TEXTURE.get(name, 0) * NOISE[sel]
+        s[sel] = np.searchsorted(cuts, (v[sel] - 0.5) * gain + 0.5 + off + jit)
     return s
 
 
@@ -233,6 +247,8 @@ def clean_edges(m, s, p, d):
         m[y, x] = -1
     both(lambda: m >= 0, sil_fill, sil_clear)
     for k, name in enumerate(MATS):
+        if name in UNCLEANED:
+            continue
         for level in range(1, len(RAMPS[name])):
             def fill(y, x, f, t=False):
                 if m[y, x] == k and s[y, x] < level:
@@ -276,7 +292,7 @@ def darks(body, m, s, p, h):
     z = lambda part: np.mean([r[2] for r, q in zip(body.rows, body.parts) if q == part])
     for part in ('arm_l', 'arm_r', 'hand_l', 'hand_r', 'leg_l', 'leg_r'):
         if z(part) < z('torso') - FAR_BLACK:
-            dark |= (m >= 0) & (p == PARTS.index(part)) & (s == 0)
+            dark |= (m >= 0) & (p == PARTS.index(part)) & (s <= 1)
     hair = m == MATS.index('hair')
     return dark & ~hair
 
@@ -324,7 +340,7 @@ def colours(m, s, p, d, dark):
         for y in range(H1):
             for x in range(W1):
                 if m[y, x] >= 0 and out[y][x] != BLACK and any(at(m, x + dx, y + dy) < 0 for dx, dy in ((1, 0), (0, 1))):
-                    out[y][x] = RAMPS[MATS[m[y, x]]][0]
+                    out[y][x] = RAMPS[MATS[m[y, x]]][min(EDGE_SHADE, s[y, x])]
     for y in range(H1):
         for x in range(W1):
             if m[y, x] >= 0 or OUTLINE != 'outside':

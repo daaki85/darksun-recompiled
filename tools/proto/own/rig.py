@@ -18,7 +18,7 @@ import numpy as np
 
 # ---- the body's measures (game pixels) ----
 SIZE = dict(
-    hip_w=1.7,             # half the distance between the hip joints
+    hip_w=2.1,             # half the distance between the hip joints
     thigh=7.6, shin=7.6, ankle=1.1, foot=2.4,
     spine=7.0,             # pelvis to the line of the shoulders
     sh_w=4.6,              # half the distance between the shoulder joints
@@ -26,6 +26,8 @@ SIZE = dict(
     neck=1.4, head_r=2.4,
     girth=0.8,             # how thick: every radius and sideways offset but the head's
     arm=0.86,              # the arms' thickness, on top of girth
+    thigh_r=0.75,          # the trousers' thickness from the hip to the knee (round 7: slimmer, so the
+    calf_r=0.85,           #   legs part as SL's man's do), and below the knee (the balloon)
 )
 
 # pose keys and their defaults (degrees; see poses.py for what each one does)
@@ -220,10 +222,11 @@ def body(pose):
         hp, kn, an, Fo, Sh = (J[side + k] for k in ('_hip', '_kn', '_an', 'Fo', 'S'))
         part = 'leg_' + side
         cuff = an + (kn - an) * 0.16
-        B.sweep([(hp, 2.0 * g), (hp + (kn - hp) * 0.5, 1.95 * g), (kn, 2.1 * g),
-                 (kn + (an - kn) * 0.5, 2.5 * g), (cuff + (kn - an) * 0.1, 2.3 * g), (cuff, 1.55 * g)],
+        tr, cr = S['thigh_r'] * g, S['calf_r'] * g
+        B.sweep([(hp, 2.0 * tr), (hp + (kn - hp) * 0.5, 1.95 * tr), (kn, 2.1 * (tr + cr) / 2),
+                 (kn + (an - kn) * 0.5, 2.5 * cr), (cuff + (kn - an) * 0.1, 2.3 * cr), (cuff, 1.55 * g)],
                 'cloth', part)
-        r_at = lambda t: g * (2.1 + 0.8 * t if t < 0.5 else 2.5 - 1.6 * (t - 0.5))     # (the sweep's radius)
+        r_at = lambda t: cr * (2.1 + 0.8 * t if t < 0.5 else 2.5 - 1.6 * (t - 0.5))     # (the sweep's radius)
         on = lambda t, th: kn + (cuff - kn) * t + Sh @ V(math.sin(math.radians(th)), 0,
                                                          math.cos(math.radians(th))) * r_at(t) * 0.95
         for th in FOLDS:
