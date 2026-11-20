@@ -67,7 +67,7 @@ The pictures are made from the owner's own copies of the games by `tools/proto/f
 | 2410 | woman, white top, green skirt | fayina | SL 2059 dressed in WR's colours | dressed, not yet seen in the game | ![2410](img/ravager-figures/2410.png) |
 | 2411 | thief: man, white shirt, red headband | thief | SL 630 dressed in WR's colours | dressed, not yet seen in the game | ![2411](img/ravager-figures/2411.png) |
 | 2412 | dark-skinned man, black shorts | draxan, kitchen slave, mercenary, miner, va guard | SL 924 dressed in WR's colours | dressed, not yet seen in the game | ![2412](img/ravager-figures/2412.png) |
-| 2413 | jann (blue skin, yellow trousers) | jann | WR's own art restyled (SL's nearest figure had the wrong shape) | restyled, not yet seen in the game | ![2413](img/ravager-figures/2413.png) |
+| 2413 | jann (blue skin, yellow trousers) | jann | SL 2252 dressed in WR's colours | dressed, not yet seen in the game | ![2413](img/ravager-figures/2413.png) |
 | 2414 | man, red shirt (Draxan soldier) | draxan x5, pedestrian, prisoner, slave, zeegrat | SL 239 dressed in WR's colours | dressed, not yet seen in the game | ![2414](img/ravager-figures/2414.png) |
 | 2415 | man, purple and red | guard, halik, miner, pedestrian | SL 195 dressed in WR's colours | dressed, not yet seen in the game | ![2415](img/ravager-figures/2415.png) |
 | 2416 | dark-skinned woman, orange robe | pedestrian | SL 154 dressed in WR's colours | dressed, not yet seen in the game | ![2416](img/ravager-figures/2416.png) |
@@ -96,10 +96,10 @@ The pictures are made from the owner's own copies of the games by `tools/proto/f
 | 2454 | small woman, yellow | dodger, glade, halla, irma | SL 2472 dressed in WR's colours | dressed, not yet seen in the game | ![2454](img/ravager-figures/2454.png) |
 | 2455 | small man, purple | ash, halfling, sureshot | SL 2470 dressed in WR's colours | dressed, not yet seen in the game | ![2455](img/ravager-figures/2455.png) |
 | 2456 | woman, pink top | dariya, silvain | SL 1053 dressed in WR's colours | dressed, not yet seen in the game | ![2456](img/ravager-figures/2456.png) |
-| 2457 | jann (blue skin, yellow) | asim drac, jann, jerrid | WR's own art restyled (SL's nearest figure had the wrong shape) | restyled, not yet seen in the game | ![2457](img/ravager-figures/2457.png) |
-| 2458 | jann (blue skin, orange) | guard x2, masina, treasure guard | WR's own art restyled (SL's nearest figure had the wrong shape) | restyled, not yet seen in the game | ![2458](img/ravager-figures/2458.png) |
-| 2459 | jann (blue skin, grey) | guard x7, treasure guard | WR's own art restyled (SL's nearest figure had the wrong shape) | restyled, not yet seen in the game | ![2459](img/ravager-figures/2459.png) |
-| 2460 | jann (blue skin, green) | magnolia | WR's own art restyled (SL's nearest figure had the wrong shape) | restyled, not yet seen in the game | ![2460](img/ravager-figures/2460.png) |
+| 2457 | jann (blue skin, yellow) | asim drac, jann, jerrid | SL 2252 dressed in WR's colours | dressed, not yet seen in the game | ![2457](img/ravager-figures/2457.png) |
+| 2458 | jann (blue skin, orange) | guard x2, masina, treasure guard | SL 2252 dressed in WR's colours | dressed, not yet seen in the game | ![2458](img/ravager-figures/2458.png) |
+| 2459 | jann (blue skin, grey) | guard x7, treasure guard | SL 2252 dressed in WR's colours | dressed, not yet seen in the game | ![2459](img/ravager-figures/2459.png) |
+| 2460 | jann (blue skin, green) | magnolia | SL 2252 dressed in WR's colours | dressed, not yet seen in the game | ![2460](img/ravager-figures/2460.png) |
 | 2461 | woman, green loincloth | surrakina | SL 2095 dressed in WR's colours | dressed, not yet seen in the game | ![2461](img/ravager-figures/2461.png) |
 | 2462 | grey-haired man, brown robe | warrior | SL 493 dressed in WR's colours | dressed, not yet seen in the game | ![2462](img/ravager-figures/2462.png) |
 | 2463 | dark-skinned man, white robe | merchant, raenika | SL 724 dressed in WR's colours | dressed, not yet seen in the game | ![2463](img/ravager-figures/2463.png) |
@@ -115,13 +115,13 @@ The pictures are made from the owner's own copies of the games by `tools/proto/f
 | 2474 | dark-armoured man, white headband | leader | SL 246 dressed in WR's colours | dressed, not yet seen in the game | ![2474](img/ravager-figures/2474.png) |
 | 2475 | woman, purple | miner | SL 2095 dressed in WR's colours | dressed, not yet seen in the game | ![2475](img/ravager-figures/2475.png) |
 | 2476 | red-haired man, grey | miner x2 | SL 424 dressed in WR's colours | dressed, not yet seen in the game | ![2476](img/ravager-figures/2476.png) |
-| 2536 | revenant (grey ghostly man) | revenant | WR's own art restyled (SL's nearest figure had the wrong shape) | restyled, not yet seen in the game | ![2536](img/ravager-figures/2536.png) |
+| 2536 | revenant (grey ghostly man) | revenant | SL 1342 dressed in WR's colours | dressed, not yet seen in the game | ![2536](img/ravager-figures/2536.png) |
 | 2557 | fire elemental (flames) | fire elem, grt fire elem | WR's own art restyled (SL's nearest figure had the wrong shape) | restyled, not yet seen in the game | ![2557](img/ravager-figures/2557.png) |
 | 2558 | man, dark green | butler, leader | SL 2131 dressed in WR's colours | dressed, not yet seen in the game | ![2558](img/ravager-figures/2558.png) |
-| 2575 | lord warrior, black armour | lord warrior | WR's own art restyled (SL's nearest figure had the wrong shape) | restyled, not yet seen in the game | ![2575](img/ravager-figures/2575.png) |
+| 2575 | lord warrior, black armour | lord warrior | SL 1179 dressed in WR's colours | dressed, not yet seen in the game | ![2575](img/ravager-figures/2575.png) |
 | 2778 | tavernkeeper, green (no walking) | tavernkeeper | SL 1448 dressed in WR's colours | dressed, not yet seen in the game | ![2778](img/ravager-figures/2778.png) |
-| 3605 | white knight, silver armour | alhena, white knight | WR's own art restyled (SL's nearest figure had the wrong shape) | restyled, not yet seen in the game | ![3605](img/ravager-figures/3605.png) |
-| 3606 | black knight, black armour | black knight | WR's own art restyled (SL's nearest figure had the wrong shape) | restyled, not yet seen in the game | ![3606](img/ravager-figures/3606.png) |
+| 3605 | white knight, silver armour | alhena, white knight | SL 1484 dressed in WR's colours | dressed, not yet seen in the game | ![3605](img/ravager-figures/3605.png) |
+| 3606 | black knight, black armour | black knight | SL 1179 dressed in WR's colours | dressed, not yet seen in the game | ![3606](img/ravager-figures/3606.png) |
 | 3612 | woman, purple (miner) | miner x2 | SL 2095 dressed in WR's colours | dressed, not yet seen in the game | ![3612](img/ravager-figures/3612.png) |
 | 3613 | miner with pick | miner | SL 559 dressed in WR's colours | dressed, not yet seen in the game | ![3613](img/ravager-figures/3613.png) |
 
