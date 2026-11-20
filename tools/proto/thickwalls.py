@@ -5,7 +5,7 @@ thickwalls.py RGN_IN RGN_OUT"""
 import sys,collections
 sys.path.insert(0,'/home/user/darksun-recompiled/tools'); sys.path.insert(0,'.')
 import sl_figures as s, gffw
-src,out=sys.argv[1:3]
+src,out=sys.argv[1:3]; SRC=sys.argv[3] if len(sys.argv)>3 else "sl"   # "sl" (ashlar) or "wr:PIC:X:Y" (a 16x16 square of a WR picture)
 _,C=s.load(src); pk=next(k for k in C if k[0]=='PAL '); pal=s.vga(C[pk])
 mk=next(k for k in C if k[0] in('RMAP','MAP ')); m=bytearray(C[mk]); g=next(v for k,v in C.items() if k[0]=='GMAP')
 _,A=s.load('/tmp/playtest/inst/RGN28.GFF'); _,GP=s.load('/tmp/playtest/inst/GPLDATA.GFF'); p40=s.vga(GP[('PAL ',0x28)])
@@ -15,7 +15,13 @@ def near(L):
     k=tuple(round(v) for v in L)
     if k not in memo: memo[k]=min(cand,key=lambda j:sum((a-b)**2 for a,b in zip(L,cl[j])))
     return memo[k]
-tex=[[[s._lab(p40[q]) for q in r] for r in s.decode_any(A[('TILE',i)],0)[2]] for i in (5,43)]
+if SRC=='sl':
+    tex=[[[s._lab(p40[q]) for q in r] for r in s.decode_any(A[('TILE',i)],0)[2]] for i in (5,43)]
+else:                                   # WR's own material: its pixels already in the region's palette
+    _,O=s.load('/tmp/playtest/rav/OBJEX.GFF'); _,pic,X,Y=SRC.split(':')
+    px=s.decode_any(O[('BMP ',int(pic))],0)[2]
+    sq=[[s._lab(pal[px[int(Y)+y][int(X)+x]]) for x in range(16)] for y in range(16)]
+    tex=[sq,[row[8:]+row[:8] for row in sq]]
 wall=lambda c,r: 0<=c<128 and 0<=r<98 and g[r*128+c]==192
 tiles={i for (t,i) in C if t=='TILE'}; nxt=max(tiles)+1; made={}; changes={}
 for r in range(98):

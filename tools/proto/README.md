@@ -33,7 +33,13 @@ into `sl_figures.py`.
   OBJEX (no baked shadows) and the squash's region file. Supersedes `bakeshadow2.py` for Tyr.
 - `region.py`: `draw(game, region, box)` draws any region of either game, ground and objects.
 - `metrics.py`: the per-region measurements of the second comparison (docs/FIGURES.md).
-- `thickwalls.py RGN_IN RGN_OUT`: **thick walls, SL's way**: every wall cell (`GMAP` 192: two cells
+- `thickwalls.py RGN_IN RGN_OUT [sl | wr:PIC:X:Y]`: **thick walls, SL's way**: every wall cell (`GMAP` 192: two cells
   wide, though WR draws its walls as thin strips) gets an SL ashlar top tile (the arena district's 5
   and 43), with a darker edge line where the wall meets open ground; 31 new tiles for Tyr. Use on the
-  regrade's region file with `build_tops.py ... nosquash`'s OBJEX (heights as WR's).
+  regrade's region file with `build_tops.py ... nosquash`'s OBJEX (heights as WR's). `wr:PIC:X:Y` takes
+  the tops from WR's own art instead: a 16x16 square of picture PIC (Tyr: `wr:343:0:17`, a wall piece's
+  top with no ornament).
+- `cellshadow.py RGN_IN RGN_OUT [DX DY]`: **shadows along the wall cells**: each wall cell's square
+  cast 12 right and 8 down onto the open cells beside it, darkened as SL's shadowed floor. A cell's
+  shadow depends only on its west, north and north-west neighbours, so the edges are straight. Tyr:
+  1,540 cells, 131 tiles (to 255); 12 cells go without for want of tile numbers.

@@ -354,8 +354,19 @@ thick SL's way.
 - **In the game:** the street's walls are wide ashlar bands, the sandstone faces at full height, the
   fight unaffected. Mixed spots remain where WR's own wall art meets the new tops (the red-tiled
   roof column inside a band of ashlar).
-- **Next:** shadows can follow the same cells: the open cells just right of and below wall cells,
-  darkened, with straight cell-aligned edges, which needs few tiles.
+- **Shadows along the wall cells** (`tools/proto/cellshadow.py`): each wall cell's square cast 12
+  right and 8 down onto the open cells beside it, darkened as SL's shadowed floor. A cell's shadow
+  depends only on whether its west, north and north-west neighbours are walls, so the edges are
+  straight and cell-aligned. Tyr: 1,540 cells in 131 tiles, filling the tile numbers to 255; 12 cells
+  go without.
+- **Two materials compared** (offline, then the first in the game): **A**, WR's own wall art with
+  thick tops cut from WR's own sandstone (a 16 x 16 square of wall piece 343, no ornament), and **B**,
+  SL's ashlar on WR's pictures and wall cells. A is coherent: thick sandstone walls continuous with
+  WR's faces, shadow bands along their right and lower sides. B's pink ashlar fights WR's sandstone
+  faces and red-tiled roofs. Recommended: A (WR's material, SL's form).
+- **`GMAP` 64 is a no-walk margin:** a click on a 64 cell beside the street's wall brings the
+  "can't go" pointer, with `GMAP` exactly as shipped, so it's WR's own rule. The shadow bands fall
+  mostly on those margins.
 
 ## Still open
 
