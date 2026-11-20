@@ -58,8 +58,8 @@ SHADE = dict(ambient=0.15, diffuse=0.85, depth=0.03, hollow=0.5, hollow_r=1.5)
 # darkest shade is kept for deep shadow and the lightest for a small highlight
 CUTS = {1: [], 3: [0.35, 0.8], 4: [0.3, 0.6, 0.92], 5: [0.3, 0.5, 0.75, 0.97]}
 # the skin's own: the shadow side one flat shade (159: the near-black is kept for the black areas,
-# rule 6c, and lines), two lit shades, and its lightest only at the peaks (with the marks' lights)
-CUTS_OF = {'skin': [0.0, 0.5, 0.8, 1.12]}
+# rule 6c, and lines), two lit shades; its lightest only in the marks' one-pixel lights
+CUTS_OF = {'skin': [0.0, 0.5, 0.8, 9]}
 LINE_GAP = 1.4                   # depth gap (1x pixels) between parts that earns a line (rule 6)
 ALWAYS = {frozenset(pair) for pair in (('arm_l', 'torso'), ('arm_r', 'torso'), ('hand_l', 'torso'),
           ('hand_r', 'torso'), ('leg_l', 'leg_r'), ('head', 'torso'), ('hand_l', 'arm_l'), ('hand_r', 'arm_r'),
@@ -68,6 +68,7 @@ ALWAYS = {frozenset(pair) for pair in (('arm_l', 'torso'), ('arm_r', 'torso'), (
 SEAMS = {('hair', 'skin'): 'darker'}
 # the gold sits on black, as SL's wristbands do: these materials' pixels touching it go black
 EDGED = {'gold': {'skin'}, 'sash': {'skin', 'cloth'}}
+MERGED = ('skin', 'cloth')       # the materials rule 5c merges small patches in
 HOLLOW_BLACK = 0.5               # a pixel this deep in a hollow (1x pixels) is black (rule 6c)
 FAR_BLACK = 1.5                  # a limb this far behind the torso (1x pixels) has its shadow black
 MARK_TOL = 1.2                   # how far (1x pixels) a mark may sit behind the surface and still show
@@ -230,13 +231,14 @@ def clean_edges(m, s, p, d):
             both(lambda: (m == k) & (s >= level), fill, clear)
 
 
-def merge_small(m, s, p, least=3):
+def merge_small(m, s, p, least=4):
     """Rule 5c: a patch of one shade (within one material and part) under LEAST pixels takes the
-    shade most of its neighbours in that material have: fewer, bigger shade shapes."""
+    shade most of its neighbours in that material have: fewer, bigger shade shapes. Only on the big
+    materials (MERGED): the hair's streaks, the sash and the bracers are small on purpose."""
     seen = np.zeros(m.shape, bool)
     for y0 in range(H1):
         for x0 in range(W1):
-            if m[y0, x0] < 0 or seen[y0, x0]:
+            if m[y0, x0] < 0 or seen[y0, x0] or MATS[m[y0, x0]] not in MERGED:
                 continue
             key = (m[y0, x0], s[y0, x0], p[y0, x0]); patch = [(x0, y0)]; seen[y0, x0] = True
             for x, y in patch:

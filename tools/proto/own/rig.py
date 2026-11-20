@@ -229,7 +229,7 @@ def body(pose):
         for th in FOLDS:
             th *= sg
             B.mark([on(t, th) for t in (0.05, 0.5, 0.92)], 'dark', part, 'cloth')
-            B.mark([on(t, th + 14 * sg) for t in (0.5, 0.92)], 'dark', part, 'cloth')      # (the wedge widens)
+            B.mark([on(t, th + 14 * sg) for t in (0.5, 0.92)], 'black', part, 'cloth')     # (the wedge widens)
         B.sweep([(cuff, 1.15 * g), (an, 1.1 * g)], 'leather', part)
         heel = an + Fo @ V(0, -0.55, -0.4)
         toe = an + Fo @ V(0, -0.75, S['foot'])
