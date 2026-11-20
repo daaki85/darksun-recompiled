@@ -1,16 +1,7 @@
 {
- "note": "WR people the owner picked to be restyled from Ravager's own art (restyle/restyle.py --people) instead of dressed (people_dress.py skips them): the jann (the SL genie has no legs), the air and fire elementals, the revenant and the knights. 2026-11-20.",
+ "note": "WR people restyled from Ravager's own art (restyle/restyle.py --people) instead of dressed: only the air and fire elementals. The owner tried the humanoids restyled (jann, revenant, knights) and found them bad, 2026-11-20: those are dressed on better SL bodies (dress/E.json).",
  "restyle": [
   2405,
-  2413,
-  2457,
-  2458,
-  2459,
-  2460,
-  2536,
-  2557,
-  2575,
-  3605,
-  3606
+  2557
  ]
 }
