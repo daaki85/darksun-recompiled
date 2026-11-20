@@ -120,6 +120,33 @@ and fell (SL's dead frames), all on one ground line. Ravager's program needed no
 - **Size:** SL's figures are a fifth to a third shorter than the sequel's Draxans beside them,
   as the data said. Decided (2026-11-20): they keep their own size.
 
+## The interface (phase 1)
+
+`sl_figures.py build-ui SL_DIR WR_DIR OUT.GFF` writes WR's `RESOURCE.GFF` with Shattered Lands'
+interface pictures and icons. Seen in the game 2026-11-20 (the same test log).
+
+- **Pictures:** 45 `BMP` chunks that are the same drawing at the same size and frame count
+  (`UI_PICTURES`, checked by eye). WR's are SL's art re-encoded in fewer colours. Left out:
+  11000 and 20029 (SL's are cut away on one side: the screens are laid out otherwise), 13005 (a
+  second frame in WR), 20125 and 20126-20134 (other pictures), 12000 and 20000-20013 (other sizes:
+  WR's portrait frame and creation figures are larger).
+- **Icons:** matched by look, not number, since WR renumbered part of its spell list. Each WR icon
+  takes the SL icon of the same size whose pixels are nearest, within a mean RGB distance of 36.5
+  (set by eye: 36.2 the same drawing, 36.7 another symbol). 221 icons, 130 of them from another
+  number. The MORE and scroll buttons (12100-12102) stay WR's: they sit on WR's own talk boxes,
+  and SL's dimmed frame showed there as a lavender ghost.
+- **Colours:** SL's interface palette (`RESOURCE.GFF` PAL 1000) into the 92 WR colours that are
+  the same in WR's PAL 1000 and in every region's palette, since the interface is drawn over the
+  map in the region's palette. Mean distance 16 (0-441).
+- **WR's other two frame formats:** `PLNR` (packed codes with run escapes) and `PLAN`, which is
+  `PLNR` without the escapes: u16 width and height, FFh, `PLAN`, u8 bits a pixel, a colour map of
+  2^bits palette numbers, then one code a pixel, highest bits first. 0 bits means every pixel is
+  map entry 0. `decode_any` reads all three. WR draws SL's run-length frames among its own.
+- **In play:** the USE screen, the END menu, the status box and the inventory draw SL's art in
+  place. The change is subtle: smoother and a little bluer than WR's. Where SL's pieces meet WR's
+  own (its talk boxes), SL's bluer stone shows against WR's neutral grey. The character sheet
+  wasn't reached in the test.
+
 ## Still open
 
 - **Flag 40h.** `build` sets it on every step, as the sequel does for its own figures, and

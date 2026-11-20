@@ -5,6 +5,7 @@ a copy of the sequel's OBJEX.GFF with the party's figures taken from Shattered L
     sl_figures.py report SL_DIR WR_DIR          the format checks, printed
     sl_figures.py sheet  SL_DIR WR_DIR OUT.png  the 14 party figures: SL's, SL's in WR's colours, WR's
     sl_figures.py build  SL_DIR WR_DIR OUT.GFF  WR's OBJEX.GFF with objects 300-313 drawn as SL's
+    sl_figures.py build-ui SL_DIR WR_DIR OUT.GFF  WR's RESOURCE.GFF with SL's interface pictures and icons
 
 Nothing of either game is in the repository: everything is read from the owner's two installs.
 `sheet` needs Pillow. `build` was seen working in the game (docs/FIGURES.md, "Seen in the game").
@@ -23,6 +24,22 @@ STEP = 8
 COMBAT = 0x20         # step flag: a frame of the combat picture (SL: BMP n+1; WR: CBMP n)
 WR_PARTY_FLAG = 0x40  # set on every step of WR's figures that have a CBMP (meaning not known)
 WR_NONE = 0xFFFF      # WR's empty slot (SL's is 0, which slot 0 also uses for its step 0)
+# RESOURCE.GFF's interface pictures (BMP) that are the same drawing in both games, at the same size and
+# frame count (checked by eye, 2026-11-20). Left out: 11000 and 20029 (SL's are cut away on one side, the
+# screens laid out otherwise), 13005 (WR's has a second frame), 20125 (another picture), 12000 and
+# 20000-20013 (other sizes: WR's portrait frame and creation figures are larger), 20126-20134 (others).
+UI_PICTURES = (10000, 10001, 10002, 10003, 10004, 13000, 13001, 13002, 13003, 13004, 13007, 13008, 14000,
+               15000, 15001, 15002, 17000, 17001, 17002, 20028, 20047, *range(20048, 20059), 20075, 20079,
+               20080, 20083, 20084, 20085, 20086, 20087, 20088, 20104, 20105, 20106, 20107)
+# An icon is matched by look, not number (WR renumbered part of its spell list): each WR icon takes the
+# SL icon of the same size and frame count whose pixels are nearest, if the mean RGB distance (a clear
+# pixel against a drawn one counting 200) is at most ICON_NEAR: 36.5 by eye (36.2 the same drawing,
+# 36.7 another symbol).
+ICON_NEAR = 36.5
+# Icons kept as WR's whatever the match: the MORE and scroll buttons (12100-12102) are drawn on WR's own
+# talk boxes, whose stone is neutral grey; SL's dimmed frames, from its bluer stone, showed there as a
+# lavender ghost of the button (seen in the game, 2026-11-20).
+ICON_KEEP = (12100, 12101, 12102)
 
 
 # --- GFF: chunks, and where the index says each one is (both games write the same container) ---
@@ -108,6 +125,52 @@ def decode(chunk, f):
     return w, h, rows
 
 
+def _codes(data, bits):
+    acc = n = 0
+    for byte in data:
+        acc, n = (acc << 8) | byte, n + 8
+        while n >= bits:
+            n -= bits
+            yield (acc >> n) & ((1 << bits) - 1)
+
+
+def decode_any(chunk, f):
+    """(w, h, rows) of a frame in any of the three formats. WR's: u16 w, h, FFh, 'PLNR' or 'PLAN',
+    u8 bits a pixel, a colour map of 2**bits palette numbers, then the pixels as codes of those bits,
+    highest first. PLAN: one code a pixel. PLNR: code 0 escapes (0 then 0: a pixel of map entry 0; 0
+    then k: the last pixel k + 2 more times). Palette number 0 is clear."""
+    k = kind(chunk, f)
+    if k == 'rle':
+        return decode(chunk, f)
+    o = frames(chunk)[1][f]
+    w, h = struct.unpack_from('<HH', chunk, o)
+    bits = chunk[o + 9]
+    cmap = chunk[o + 10:o + 10 + (1 << bits)]
+    data = chunk[o + 10 + (1 << bits):]
+    px = []
+    if bits == 0:
+        px = [0] * (w * h)
+    elif k == 'PLAN':
+        it = _codes(data, bits)
+        px = [next(it, 0) for _ in range(w * h)]
+    else:
+        it, last = _codes(data, bits), 0
+        for code in it:
+            if len(px) >= w * h:
+                break
+            if code:
+                px.append(code); last = code
+                continue
+            count = next(it, 0)
+            if count:
+                px += [last] * (count + 2)
+            else:
+                px.append(0); last = 0
+    px = (px + [0] * (w * h))[:w * h]
+    cols = [cmap[p] or None for p in px]
+    return w, h, [cols[y * w:(y + 1) * w] for y in range(h)]
+
+
 def recolour(chunk, table):
     """CHUNK with every pixel byte of its 'rle' frames put through TABLE (the layout is unchanged:
     only literal and repeated pixel bytes are rewritten)."""
@@ -174,7 +237,64 @@ def sl_script_for_wr(script, wr_like):
     return bytes(out)
 
 
-# --- the three commands ---
+def append_chunks(path, new, out):
+    """PATH's GFF with each chunk of NEW ({(type, id): bytes}, all already in the file) appended at
+    the end and the index pointed at it; a picture chunk's leading length set to its own."""
+    data = bytearray(open(path, 'rb').read())
+    places = index(bytes(data))
+    for key, chunk in new.items():
+        if key[0] in ('BMP ', 'CBMP', 'ICON'):
+            chunk = struct.pack('<I', len(chunk)) + chunk[4:]
+        struct.pack_into('<II', data, places[key][0], len(data), len(chunk))
+        data += chunk
+    open(out, 'wb').write(data)
+    return len(data) - os.path.getsize(path)
+
+
+def ui_colour_table(sl_res, wr_dir, wr_res):
+    """SL's RESOURCE palette (PAL 1000) -> the nearest of WR's colours that are the same in its
+    RESOURCE palette and in every region's (the interface is drawn over the map in the region's)."""
+    sp, wp = vga(sl_res[('PAL ', 1000)]), vga(wr_res[('PAL ', 1000)])
+    regions = list(wr_palettes(wr_dir).values())
+    ok = [j for j in range(16, 256) if not 240 <= j <= 248 and all(d2(p[j], wp[j]) < 16 for p in regions)]
+    return [min(ok, key=lambda j: d2(sp[i], wp[j])) for i in range(256)], sp, wp
+
+
+def icon_pairs(sl_res, wr_res, sp, wp):
+    """{WR icon: (SL icon, distance)} for every WR icon with an SL icon within ICON_NEAR (ICON_NEAR)."""
+    def pixels(chunk, pal):
+        out = []
+        for f in range(frames(chunk)[0]):
+            w, h, rows = decode_any(chunk, f)
+            out.append(((w, h), [pal[p] if p is not None else None for row in rows for p in row]))
+        return out
+    sl = {i: pixels(c, sp) for (t, i), c in sl_res.items() if t == 'ICON'}
+    by_shape = collections.defaultdict(list)
+    for i, px in sl.items():
+        by_shape[tuple(s for s, _ in px)].append(i)
+    pairs = {}
+    for (t, i), c in sorted(wr_res.items()):
+        if t != 'ICON':
+            continue
+        wpx = pixels(c, wp)
+        best = None
+        for j in by_shape.get(tuple(s for s, _ in wpx), ()):
+            tot = n = 0
+            for (_, a), (_, b) in zip(sl[j], wpx):
+                for u, v in zip(a, b):
+                    if (u is None) != (v is None):
+                        tot += 200; n += 1
+                    elif u is not None:
+                        tot += d2(u, v) ** .5; n += 1
+            dist = tot / max(n, 1)
+            if best is None or dist < best[1]:
+                best = (j, dist)
+        if best and best[1] <= ICON_NEAR and i not in ICON_KEEP:
+            pairs[i] = best
+    return pairs
+
+
+# --- the commands ---
 
 def games(sl_dir, wr_dir):
     _, A = load(find(sl_dir, 'SEGOBJEX.GFF'))
@@ -280,8 +400,29 @@ def build(sl_dir, wr_dir, out):
     print(f'{out}: {len(done)} figures replaced, {len(data) - os.path.getsize(path)} bytes appended')
 
 
+def build_ui(sl_dir, wr_dir, out):
+    """WR's RESOURCE.GFF with UI_PICTURES and the icons icon_pairs finds taken from SL's RESOURCE.GFF,
+    recoloured (ui_colour_table), appended, the index pointed at them."""
+    _, S = load(find(sl_dir, 'RESOURCE.GFF'))
+    path = find(wr_dir, 'RESOURCE.GFF')
+    _, W = load(path)
+    table, sp, wp = ui_colour_table(S, wr_dir, W)
+    new = {('BMP ', i): recolour(S[('BMP ', i)], table) for i in UI_PICTURES}
+    pairs = icon_pairs(S, W, sp, wp)
+    for i, (j, _) in pairs.items():
+        new[('ICON', i)] = recolour(S[('ICON', j)], table)
+    grown = append_chunks(path, new, out)
+    check = load(out)[1]
+    for key in new:
+        for f in range(frames(check[key])[0]):
+            decode(check[key], f)
+    moved = sum(i != j for i, (j, _) in pairs.items())
+    print(f'{out}: {len(UI_PICTURES)} pictures and {len(pairs)} icons ({moved} from another number) '
+          f'replaced, {grown} bytes appended')
+
+
 if __name__ == '__main__':
-    cmds = {'report': (report, 2), 'sheet': (sheet, 3), 'build': (build, 3)}
+    cmds = {'report': (report, 2), 'sheet': (sheet, 3), 'build': (build, 3), 'build-ui': (build_ui, 3)}
     if len(sys.argv) < 2 or sys.argv[1] not in cmds or len(sys.argv) != 2 + cmds[sys.argv[1]][1]:
         raise SystemExit(__doc__)
     cmds[sys.argv[1]][0](*sys.argv[2:])
