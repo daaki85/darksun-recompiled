@@ -147,6 +147,29 @@ interface pictures and icons. Seen in the game 2026-11-20 (the same test log).
   own (its talk boxes), SL's bluer stone shows against WR's neutral grey. The character sheet
   wasn't reached in the test.
 
+## A region's colours (phase 2)
+
+`sl_figures.py regrade SL_DIR WR_DIR RGNxxx STRENGTH OUT.GFF` moves one region's colours toward
+Shattered Lands' ground. Tried on Tyr (`RGN032`) at strength 1.0, in the game, 2026-11-20.
+
+- **The target:** Shattered Lands' ground colours over all its regions, each tile counted as often
+  as its map uses it. **SL draws region N in `GPLDATA.GFF`'s PAL N**: the slave pens (`RGN29`) in
+  PAL 41, checked against a screenshot of the game. In Lab, SL's ground averages L 48, a 15, b 19
+  (lighter and warmer than Tyr's L 26, a 5, b 10), with twice the spread.
+- **Which colours can change:** Tyr's ground is 37% in the region's own entries 16-95 (which its
+  scenery objects use too) and 63% in entries 176-255, which the interface and figures share. So
+  entries 16-95 are graded in the palette, ground and scenery together. Ground pixels in shared
+  colours are graded and clustered into the 16-95 entries that neither the tiles nor the region's
+  objects use (its `ETAB`: 8 bytes an entity, the object negated at +6). **The game cycles
+  entries 16-23 at run time** (torch and fire glow), overwriting the file's values there, so the
+  spare entries come from 32-95 only: 8 in Tyr.
+- **The grade:** lightness by a power curve that takes Tyr's mean to SL's and keeps white white (a
+  straight shift blew the light sandstone out to white). The colour axes a and b by mean and
+  spread, the spread's scale capped at 1.6. All of it blended by STRENGTH.
+- **In play:** warm orange sandstone, tan floors, warm pale cobbles. The interface and figures
+  are unchanged. Beside SL's slave pens, Tyr now reads warmer, but SL's ground is lighter and more
+  muted, and Tyr's sandstone is more saturated. Strength and the cap are the knobs.
+
 ## Still open
 
 - **Flag 40h.** `build` sets it on every step, as the sequel does for its own figures, and

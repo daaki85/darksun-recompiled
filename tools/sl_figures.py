@@ -6,12 +6,14 @@ a copy of the sequel's OBJEX.GFF with the party's figures taken from Shattered L
     sl_figures.py sheet  SL_DIR WR_DIR OUT.png  the 14 party figures: SL's, SL's in WR's colours, WR's
     sl_figures.py build  SL_DIR WR_DIR OUT.GFF  WR's OBJEX.GFF with objects 300-313 drawn as SL's
     sl_figures.py build-ui SL_DIR WR_DIR OUT.GFF  WR's RESOURCE.GFF with SL's interface pictures and icons
+    sl_figures.py regrade SL_DIR WR_DIR RGNxxx STRENGTH OUT.GFF  a WR region's colours moved toward SL's
 
 Nothing of either game is in the repository: everything is read from the owner's two installs.
 `sheet` needs Pillow. `build` was seen working in the game (docs/FIGURES.md, "Seen in the game").
 """
 import collections
 import glob
+import math
 import os
 import struct
 import sys
@@ -243,7 +245,7 @@ def append_chunks(path, new, out):
     data = bytearray(open(path, 'rb').read())
     places = index(bytes(data))
     for key, chunk in new.items():
-        if key[0] in ('BMP ', 'CBMP', 'ICON'):
+        if key[0] in ('BMP ', 'CBMP', 'ICON', 'TILE'):
             chunk = struct.pack('<I', len(chunk)) + chunk[4:]
         struct.pack_into('<II', data, places[key][0], len(data), len(chunk))
         data += chunk
@@ -292,6 +294,157 @@ def icon_pairs(sl_res, wr_res, sp, wp):
         if best and best[1] <= ICON_NEAR and i not in ICON_KEEP:
             pairs[i] = best
     return pairs
+
+
+# --- a region's colours (phase 2) ---
+
+def _lab(c):
+    def lin(u):
+        u /= 255
+        return ((u + 0.055) / 1.055) ** 2.4 if u > 0.04045 else u / 12.92
+    r, g, b = (lin(x) for x in c)
+    X = (0.4124 * r + 0.3576 * g + 0.1805 * b) / 0.95047
+    Y = 0.2126 * r + 0.7152 * g + 0.0722 * b
+    Z = (0.0193 * r + 0.1192 * g + 0.9505 * b) / 1.08883
+    f = lambda u: u ** (1 / 3) if u > 0.008856 else 7.787 * u + 16 / 116
+    fx, fy, fz = f(X), f(Y), f(Z)
+    return (116 * fy - 16, 500 * (fx - fy), 200 * (fy - fz))
+
+
+def _rgb(lab):
+    l, a, b = lab
+    fy = (l + 16) / 116; fx = fy + a / 500; fz = fy - b / 200
+    inv = lambda u: u ** 3 if u ** 3 > 0.008856 else (u - 16 / 116) / 7.787
+    X, Y, Z = inv(fx) * 0.95047, inv(fy), inv(fz) * 1.08883
+    lin = (3.2406 * X - 1.5372 * Y - 0.4986 * Z, -0.9689 * X + 1.8758 * Y + 0.0415 * Z,
+           0.0557 * X - 0.2040 * Y + 1.0570 * Z)
+    g = lambda u: 255 * (1.055 * max(u, 0) ** (1 / 2.4) - 0.055 if u > 0.0031308 else 12.92 * u)
+    return tuple(max(0, min(255, round(g(u)))) for u in lin)
+
+
+def _spread(weights):
+    """Lab mean and deviation of {RGB: weight}."""
+    n = sum(weights.values())
+    labs = [(_lab(c), k) for c, k in weights.items()]
+    mu = [sum(l[j] * k for l, k in labs) / n for j in range(3)]
+    sd = [(sum((l[j] - mu[j]) ** 2 * k for l, k in labs) / n) ** .5 for j in range(3)]
+    return mu, sd
+
+
+def _ground(chunks, pal, weights):
+    """Add a region's ground pixels to WEIGHTS ({RGB: count}), each tile counted as often as the
+    region's map (SL's RMAP, WR's MAP) uses it."""
+    m = next(v for k, v in chunks.items() if k[0] in ('MAP ', 'RMAP'))
+    used = collections.Counter(m)
+    for (t, i), c in chunks.items():
+        if t == 'TILE' and used.get(i):
+            for row in decode_any(c, 0)[2]:
+                for p in row:
+                    if p is not None:
+                        weights[pal[p]] += used[i]
+
+
+def sl_ground(sl_dir):
+    """Shattered Lands' ground colours over all its regions: region N is drawn in GPLDATA's PAL N
+    (the slave pens, RGN29, in PAL 41: checked against a screenshot of the game)."""
+    _, gpl = load(find(sl_dir, 'GPLDATA.GFF'))
+    weights = collections.Counter()
+    for f in sorted(glob.glob(os.path.join(sl_dir, 'RGN*.GFF')) + glob.glob(os.path.join(sl_dir, 'rgn*.gff'))):
+        n = int(os.path.basename(f)[3:5], 16)
+        if ('PAL ', n) in gpl:
+            _ground(load(f)[1], vga(gpl[('PAL ', n)]), weights)
+    return _spread(weights)
+
+
+def region_objects_colours(chunks, objex):
+    """The palette numbers 16-95 (the region's own) that the region's objects (its ETAB: 8 bytes an
+    entity, x, y, height, flags, the object negated) are drawn with."""
+    etab = next(v for k, v in chunks.items() if k[0] == 'ETAB')
+    used = set()
+    for k in range(len(etab) // 8):
+        ob = abs(struct.unpack_from('<h', etab, 8 * k + 6)[0])
+        oj = objex.get(('OJFF', ob))
+        if not oj:
+            continue
+        pic = struct.unpack_from('<H', oj, PIC)[0]
+        for t in ('BMP ', 'CBMP'):
+            c = objex.get((t, pic))
+            for f in range(frames(c)[0] if c else 0):
+                for row in decode_any(c, f)[2]:
+                    used.update(p for p in row if p is not None and 16 <= p <= 95)
+    return used
+
+
+def regrade(sl_dir, wr_dir, region, strength, out, cap=1.6):
+    """WR's region file with its colours moved toward SL's ground colours (lightness by a power
+    curve from WR's mean to SL's, a and b by the mean and spread, the spread's scale at most CAP; all
+    at STRENGTH 0-1): its palette's own entries 16-95
+    (the ground and the region's objects together) graded; ground pixels in any other colour (the
+    shared ones 96-255, which the interface and figures use too, so not changed) graded and
+    clustered into the 16-95 entries that neither the tiles nor the region's objects use."""
+    strength = float(strength)
+    path = find(wr_dir, region if region.upper().endswith('.GFF') else region + '.GFF')
+    _, chunks = load(path)
+    _, objex = load(find(wr_dir, 'OBJEX.GFF'))
+    pk = next(k for k in chunks if k[0] == 'PAL ')
+    pal = vga(chunks[pk])
+    mine = collections.Counter()
+    _ground(chunks, pal, mine)
+    (ms, ss), (mw, sw) = sl_ground(sl_dir), _spread(mine)
+    # lightness by a power curve that takes WR's mean to SL's and keeps white white (a straight shift
+    # blew Tyr's light sandstone out to white, seen in the game 2026-11-20); the colour axes a and b
+    # by the mean and spread
+    gamma = math.log(max(ms[0], 1) / 100) / math.log(max(mw[0], 1) / 100)
+    def graded(c):
+        l = _lab(c)
+        t = [100 * (max(l[0], 0) / 100) ** gamma] + [
+            ms[j] + (l[j] - mw[j]) * min(cap, ss[j] / max(sw[j], 1e-6)) for j in (1, 2)]
+        return [l[j] + strength * (t[j] - l[j]) for j in range(3)]
+    new = list(pal)
+    for i in range(16, 96):
+        new[i] = _rgb(graded(pal[i]))
+    tiles = {k: c for k, c in chunks.items() if k[0] == 'TILE'}
+    tile_used = set()
+    weight = collections.Counter()
+    m = next(v for k, v in chunks.items() if k[0] in ('MAP ', 'RMAP'))
+    on_map = collections.Counter(m)
+    for (t, i), c in tiles.items():
+        for row in decode_any(c, 0)[2]:
+            for p in row:
+                if p is not None:
+                    tile_used.add(p)
+                    if not 16 <= p <= 95:
+                        weight[p] += on_map.get(i, 0) + 1
+    # 16-31 left out: the game cycles 16-23 at run time (torches, fire), overwriting what the file
+    # holds there (seen in the game, 2026-11-20: the ground put in 21 and 23 showed in yellow and
+    # orange), and the rest of that band is kept clear of the same risk
+    free = [i for i in range(32, 96) if i not in tile_used and i not in region_objects_colours(chunks, objex)]
+    if not free and weight:
+        raise SystemExit('no free palette entries in 16-95 for the shared colours')
+    pts = {p: graded(pal[p]) for p in weight}
+    near = lambda l, cs: min(range(len(cs)), key=lambda j: sum((a - b) ** 2 for a, b in zip(l, cs[j])))
+    centres = [pts[p] for p in sorted(pts, key=lambda p: -weight[p])[:len(free)]]
+    for _ in range(30):  # k-means, weighted by how much of the map each colour covers
+        groups = collections.defaultdict(list)
+        for p, l in pts.items():
+            groups[near(l, centres)].append(p)
+        for j, g in groups.items():
+            tot = sum(weight[p] for p in g)
+            centres[j] = [sum(pts[p][d] * weight[p] for p in g) / tot for d in range(3)]
+    table = list(range(256))
+    for p, l in pts.items():
+        table[p] = free[near(l, centres)]
+    for j, l in enumerate(centres):
+        new[free[j]] = _rgb(l)
+    pal_chunk = bytearray(chunks[pk])
+    for i in range(256):
+        pal_chunk[3 * i:3 * i + 3] = bytes(v * 63 // 255 for v in new[i])
+    changed = {pk: bytes(pal_chunk)}
+    for k, c in tiles.items():
+        changed[k] = recolour(c, table)
+    grown = append_chunks(path, changed, out)
+    print(f'{out}: {region} at {strength}: palette 16-95 graded, {len(pts)} shared colours of the ground in '
+          f'{len(centres)} free entries {free}, {len(tiles)} tiles; {grown} bytes appended')
 
 
 # --- the commands ---
@@ -422,7 +575,8 @@ def build_ui(sl_dir, wr_dir, out):
 
 
 if __name__ == '__main__':
-    cmds = {'report': (report, 2), 'sheet': (sheet, 3), 'build': (build, 3), 'build-ui': (build_ui, 3)}
+    cmds = {'report': (report, 2), 'sheet': (sheet, 3), 'build': (build, 3), 'build-ui': (build_ui, 3),
+            'regrade': (regrade, 5)}
     if len(sys.argv) < 2 or sys.argv[1] not in cmds or len(sys.argv) != 2 + cmds[sys.argv[1]][1]:
         raise SystemExit(__doc__)
     cmds[sys.argv[1]][0](*sys.argv[2:])
