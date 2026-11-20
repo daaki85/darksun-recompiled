@@ -30,7 +30,7 @@ The data, tools/proto/people-dress.json:
     people_dress.py numbers sl|wr N OUT.png         front, side, combat at 16x, each pixel's number on it
     people_dress.py wr WR_PICTURE OUT.png           a WR figure, its colours and their nearest SL ones
     people_dress.py sheet OUT.png [WR_PICTURE ...]  WR | SL as it is | dressed (front, side, combat)
-    people_dress.py build BASE_OBJEX OUT_OBJEX      the dressed figures swapped in (sl_figures.swap)
+    people_dress.py build BASE_OBJEX OUT_OBJEX [--every] (--every: the restyled ones dressed too, to compare)     the dressed figures swapped in (sl_figures.swap)
 """
 import sys, os, json, struct, collections
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
@@ -309,9 +309,9 @@ def sheet(out, pics, data, Z=3):
     sh.save(out); print(out)
 
 
-def build(base, out, data):
+def build(base, out, data, every=False):
     """The dressed figures into BASE, as OUT; those in people-restyle.json are left out (restyled)."""
-    skip = set(json.load(open(os.path.join(os.path.dirname(DATA), 'people-restyle.json')))['restyle'])
+    skip = set() if every else set(json.load(open(os.path.join(os.path.dirname(DATA), 'people-restyle.json')))['restyle'])
     new = {}
     for wp in [w for w in data['dress'] if int(w) not in skip]:
         dw, dc, w, c, script = dressed(wp, data)
@@ -340,4 +340,4 @@ if __name__ == '__main__':
     elif cmd == 'sheet':
         sheet(sys.argv[2], sys.argv[3:], data)
     elif cmd == 'build':
-        build(sys.argv[2], sys.argv[3], data)
+        build(sys.argv[2], sys.argv[3], data, '--every' in sys.argv)
