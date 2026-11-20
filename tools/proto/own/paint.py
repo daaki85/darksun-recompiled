@@ -33,9 +33,11 @@ The style's rules, in the order they are applied:
      the pectorals; one-pixel lights on the pectorals, shoulders and nose; dark fold wedges from knee
      to cuff on the trousers),
      drawn where they show: on their own part and not hidden behind another.
-  7. An outline one pixel outside the silhouette: black (254) on the shadow side (right and bottom),
+  7. (OUTLINE 'outside', rounds 1-5) An outline one pixel outside the silhouette: black (254) on the shadow side (right and bottom),
      and on the lit edges (upper left) the material's second-darkest shade instead, a lighter line.
      7b. Its outer edge redrawn clean too, as in 5b.
+  7'. (OUTLINE 'inside', round 6, SL's way: its figures have no outline ring) No ring; the
+     edge pixels on the shadow side (right and bottom) take their material's darkest shade.
   8. A last pass for orphans: a pixel whose colour none of its eight neighbours has takes the
      neighbouring colour nearest it in its own ramp, or failing that the commonest one round it
      (the outline and the marks are left: a mark is meant to stand alone).
@@ -79,6 +81,9 @@ EDGED = {'gold': {'skin'}, 'sash': {'skin', 'cloth'}}
 MERGED = ('skin', 'cloth')       # the materials rule 5c merges small patches in
 HOLLOW_BLACK = 0.6               # a pixel this deep in a hollow (1x pixels) is black (rule 6c)
 FAR_BLACK = 1.5                  # a limb this far behind the torso (1x pixels) has its shadow black
+OUTLINE = 'inside'               # rule 7: 'outside' (a ring round the figure, rounds 1-5), 'inside'
+                                 # (SL's way: no ring; the shadow-side edge pixels take their material's
+                                 # darkest shade) or 'none'
 MARK_TOL = 1.2                   # how far (1x pixels) a mark may sit behind the surface and still show
 # a material's light before it is cut into shades: (contrast, offset); the hair is dark and its
 # locks need more contrast to break into clumps at 1x, skin and cloth a little more than the light
@@ -315,9 +320,14 @@ def colours(m, s, p, d, dark):
                 r = 'black'
             if r:
                 out[y][x] = role(r, m[y, x], s[y, x])
+    if OUTLINE == 'inside':
+        for y in range(H1):
+            for x in range(W1):
+                if m[y, x] >= 0 and out[y][x] != BLACK and any(at(m, x + dx, y + dy) < 0 for dx, dy in ((1, 0), (0, 1))):
+                    out[y][x] = RAMPS[MATS[m[y, x]]][0]
     for y in range(H1):
         for x in range(W1):
-            if m[y, x] >= 0:
+            if m[y, x] >= 0 or OUTLINE != 'outside':
                 continue
             nb = [(dx, dy) for dx, dy in N4 if at(m, x + dx, y + dy) >= 0]
             if not nb:
