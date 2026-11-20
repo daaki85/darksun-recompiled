@@ -276,6 +276,25 @@ Worked out 2026-11-20 from the game (Tyr, the opening ambush) and its region loa
   darkened copies of their tiles in `MAP ` (tile numbers up to 255; Tyr has 94). Whether anything
   in the game reads a cell's tile number for its own purposes isn't known yet.
 
+## Shadows in the ground (2026-11-20)
+
+`tools/proto/groundshadow.py` draws the shadows into Tyr's ground as SL does, replacing the
+checkerboards baked into the wall pictures:
+
+- **Safe to change a cell's tile:** only two places in WR's code read the ground map's tile numbers
+  (DSUN.EXE 2B8A4h and 2BA19h), both the ground drawing (a cell's tile number, its picture looked up
+  by the routine at 2B58Ah, a 16 x 16 drawn); the three other uses of the map's pointer free it when a
+  region is left. Walking is decided by `GMAP`, untouched.
+- **The shadow:** every structure's outline cast 12 right and 8 down; what any object covers is left
+  out. A shadowed cell gets a copy of its tile with those pixels darkened as SL's shadowed floor is
+  (the pens' tile 26 against the floor's 28: lightness x 0.73, a + 11, b x 0.82: darker and warmer).
+- **The tile limit:** 2,554 ground cells are shadowed, in 1,895 different (tile, shadow) pairs, and a
+  region's tile numbers stop at 255 (Tyr has 94: 162 free). At 8-pixel blocks 275 pairs are left; the
+  162 most common get tiles, which covers 1,642 of 1,710 cells exactly; 34 take the nearest shape on
+  the same tile and 34 stay unshadowed. The blocks show as small steps along some shadow edges.
+- **In play:** solid, warm dark bands right of the walls across the street and the rooms, moving with
+  the ground as the camera scrolls; Ar'Anda walked into a wall's shadow as before.
+
 ## Still open
 
 - **Flag 40h.** `build` sets it on every step, as the sequel does for its own figures, and

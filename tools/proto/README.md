@@ -25,3 +25,9 @@ into `sl_figures.py`.
   and wrote shadow tiles into `GMAP`, which turned out to be per-cell
   flags (0, 64, 192), not the drawn tile map. The ground is `MAP `: docs/FIGURES.md, "How WR draws its ground".
 - `frame.py`: `exact_frame` rebuilds the 320x200 frame, as palette numbers, from a DOSBox grab.
+- `groundshadow.py OBJEX RGN OUT_RGN [DX DY]`: **the shadows SL's way**, drawn into the region's
+  ground map: each structure's outline cast 12 right and 8 down, what any object covers left out, each
+  shadowed cell given a darkened copy of its tile (SL's shadowed floor: lightness x 0.73, a + 11,
+  b x 0.82) in 8-pixel blocks. The 255-tile limit decides: the most common (tile, shadow) pairs get
+  tiles, others take the nearest shape of the same tile or stay unshadowed. Use with `build_tops.py`'s
+  OBJEX (no baked shadows) and the squash's region file. Supersedes `bakeshadow2.py` for Tyr.
