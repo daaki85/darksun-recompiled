@@ -170,6 +170,27 @@ Shattered Lands' ground. Tried on Tyr (`RGN032`) at strength 1.0, in the game, 2
   are unchanged. Beside SL's slave pens, Tyr now reads warmer, but SL's ground is lighter and more
   muted, and Tyr's sandstone is more saturated. Strength and the cap are the knobs.
 
+## Walls and objects (phase 4, started)
+
+Decided 2026-11-20 after seeing Tyr regraded: the ground can stay regraded; the walls and other
+objects need repainting in Shattered Lands' style. What the first look found:
+
+- **WR's buildings are objects.** Tyr places 867 entities from 246 pictures (its `ETAB`): sandstone
+  wall blocks and columns (64x64, 24x64, 18x64), plaster walls with doorways and windows, red-tiled
+  roof edges, market stalls, furniture, rugs, sacks, barrels and pots, and some people as objects.
+- **SL builds them differently.** Its placed scenery is almost all outdoor dressing (plants, cacti,
+  bones, rocks, straw, pots). Its `WALL` chunks (`GPLDATA.GFF`, numbered region x 100 + piece) are
+  mostly cliff and cave rock, in 16-pixel-wide shaped pieces; only 47 are full rectangles and 11 of
+  those tile cleanly (among them brick 4100-4101, stucco 1306 and sandstone 4310/4313). **SL's
+  built architecture is in its ground tiles**: the arena district (region 28) has its brick and
+  pale ashlar walls in its tile set, and region 0E carved yellow sandstone.
+- **A refill keeps WR's angle.** Filling WR's wall shapes with SL brick (outline, windows, roof
+  tiles and shading kept) looks like SL's material, but WR draws walls as tall faces seen almost
+  head-on, and SL from higher above (shorter faces, their tops showing). A true SL look means
+  redrawing walls and items at SL's angle. The angles are to be measured next.
+- Matching surfaces by colour alone picks sand and grass, not masonry: textures have to be chosen
+  by material.
+
 ## Still open
 
 - **Flag 40h.** `build` sets it on every step, as the sequel does for its own figures, and
