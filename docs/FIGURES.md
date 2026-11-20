@@ -238,8 +238,13 @@ On top of the squash, in the game (scripts in `tools/proto/`, as they ran):
 - **Shadows:** baked into each structure's own picture, its outline offset 10 right and 6 down in a
   near-black checkerboard (SL's light comes from the upper left). The canvas grows right and down,
   so the anchor holds; nearer walls and objects, drawn later, cover what falls on them. In play: a
-  dark band right of each wall. Where two pictures' checkerboards overlap out of step, the shadow
-  comes out solid.
+  dark band right of each wall. First each picture had its own checkerboard phase, and where two
+  pictures' shadows overlapped out of step they came out solid. Fixed by **one global phase** (a
+  shadow pixel only where screen x + y is even): 71 of the 137 pictures are placed at both
+  parities, so each gets a copy with the other phase (BMP 5001 on), and its odd placements a copy of
+  their object pointing at it (81 objects, OJFF 32100 on, set in the `ETAB`). Over all of Tyr,
+  solid 2x2 patches of the shadow colour went from 5,546 to 484, of which the walls' own dark details
+  make 446 with no shadows at all. Seen in the game: clean checkerboards.
 - **Not understood yet: WR's ground.** `GMAP` holds per-cell flags (0, 64, 192), not tiles. `MAP`
   (1-91) doesn't match the screen's ground at any grid offset with Tyr's `TILE`s. Shadows drawn
   into the ground, as SL does, need that worked out from the game's drawing code first.
