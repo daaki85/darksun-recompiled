@@ -295,6 +295,49 @@ checkerboards baked into the wall pictures:
 - **In play:** solid, warm dark bands right of the walls across the street and the rooms, moving with
   the ground as the camera scrolls; Ar'Anda walked into a wall's shadow as before.
 
+## A second comparison: what actually differs (2026-11-20)
+
+Asked for by the owner after the shadow work: a wider comparison, now that both games' maps can be
+drawn whole (ground from `RMAP`/`MAP `, objects from the `ETAB`). Every region of both games was
+measured the same way (32 of SL's, each in its own palette; WR's 20), and screen-size views of
+built-up places compared: SL's slave pens (`RGN29`), arena district (`RGN28`) and city (`RGN2B`)
+against WR's Tyr (`RGN032`) and the Veiled Alliance's headquarters (`RGN033`).
+
+| Median over all regions | SL | WR |
+|---|---|---|
+| Black void round the playable areas | 0% | 35% |
+| Ground lightness (Lab L, void left out) | 48 | 30 |
+| Ground colourfulness (chroma) | 25 | 21 |
+| Ground texture contrast (lightness step between neighbours) | 5.5 | 3.6 |
+| Share of the map covered by placed objects | 5% | 21% |
+| Placed objects per region | 331 | 649 |
+| Median object size (pixels) | 630 | 1,196 |
+| Colours used; ground tiles | 187; 195 | 191; 174 |
+
+What the numbers and views say:
+
+- **How places are built.** SL builds its places in the ground tiles: thick walls (two tiles and
+  more across) whose big tops and faces are tiles, with few placed objects (mostly plants, bones,
+  rocks). WR builds them from placed objects: thin wall pieces, and rooms full of furniture. That is
+  most of the 4-to-1 difference in object cover.
+- **How a map is laid out.** An SL region is one continuous place filling its 128 x 98 map: a maze
+  of cells, a district, a stretch of desert. A WR map holds several separate pieces (buildings,
+  rooms, cave chambers, floating rock) set in black void.
+- **The ground.** SL's is much lighter and bolder: sand with big waves, brick with clear courses,
+  pastel floors. WR's is darker and finer: grey cobbles, dark earth, fine dithered noise. Both use
+  checker dithering about as much (18% and 17% of pixels).
+- **Shadows.** SL draws cast shadows into some of its tiles (the pens' floor, the diagonal shadows
+  of the city in `RGN2B`) but not everywhere (none in the arena). WR draws none.
+- **The angle: not established.** Re-measured on more objects of known shape, neither game is
+  drawn to one angle: SL's brazier bowl (806) is 17 x 8 (about 28 degrees above the horizontal),
+  its gold rings (33) 13 x 10 (about 50), its square inset (685) 21 x 19 (about 65); WR's barrels and
+  round table come out at 44 to 52. And SL's arena district stands its brick walls three or four
+  tiles high, as tall as WR's. So the earlier "SL at 65, WR at 50" rested on too little, and the
+  squash (which shortened WR's walls by a third on that basis) is in doubt. The visible difference
+  is more likely the walls' **thickness** (SL's big tops) than the camera.
+- **Already known:** SL's figures are 20-35% shorter on the same tiles; the interface is the same
+  art (WR's in fewer colours).
+
 ## Still open
 
 - **Flag 40h.** `build` sets it on every step, as the sequel does for its own figures, and

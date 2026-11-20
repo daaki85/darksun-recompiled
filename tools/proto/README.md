@@ -31,3 +31,5 @@ into `sl_figures.py`.
   b x 0.82) in 8-pixel blocks. The 255-tile limit decides: the most common (tile, shadow) pairs get
   tiles, others take the nearest shape of the same tile or stay unshadowed. Use with `build_tops.py`'s
   OBJEX (no baked shadows) and the squash's region file. Supersedes `bakeshadow2.py` for Tyr.
+- `region.py`: `draw(game, region, box)` draws any region of either game, ground and objects.
+- `metrics.py`: the per-region measurements of the second comparison (docs/FIGURES.md).
