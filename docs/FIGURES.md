@@ -368,6 +368,31 @@ thick SL's way.
   "can't go" pointer, with `GMAP` exactly as shipped, so it's WR's own rule. The shadow bands fall
   mostly on those margins.
 
+## After the owner's review (2026-11-20)
+
+The owner's calls: the ground regrade and the wall work dropped (Ravager's own ground and walls
+back); the squash kept for tables and other map artwork only; all figures to become SL's, with new
+ones drawn for WR figures that have no SL equivalent; the Obsidian Edition's figures used.
+
+- **Party from the Obsidian Edition.** The mod's copy of `SEGOBJEX.GFF` (`dsloader.icons.write_objects`)
+  gives each party member its own pictures (2450 on: walking, then combat), padded evenly for the
+  gear the mod draws (6 a side and 2 above walking, 10 round in combat), with the same script (174)
+  and anchors. `sl_figures.py build` from a folder holding that copy (and the game's other files):
+  the elves get the mod's ears, the half-elves their own looks (306 fair-haired in a green tunic,
+  307 golden-haired in a purple cloak). Seen in the game, a test copy putting the half-elves on
+  Terrannus and Ar'Anda.
+- **Furniture squash:** `sl_figures.py squash WR_DIR RGNxxx 0.66 OUT_DIR furniture`: 60 of Tyr's
+  pictures (tables, chairs, beds, couches, sacks) lowered, walls kept. Seen in the game.
+- **Creatures:** `sl_figures.py swap SL_DIR WR_DIR MAP.json OUT.GFF` draws any WR picture as an SL
+  object's figure (walking picture, combat picture when its script uses one, script), adding chunks
+  anywhere in the ranged index (`write_ranged`). First batch (`tools/proto/creatures-batch1.json`):
+  the four elementals, defiler, shadow, skeleton, notaku and a templar picture. The dust devil and
+  the psurlon are already the same art. **A WR picture is shared by everyone naming it**: 2427 serves
+  the blonde woman who opens the game as well as Draxans and templars, and matching it by name made
+  her an SL templar in the game (walking and fighting correctly); taken out. Matches must follow what
+  the WR picture shows. Inventory: 477 animated WR pictures (118 with combat pictures: people and
+  monsters), 340 SL ones (doors and effects among them).
+
 ## Still open
 
 - **Flag 40h.** `build` sets it on every step, as the sequel does for its own figures, and

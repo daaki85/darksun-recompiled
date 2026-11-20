@@ -7,6 +7,7 @@ a copy of the sequel's OBJEX.GFF with the party's figures taken from Shattered L
     sl_figures.py build  SL_DIR WR_DIR OUT.GFF  WR's OBJEX.GFF with objects 300-313 drawn as SL's
     sl_figures.py build-ui SL_DIR WR_DIR OUT.GFF  WR's RESOURCE.GFF with SL's interface pictures and icons
     sl_figures.py regrade SL_DIR WR_DIR RGNxxx STRENGTH OUT.GFF  a WR region's colours moved toward SL's
+    sl_figures.py swap SL_DIR WR_DIR MAP.json OUT.GFF  WR figures drawn as SL's: {"WR picture": SL object, ...}
     sl_figures.py squash WR_DIR RGNxxx FACTOR OUT_DIR [furniture]  a WR region's objects lowered (furniture: only
                                                     tables, chairs and other map artwork; walls kept)
 
@@ -573,6 +574,100 @@ def squash(wr_dir, region, factor, out_dir, what='all'):
     print(f'{out_dir}: {len(new)} pictures lowered, the drop {drop} rows')
 
 
+# --- writing a GFF with a ranged index (OBJEX.GFF): chunks re-pointed or added anywhere ---
+
+def write_ranged(path, changes, out):
+    """PATH's GFF with CHANGES {(type, id): bytes}: existing chunks re-pointed, new ones added in id
+    order (the type's runs and its offset table, in its GFFI chunk, rebuilt); the data appended and
+    a new index written after it, the old index's trailing bytes kept."""
+    d = bytearray(open(path, 'rb').read())
+    toc, tlen = struct.unpack_from('<II', d, 12)
+    p = toc + 8
+    n, = struct.unpack_from('<H', d, p); p += 2
+    types = []
+    for _ in range(n):
+        t, c = d[p:p + 4], struct.unpack_from('<I', d, p + 4)[0]; p += 8
+        if c & 0x80000000:
+            _, gi, runs = struct.unpack_from('<III', d, p)
+            rr = [struct.unpack_from('<II', d, p + 12 + 8 * k) for k in range(runs)]
+            types.append({'t': t, 'gi': gi, 'ids': [i for f, m in rr for i in range(f, f + m)]})
+            p += 12 + 8 * runs
+        else:
+            types.append({'t': t, 'ents': [list(struct.unpack_from('<III', d, p + 12 * k)) for k in range(c)]})
+            p += 12 * c
+    tail = bytes(d[p:toc + tlen])
+    gffi = next(T for T in types if T['t'] == b'GFFI')
+    for T in types:
+        if 'ids' in T:
+            e = next(e for e in gffi['ents'] if e[0] == T['gi'])
+            T['pairs'] = dict(zip(T['ids'], (list(struct.unpack_from('<II', d, e[1] + 4 + 8 * k)) for k in range(len(T['ids'])))))
+    for (t, i), data in sorted(changes.items()):
+        tb = t.encode('latin1')
+        at = len(d); d += data
+        T = next(T for T in types if T['t'] == tb)
+        if 'pairs' in T:
+            T['pairs'][i] = [at, len(data)]
+        else:
+            e = next((e for e in T['ents'] if e[0] == i), None)
+            if e is None:
+                raise ValueError(f'adding to plain type {t} is not supported')
+            e[1], e[2] = at, len(data)
+    for T in types:
+        if 'pairs' in T:
+            ids = sorted(T['pairs'])
+            raw = struct.pack('<I', len(ids)) + b''.join(struct.pack('<II', *T['pairs'][i]) for i in ids)
+            e = next(e for e in gffi['ents'] if e[0] == T['gi']); e[1], e[2] = len(d), len(raw); d += raw
+            runs = []
+            for i in ids:
+                if runs and runs[-1][0] + runs[-1][1] == i:
+                    runs[-1][1] += 1
+                else:
+                    runs.append([i, 1])
+            T['runs'] = runs; T['total'] = len(ids)
+    body = bytearray(struct.pack('<H', len(types)))
+    for T in types:
+        if 'runs' in T:
+            body += T['t'] + struct.pack('<IIII', 0x80000000 | T['total'], T['total'], T['gi'], len(T['runs']))
+            for r in T['runs']:
+                body += struct.pack('<II', *r)
+        else:
+            body += T['t'] + struct.pack('<I', len(T['ents']))
+            for e in T['ents']:
+                body += struct.pack('<III', *e)
+    body += tail
+    toc = len(d); tlen = 8 + len(body)
+    d += struct.pack('<II', 8, tlen - 2) + body
+    struct.pack_into('<II', d, 12, toc, tlen)
+    open(out, 'wb').write(d)
+
+
+def swap(sl_dir, wr_dir, mapping, out):
+    """WR's OBJEX.GFF (WR_DIR's) with each WR picture of MAPPING (a JSON file: {"WR picture": SL
+    object}) drawn as the SL object's figure: its walking picture as BMP n, its combat picture (the
+    next SL chunk, when its script uses one: step flag 20h) as CBMP n, its script as SCMD n; colours
+    remapped (colour_table). A WR picture is shared by every object naming it, so the SL figure must
+    suit them all: choose by what the WR picture shows, not by names."""
+    import json
+    A, B, sl_pal = games(sl_dir, wr_dir)
+    table, _ = colour_table(sl_pal, wr_palettes(wr_dir))
+    new = {}
+    for wpic, sobj in json.load(open(mapping)).items():
+        wpic = int(wpic)
+        oj = A[('OJFF', int(sobj))]
+        spic, script = struct.unpack_from('<H', oj, PIC)[0], A[('SCMD', oj[SL_SCRIPT])]
+        new[('BMP ', wpic)] = recolour(A[('BMP ', spic)], table)
+        if any(st[2] & COMBAT for st in steps(script)) and ('BMP ', spic + 1) in A:
+            new[('CBMP', wpic)] = recolour(A[('BMP ', spic + 1)], table)
+        wr_like = B.get(('SCMD', wpic), b'')
+        new[('SCMD', wpic)] = sl_script_for_wr(script, wr_like) if wr_like else sl_script_for_wr(script, b'\0' * (SLOTS * 2))
+    write_ranged(find(wr_dir, 'OBJEX.GFF'), new, out)
+    check = load(out)[1]
+    for key in new:
+        if key[0] != 'SCMD':
+            decode(check[key], 0)
+    print(f'{out}: {len(json.load(open(mapping)))} WR figures drawn as SL ones ({len(new)} chunks)')
+
+
 # --- the commands ---
 
 def games(sl_dir, wr_dir):
@@ -702,7 +797,7 @@ def build_ui(sl_dir, wr_dir, out):
 
 if __name__ == '__main__':
     cmds = {'report': (report, 2), 'sheet': (sheet, 3), 'build': (build, 3), 'build-ui': (build_ui, 3),
-            'regrade': (regrade, 5), 'squash': (squash, 4)}
+            'regrade': (regrade, 5), 'squash': (squash, 4), 'swap': (swap, 4)}
     if len(sys.argv) == 7 and sys.argv[1] == 'squash':
         cmds['squash'] = (squash, 5)
     if len(sys.argv) < 2 or sys.argv[1] not in cmds or len(sys.argv) != 2 + cmds[sys.argv[1]][1]:
