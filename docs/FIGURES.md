@@ -205,6 +205,27 @@ objects need repainting in Shattered Lands' style. What the first look found:
 - Matching surfaces by colour alone picks sand and grass, not masonry: textures have to be chosen
   by material.
 
+## Tyr from SL's angle: the whole-region squash
+
+`sl_figures.py squash WR_DIR RGN032 0.66 OUT_DIR` shows a region's structures and furniture as
+seen from SL's steeper angle (faces shrink by cos 65 / cos 50, about 0.66). Tried on Tyr in the
+game, 2026-11-20, over the regraded ground, in four runs:
+
+1. **Every picture squashed:** furniture and walls lower, the scene intact, but the walls running
+   north-south broke into pieces. They are stacks of thin pictures whose height is mostly the
+   wall's top receding into the distance, not upright face.
+2. **Only the bottom 48 rows (WR's face height) squashed, the rest moved down:** still gaps.
+3. **Structures (24 wide or less, or 56 tall or more) moved down 16 rows and cut by 16 at the
+   bottom, furniture squashed:** the walls joined, except pieces stacked on top of walls (entity
+   height 64), which came down twice.
+4. **Pieces only ever placed on top of something keep their picture and come down by 16 through
+   their entity height:** continuous walls, a flatter table, a lower bottom wall. Nothing broken.
+
+The animated pictures (people, doors, curtains) and the rugs are left alone. Every picture keeps
+its size, so its anchor still holds. **`ETAB` x is in the camera's units** (DS:1408h), not halved.
+The change is moderate at this factor. SL's wall tops (brick or rubble) and its cast shadows,
+which carry much of its look, are not added yet.
+
 ## Still open
 
 - **Flag 40h.** `build` sets it on every step, as the sequel does for its own figures, and

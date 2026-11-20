@@ -7,6 +7,7 @@ a copy of the sequel's OBJEX.GFF with the party's figures taken from Shattered L
     sl_figures.py build  SL_DIR WR_DIR OUT.GFF  WR's OBJEX.GFF with objects 300-313 drawn as SL's
     sl_figures.py build-ui SL_DIR WR_DIR OUT.GFF  WR's RESOURCE.GFF with SL's interface pictures and icons
     sl_figures.py regrade SL_DIR WR_DIR RGNxxx STRENGTH OUT.GFF  a WR region's colours moved toward SL's
+    sl_figures.py squash WR_DIR RGNxxx FACTOR OUT_DIR  a WR region's structures seen from SL's steeper angle
 
 Nothing of either game is in the repository: everything is read from the owner's two installs.
 `sheet` needs Pillow. `build` was seen working in the game (docs/FIGURES.md, "Seen in the game").
@@ -447,6 +448,120 @@ def regrade(sl_dir, wr_dir, region, strength, out, cap=1.6):
           f'{len(centres)} free entries {free}, {len(tiles)} tiles; {grown} bytes appended')
 
 
+# --- a region seen from SL's angle (phase 4) ---
+
+def encode(rows):
+    """One frame in SL's run-length format from rows of palette numbers (None clear)."""
+    h, w = len(rows), len(rows[0])
+    out = bytearray(struct.pack('<HH', w, h))
+    for y, row in enumerate(rows):
+        spans, x = [], 0
+        while x < w:
+            if row[x] is None:
+                x += 1
+                continue
+            x0 = x
+            while x < w and row[x] is not None and x - x0 < 120:
+                x += 1
+            spans.append((x0, row[x0:x]))
+        if not spans:
+            continue
+        out.append(y)
+        for k, (x0, px) in enumerate(spans):
+            data, i = bytearray(), 0
+            while i < len(px):
+                n = 1
+                while i + n < len(px) and px[i + n] == px[i] and n < 128:
+                    n += 1
+                if n >= 3:
+                    data += bytes((((n - 1) << 1) | 1, px[i]))
+                    i += n
+                    continue
+                j, lit = i, []
+                while j < len(px) and len(lit) < 128:
+                    m = 1
+                    while j + m < len(px) and px[j + m] == px[j] and m < 3:
+                        m += 1
+                    if m >= 3:
+                        break
+                    lit.append(px[j])
+                    j += 1
+                data += bytes(((len(lit) - 1) << 1,)) + bytes(lit)
+                i = j
+            out += bytes((x0, 0x80 if k == len(spans) - 1 else 0, len(px), len(data))) + data
+    out.append(0xFF)
+    return bytes(out)
+
+
+def picture(frames_rows):
+    """A picture chunk from a list of frames' rows."""
+    frs = [encode(r) for r in frames_rows]
+    at, offs = 6 + 4 * len(frs), []
+    for f in frs:
+        offs.append(at)
+        at += len(f)
+    return struct.pack('<IH', at, len(frs)) + b''.join(struct.pack('<I', o) for o in offs) + b''.join(frs)
+
+
+# Rugs and mats lying on Tyr's floor (by eye): flat, so not lowered
+FLAT = {534, 535, 536, 537, 2385, 2386, 2896}
+FACE = 48  # WR's upright wall face, in rows
+
+
+def squash(wr_dir, region, factor, out_dir):
+    """A WR region's structures and furniture as seen from SL's steeper angle (about 65 degrees
+    above the horizontal against WR's 50: upright faces shrink by cos 65 / cos 50, about 0.66).
+    For every picture the region's entities place (not the animated ones: people, doors, curtains;
+    not FLAT): a structure (24 wide or less, or 56 tall or more) has its top brought down by DROP
+    (FACE x (1 - FACTOR): 16 at 0.66) and as much cut off its bottom, so walls running away from
+    the camera stay joined; furniture is squashed toward its base. A picture only ever placed on top
+    of something (an entity height of 30 or more: a wall's upper part) keeps its picture and comes
+    down by DROP through its height. Every picture keeps its size, so its anchor (OJFF +2, +4: the
+    bottom centre) still holds. Tried on Tyr in the game, 2026-11-20 (docs/FIGURES.md)."""
+    factor = float(factor)
+    drop = FACE - int(FACE * factor + 0.5)
+    rpath = find(wr_dir, region if region.upper().endswith('.GFF') else region + '.GFF')
+    opath = find(wr_dir, 'OBJEX.GFF')
+    _, chunks = load(rpath)
+    _, objex = load(opath)
+    ek = next(k for k in chunks if k[0] == 'ETAB')
+    etab = bytearray(chunks[ek])
+    by_pic = collections.defaultdict(list)
+    for k in range(len(etab) // 8):
+        ob = abs(struct.unpack_from('<h', etab, 8 * k + 6)[0])
+        by_pic[struct.unpack_from('<H', objex[('OJFF', ob)], PIC)[0]].append(k)
+    new = {}
+    for pic, ents in by_pic.items():
+        if ('SCMD', pic) in objex or pic in FLAT or ('BMP ', pic) not in objex:
+            continue
+        if all(etab[8 * k + 4] >= 30 for k in ents):
+            for k in ents:
+                etab[8 * k + 4] = max(0, etab[8 * k + 4] - drop)
+            continue
+        c = objex[('BMP ', pic)]
+        out_frames = []
+        for f in range(frames(c)[0]):
+            w, h, px = decode_any(c, f)
+            out = [[None] * w for _ in range(h)]
+            if w <= 24 or h >= 56:
+                for y in range(drop, h):
+                    out[y] = list(px[y - drop])
+            else:
+                for y in range(h):
+                    src = h - 1 - int((h - 1 - y) / factor + 0.5)
+                    if src >= 0:
+                        out[y] = list(px[src])
+            out_frames.append(out)
+        new[('BMP ', pic)] = picture(out_frames)
+        for k in ents:
+            if 0 < etab[8 * k + 4] < 30:
+                etab[8 * k + 4] = int(etab[8 * k + 4] * factor + 0.5)
+    os.makedirs(out_dir, exist_ok=True)
+    append_chunks(opath, new, os.path.join(out_dir, os.path.basename(opath)))
+    append_chunks(rpath, {ek: bytes(etab)}, os.path.join(out_dir, os.path.basename(rpath)))
+    print(f'{out_dir}: {len(new)} pictures lowered, the drop {drop} rows')
+
+
 # --- the commands ---
 
 def games(sl_dir, wr_dir):
@@ -576,7 +691,7 @@ def build_ui(sl_dir, wr_dir, out):
 
 if __name__ == '__main__':
     cmds = {'report': (report, 2), 'sheet': (sheet, 3), 'build': (build, 3), 'build-ui': (build_ui, 3),
-            'regrade': (regrade, 5)}
+            'regrade': (regrade, 5), 'squash': (squash, 4)}
     if len(sys.argv) < 2 or sys.argv[1] not in cmds or len(sys.argv) != 2 + cmds[sys.argv[1]][1]:
         raise SystemExit(__doc__)
     cmds[sys.argv[1]][0](*sys.argv[2:])
