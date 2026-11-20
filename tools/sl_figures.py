@@ -7,7 +7,7 @@ a copy of the sequel's OBJEX.GFF with the party's figures taken from Shattered L
     sl_figures.py build  SL_DIR WR_DIR OUT.GFF  WR's OBJEX.GFF with objects 300-313 drawn as SL's
 
 Nothing of either game is in the repository: everything is read from the owner's two installs.
-`sheet` needs Pillow. `build` is untested in the game (docs/FIGURES.md, "What is not known").
+`sheet` needs Pillow. `build` was seen working in the game (docs/FIGURES.md, "Seen in the game").
 """
 import collections
 import glob

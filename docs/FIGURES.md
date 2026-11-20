@@ -9,7 +9,8 @@ re-checks every finding below from the owner's own installs:
     python3 tools/sl_figures.py sheet  SL_DIR WR_DIR OUT.png  # the party: SL's, SL's in WR's colours, WR's
     python3 tools/sl_figures.py build  SL_DIR WR_DIR OUT.GFF  # WR's OBJEX.GFF with SL's party figures
 
-The tool holds no data from either game. Its pictures are made on the owner's machine and stay out of git.
+`build` was played in the game on 2026-11-20 ([seen in the game](#seen-in-the-game)). The tool
+holds no data from either game. Its pictures are made on the owner's machine and stay out of git.
 
 ## In short
 
@@ -105,17 +106,26 @@ that picture (+0Eh).
    an entry, it would serve SL's converted chunk. The same conversions (remap, script slots) run
    once at start-up or are cached. It can also scale the figure as it draws (the size question).
 
-## What is not known yet
+## Seen in the game
 
-None of this has been seen in the game: WR is not yet played by any test kit here. Open questions,
-in the order a first test would settle them:
-- **Flag 40h.** WR sets it on every step of its figures that have a `CBMP` (and SL almost never
-  does). `build` sets it on SL's steps the same way. What it does is not known.
-- **The step's second byte.** SL uses 7, 8, 10, 15 and 20, WR 5 and 60-120. If it is timing, SL's
-  figures keep SL's pace. If it plays sounds, WR's sound at an attack's blow would be lost or wrong.
-- **Anchors and shadows.** Whether WR places a figure by the step's anchor bytes exactly as SL
-  does, and whether it draws a shadow from the picture.
-- **Recolouring.** Whether WR changes a party figure's colours at run time (SL doesn't), which would
-  need the remap to respect it.
+2026-11-20, in DOSBox (the Obsidian Edition's playtest kit: `ravstart.sh`, its test log
+`playtest/logs/2026-11-20-ravager-sl-figures.md`). The sequel loaded the `build` copy of
+`OBJEX.GFF` and drew the opening party in Tyr as Shattered Lands' figures: the elf woman, the human
+man, the thri-kreen and the half-giant. In the Draxans' ambush they stood, walked (SL's stride
+frames, facing the way they went), swung (SL's side attack: wind-up, lunge, recovery), took hits
+and fell (SL's dead frames), all on one ground line. Ravager's program needed no change.
+
+- **Anchors:** right. SL's script places SL's frames correctly in the sequel.
+- **Shadows:** neither game drew one for these figures here; nothing to carry.
+- **Size:** SL's figures are a fifth to a third shorter than the sequel's Draxans beside them,
+  as the data said. Decided (2026-11-20): they keep their own size.
+
+## Still open
+
+- **Flag 40h.** `build` sets it on every step, as the sequel does for its own figures, and
+  nothing went wrong. Whether it is needed was not tried.
+- **The step's second byte.** The swing's pace looked like the sequel's own. The test ran with
+  sound off, so whether the byte plays a sound is still open.
+- **Recolouring.** Nothing seen changed a party figure's colours at run time.
 - **The Obsidian Edition's dressed figures** (gear drawn on the party: `spritegear.py`) are SL's
   Loader at run time. In WR they would need that code carried over too.
