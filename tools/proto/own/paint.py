@@ -16,14 +16,22 @@ The style's rules, in the order they are applied:
      highlight), which is what keeps the clusters clean: no dither anywhere.
   5. Clean-up at 1x: one-pixel spurs and pinholes in the silhouette go, and a shade pixel with no
      neighbour of its own shade takes the shade most of its neighbours have.
+  5b. Clean edges (lines.py): the silhouette and every shade boundary redrawn as straights and
+     regular steps (1:1, 1:2, 1:3 and their turns); a staircase of uneven steps gets even ones.
+  5c. Fewer, bigger shade shapes: on the skin and the trousers a patch of one shade under 4 pixels
+     takes its neighbours' shade. The skin's lightest shade comes only from the marks' lights.
   6. Inner lines. Where one part passes in front of another (an arm over the chest, the near leg
      over the far one), the part behind gets a line: black where the near part is on its upper left
      (the shadow it casts), the material's darkest shade elsewhere. An arm or hand against the torso,
      a hand against anything, and leg against leg always get the line, however close in depth.
      Seams between materials: black under the sash, the darkest shade at a bracer's edges, and a brow
      shadow (a darker shade) on the skin under the hair.
+  6c. Big dark areas, as SL's: black where the body is deep in a hollow (under the arms and the
+     chin, between the legs, the crotch) and on the shadow side of a limb well behind the torso;
+     the gold (sash, bracers) edged with black, as SL's wristbands are.
   6b. Marks: the rig's lines and dots on the body's surface (the eye line, sternum, the line under
-     the pectorals, the line down the belly; one-pixel lights on the pectorals, shoulders and nose),
+     the pectorals; one-pixel lights on the pectorals, shoulders and nose; dark fold wedges from knee
+     to cuff on the trousers),
      drawn where they show: on their own part and not hidden behind another.
   7. An outline one pixel outside the silhouette: black (254) on the shadow side (right and bottom),
      and on the lit edges (upper left) the material's second-darkest shade instead, a lighter line.
@@ -69,7 +77,7 @@ SEAMS = {('hair', 'skin'): 'darker'}
 # the gold sits on black, as SL's wristbands do: these materials' pixels touching it go black
 EDGED = {'gold': {'skin'}, 'sash': {'skin', 'cloth'}}
 MERGED = ('skin', 'cloth')       # the materials rule 5c merges small patches in
-HOLLOW_BLACK = 0.5               # a pixel this deep in a hollow (1x pixels) is black (rule 6c)
+HOLLOW_BLACK = 0.6               # a pixel this deep in a hollow (1x pixels) is black (rule 6c)
 FAR_BLACK = 1.5                  # a limb this far behind the torso (1x pixels) has its shadow black
 MARK_TOL = 1.2                   # how far (1x pixels) a mark may sit behind the surface and still show
 # a material's light before it is cut into shades: (contrast, offset); the hair is dark and its
