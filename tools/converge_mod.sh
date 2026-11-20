@@ -1,8 +1,9 @@
 #!/bin/sh
 # converge_mod.sh [MOD]: the mod's build converged: the creation screen's RECALL and its DONE
-# (the weapon window, the psionic picks), the arena's start and (with the playtest kit's save pens-kurzak-door, $PENS_SAVE) the pens' USE screen are
+# (the weapon window, the psionic picks), the arena's start, the scripted bout to its end (the suite's
+# mod-spread; 2.19's helper had entries no other run reached) and (with the playtest kit's save pens-kurzak-door, $PENS_SAVE) the pens' USE screen are
 # run headless, side by side, each on its own copy of the game folder and of the build's lists;
-# every address in the helper's segment a run found no function at is kept (a screen's handlers
+# every address in the helper's segment (B0000-BFFFF) a run found no function at is kept (a screen's handlers
 # come one after another: a miss ends the handler early, not the run), an address in the game's
 # code only when it is a run's first, and nothing from a run once its stack has gone; then one
 # relift and build, until a round finds none. Then `tools/entries.sh save build/ds1o` keeps the
@@ -14,6 +15,7 @@ S=$R/build/converge; mkdir -p $S; cd $R
 RECALL="20:key=ESC 24:key=ESC 28:key=ESC 32:key=ESC 40:move=160,90 41:click=160,90 50:rclick=65,55 53:move=130,57 55:click=130,57 64:click=113,192 66:click=155,96 70:click=172,192"
 ARENA="20:key=ESC 24:key=ESC 28:key=ESC 32:key=ESC 40:move=160,76 41:click=160,76 90:click=160,40 100:click=160,160 115:click=160,170 130:click=170,150"
 DONE="20:key=ESC 24:key=ESC 28:key=ESC 32:key=ESC 40:move=160,90 41:click=160,90 50:rclick=65,55 53:move=130,57 55:click=130,57 64:click=270,182 70:click=72,46 76:click=123,62 80:click=123,62 84:click=123,62 88:click=123,62"   # (2.17: DONE, the weapon window, PICK A PSIONIC POWER's four picks)
+SPREAD="20:key=ESC 24:key=ESC 28:key=ESC 32:key=ESC 40:move=160,76 41:click=160,76 90:click=160,40 100:click=160,20 104:click=160,20 108:click=160,20 124:mdrag=160,60,160,150"   # (the suite's mod-spread: the announcer's box clicked away, the scripted bout to its end, the gate)
 PENS="20:key=ESC 24:key=ESC 28:key=ESC 32:key=ESC 40:move=160,106 41:click=160,106 50:click=130,55 56:click=250,48 90:key=u 93:click=60,125 96:click=180,60 99:click=160,104 102:key=ESC 105:click=160,104 110:key=u 114:key=ESC 117:click=157,92 121:key=u"
 SAVE=${PENS_SAVE:-$MOD/../playtest/saves/pens-kurzak-door}
 # The mod's rule switches as its Loader would set them (its defaults, or the settings beside it):
@@ -30,7 +32,7 @@ run() {  # NAME SECONDS SCRIPT, in the background
   timeout $(( $2 + 60 )) build/cmake/dsun --mod $MOD --game $S/g_$1 --build $S/b_$1 --headless --seconds $2 --input "$3" > $S/$1.log 2>&1 &
 }
 for round in $(seq 1 40); do
-  prep recall; prep arena; prep done; run recall 80 "$RECALL"; run arena 150 "$ARENA"; run done 96 "$DONE"
+  prep recall; prep arena; prep done; prep spread; run recall 80 "$RECALL"; run arena 150 "$ARENA"; run done 96 "$DONE"; run spread 134 "$SPREAD"
   if [ -f "$SAVE/SAVE01.SAV" ]; then
     prep pens; cp $SAVE/SAVE01.SAV $SAVE/DARKSAVE.GFF $SAVE/CHARSAVE.GFF $S/g_pens/; run pens 125 "$PENS"
   fi
@@ -40,7 +42,7 @@ import os, re
 S = os.environ['S']
 before = open('build/ds1o/misses.txt').read().split(); known = set(before)
 new = []; seen = 0
-for n in ('recall', 'arena', 'done', 'pens'):
+for n in ('recall', 'arena', 'done', 'spread', 'pens'):
     if not os.path.exists(f'{S}/{n}.log'): continue
     log = open(f'{S}/{n}.log', errors='replace').read()
     found = [(a, int(sp, 16)) for a, sp in
@@ -50,7 +52,8 @@ for n in ('recall', 'arena', 'done', 'pens'):
         if sp < 0x1000: break
         seen += 1                        # the stack gone: nothing after this is real
         if a in known or a in new or a in keep: continue
-        if 0xA0000 <= int(a, 16) < 0xC0000 or (i == 0 and int(a, 16) < 0xA0000): keep.append(a)
+        # (the helper's segment, B0000-BFFFF; a miss in the video memory below it is a run gone astray)
+        if 0xB0000 <= int(a, 16) < 0xC0000 or (i == 0 and int(a, 16) < 0xA0000): keep.append(a)
     new += keep
     at = re.search(r'([0-9.]+) \[dispatch\] no function at ' + found[0][0], log).group(1) if found else '-'
     print(f"{n}: {len(found)} miss(es), kept {keep}, {log.count('Stack overflow')} overflows, first at {at}")
