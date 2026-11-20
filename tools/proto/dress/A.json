@@ -106,7 +106,10 @@
       213,
       214
      ],
-     "below": 6
+     "below": 6,
+     "holes": [
+      254
+     ]
     },
     {
      "name": "skin",
@@ -323,6 +326,9 @@
       213,
       214,
       253
+     ],
+     "holes": [
+      254
      ]
     },
     {
@@ -487,19 +493,23 @@
  },
  "dress": {
   "715": {
-   "body": 206,
-   "note": "shopkeeper: dark reddish-brown skin, red turban, black robe",
+   "body": 85,
+   "note": "shopkeeper: dark reddish-brown skin, red turban, black robe (on a human body; was the dwarf-sized 206)",
    "hair": [
+    88,
     16,
     16,
+    202,
     202,
     202,
     163,
-    240
+    163,
+    163
    ],
    "skin": [
     88,
     89,
+    89,
     90,
     91,
     92,
@@ -508,20 +518,47 @@
     95,
     96,
     97,
-    98
+    98,
+    99,
+    100,
+    101,
+    102
+   ],
+   "tunic": [
+    254,
+    254,
+    208,
+    208,
+    208,
+    209,
+    209,
+    209,
+    209,
+    210,
+    210,
+    210,
+    211,
+    211
+   ],
+   "legs": [
+    254,
+    208,
+    208,
+    209,
+    209,
+    210
    ],
    "bands": [
-    94,
-    96
+    208,
+    209
    ]
   },
   "720": {
-   "body": 206,
-   "note": "merchant: brown skin, dark brown hair, black tunic, red sash and cuffs, red trousers (black top not reachable: SL bare chest)",
+   "body": 85,
+   "note": "merchant: brown skin, dark brown hair, black tunic, red sash and cuffs, red trousers (on a human body)",
    "hair": [
+    208,
     204,
-    204,
-    207,
     207,
     205,
     205
@@ -530,75 +567,6 @@
     89,
     90,
     91,
-    92,
-    93,
-    94,
-    95,
-    96,
-    97,
-    98,
-    99,
-    100
-   ],
-   "bands": [
-    16,
-    202
-   ],
-   "trousers": [
-    16,
-    195,
-    202,
-    163
-   ]
-  },
-  "722": {
-   "body": 206,
-   "note": "merchant (same picture as 720): brown skin, dark brown hair, black tunic, red sash, red trousers",
-   "hair": [
-    204,
-    204,
-    207,
-    207,
-    205,
-    205
-   ],
-   "skin": [
-    89,
-    90,
-    91,
-    92,
-    93,
-    94,
-    95,
-    96,
-    97,
-    98,
-    99,
-    100
-   ],
-   "bands": [
-    16,
-    202
-   ],
-   "trousers": [
-    16,
-    195,
-    202,
-    163
-   ]
-  },
-  "2558": {
-   "body": 206,
-   "note": "man: tan skin, brown hair, dark green cloth over the shoulder, black loincloth",
-   "hair": [
-    204,
-    204,
-    207,
-    205,
-    179,
-    180
-   ],
-   "skin": [
     92,
     93,
     94,
@@ -613,9 +581,131 @@
     103,
     104
    ],
+   "tunic": [
+    254,
+    254,
+    208,
+    208,
+    208,
+    209,
+    209,
+    209,
+    209,
+    210,
+    210,
+    210,
+    211,
+    211
+   ],
+   "legs": [
+    202,
+    202,
+    163,
+    163,
+    164,
+    164
+   ],
+   "bands": [
+    202,
+    163
+   ]
+  },
+  "722": {
+   "body": 85,
+   "note": "merchant (same picture as 720): brown skin, dark brown hair, black tunic, red sash, red trousers (on a human body)",
+   "hair": [
+    208,
+    204,
+    207,
+    205,
+    205
+   ],
+   "skin": [
+    89,
+    90,
+    91,
+    92,
+    93,
+    94,
+    95,
+    96,
+    97,
+    98,
+    99,
+    100,
+    101,
+    102,
+    103,
+    104
+   ],
+   "tunic": [
+    254,
+    254,
+    208,
+    208,
+    208,
+    209,
+    209,
+    209,
+    209,
+    210,
+    210,
+    210,
+    211,
+    211
+   ],
+   "legs": [
+    202,
+    202,
+    163,
+    163,
+    164,
+    164
+   ],
+   "bands": [
+    202,
+    163
+   ]
+  },
+  "2558": {
+   "body": 11,
+   "note": "man: tan skin, brown hair, dark green cloth over the shoulder, black loincloth (on a human body; the cloth isn't there to recolour)",
+   "hair": [
+    204,
+    207,
+    205,
+    205
+   ],
+   "skin": [
+    90,
+    91,
+    92,
+    93,
+    94,
+    95,
+    96,
+    97,
+    98,
+    99,
+    100,
+    101,
+    102,
+    103,
+    104
+   ],
+   "legs": {
+    "128": 91,
+    "129": 90
+   },
+   "loin": [
+    254,
+    208,
+    208,
+    209
+   ],
    "bands": [
     188,
-    190
+    189
    ]
   },
   "721": {

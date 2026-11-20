@@ -16,12 +16,15 @@ figures as drawn in WR's colours, the creatures' actual neighbours; party_target
 - Quantised into WR's steady colours with a 2x2 ordered dither fixed to the frame's anchor (from the
   script's steps), so the pattern doesn't crawl as frames change.
 - The script's per-frame anchors (step bytes 5, 6) scaled with the frames; movement isn't."""
+import os, sys
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from common import *
-T=json.load(open('party_target.json'))
+HERE=os.path.dirname(os.path.abspath(__file__))
+T=json.load(open(os.path.join(HERE,'party_target.json')))
 K=0.82; MEAN_PULL=0.7; MAX_SHIFT=15.0; PALE=10.0; PALE_C=20.0; SAT=40.0; SAT_SHIFT=6.0; SAT_KEEP=0.85; EDGE_GOAL=0.41; MAX_DROP=5.0; MAX_DROP_DARK=13.0; PALE_PULL=0.1; PALE_MAX=4.0; KNEE=T['C_p90']; ABOVE=0.5; C_TARGET=45.0; EDGE_L=18.0
 BAYER=np.array([[0.125,0.625],[0.875,0.375]])
 _,ok=s.colour_table(SLPAL,s.wr_palettes('/tmp/playtest/rav'))
-CAND=np.array(sorted(set(ok)|set(json.load(open('wr_steady.json'))))); CLAB=WRLAB[CAND]   # with WR's 18 steady neutral greys
+CAND=np.array(sorted(set(ok)|set(json.load(open(os.path.join(HERE,'wr_steady.json')))))); CLAB=WRLAB[CAND]   # with WR's 18 steady neutral greys
 NONNEUTRAL=np.where(np.hypot(CLAB[:,1],CLAB[:,2])<6,0.0,1e6)
 def downscale(fr):
     """(Lab rows with NaN where clear, the dark-line mask) at K."""
@@ -124,17 +127,24 @@ def restyle(pic):
         if (t,pic) in B: new[(t,pic)]=chunk(restyle_frames(frames(B,t,pic),pic,combat))
     if ('SCMD',pic) in B: new[('SCMD',pic)]=script(B[('SCMD',pic)])
     return new
+# People whose Shattered Lands match has the wrong shape (no legs, wrong build): restyled instead
+# of dressed (people_dress.py leaves them out). Chosen by the owner, 2026-11-20.
+PEOPLE=json.load(open(os.path.join(HERE,'..','people-restyle.json')))['restyle']
 if __name__=='__main__':
-    args=sys.argv[1:]; base,out='/tmp/playtest/rav/OBJEX.GFF','OBJEX_restyled.GFF'
-    if args and args[0]=='--all45':
-        P=json.load(open('/tmp/playtest/people-review/proposals.json'))
-        args=[str(x) for x in ALL45]; base,out='/tmp/playtest/swap1_OBJEX.GFF','/tmp/playtest/restyle45_OBJEX.GFF'  # (the test install's files)
-    pics=[int(a) for a in args]; new={}
+    # restyle.py [--base OBJEX] [--out OBJEX] [--all45] [--people] [PICTURE ...]
+    args=sys.argv[1:]; base,out='/tmp/playtest/rav/OBJEX.GFF','OBJEX_restyled.GFF'; pics=[]
+    while args:
+        a=args.pop(0)
+        if a=='--base': base=args.pop(0)
+        elif a=='--out': out=args.pop(0)
+        elif a=='--all45': pics+=ALL45
+        elif a=='--people': pics+=PEOPLE
+        else: pics.append(int(a))
+    new={}
     for p in pics: new.update(restyle(p)); print('restyled',p)
     s.write_ranged(base,new,out)
     _,R=s.load(out)
     for k in new:
         if k[0]!='SCMD':
             for f in range(s.frames(R[k])[0]): s.decode(R[k],f)
-    print(DEBUG)
     print('written',out,'chunks',len(new))

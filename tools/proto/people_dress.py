@@ -17,8 +17,10 @@ The data, tools/proto/people-dress.json:
   "bodies": {SL object: {"name": ..., "parts": [PART, ...]}}: each PART {"name", "colours": [SL
      palette numbers], and at most one place: "top": N (the top N filled rows of each frame),
      "bottom": N (the bottom N), "crown": true (flood fill from the top two rows), "below": N /
-     "above": N (rows from the top / from the bottom, the rest of the figure)}. The first part
-     that takes a pixel has it.
+     "above": N (rows from the top / from the bottom, the rest of the figure)}, and "holes": [colours] (those
+     colours taken too where they sit inside the part, 3 of 4 neighbours in it, and given the part's
+     darkest new shade: SL's black-and-colour checker garments, which speckle once made light).
+     The first part that takes a pixel has it.
   "dress": {WR picture: {"body": SL object, "note": ..., PART NAME: RAMP or {"from": "to"}}}: a RAMP
      is a list of SL palette numbers dark to light; the part's colours, sorted by lightness, are
      spread over it by rank (several old shades can share a new one, as the half-elf's do). A dict
@@ -88,7 +90,10 @@ def _fill(rows, seeds, colours):
 
 
 def part_map(rows, parts):
-    """Rows of part names (None where no part takes the pixel)."""
+    """Rows of part names (None where no part takes the pixel). A part's "holes" (colours, usually
+    254, SL's black) are taken too where they sit inside it: at least 3 of their 4 neighbours in
+    the part. SL draws many garments as a checker of black and a colour, which turns to speckle
+    once the colour is made light."""
     filled = [y for y, r in enumerate(rows) if any(p is not None for p in r)]
     out = [[None] * len(r) for r in rows]
     if not filled:
@@ -114,6 +119,15 @@ def part_map(rows, parts):
             for x, q in enumerate(r):
                 if q in cs and out[y][x] is None and ok(x, y):
                     out[y][x] = part['name']
+        holes = set(part.get('holes', ()))
+        if holes:
+            name, h, w = part['name'], len(rows), len(rows[0])
+            inside = lambda x, y: 0 <= y < h and 0 <= x < w and out[y][x] == name
+            add = [(x, y) for y, r in enumerate(rows) for x, q in enumerate(r)
+                   if q in holes and out[y][x] is None and ok(x, y)
+                   and sum(inside(x + dx, y + dy) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))) >= 3]
+            for x, y in add:
+                out[y][x] = name + '#hole'
     return out
 
 
@@ -137,6 +151,9 @@ def dress_frames(frames, parts, dress):
         else:
             m = ramp_map(part['colours'], want)
         maps.setdefault(part['name'], {}).update(m)
+        if part.get('holes'):
+            darkest = m[min(m, key=lambda q: SL_L[q][0])]
+            maps[part['name'] + '#hole'] = {q: darkest for q in part['holes']}
     out = []
     for f in frames:
         P = part_map(f, parts)
@@ -293,8 +310,10 @@ def sheet(out, pics, data, Z=3):
 
 
 def build(base, out, data):
+    """The dressed figures into BASE, as OUT; those in people-restyle.json are left out (restyled)."""
+    skip = set(json.load(open(os.path.join(os.path.dirname(DATA), 'people-restyle.json')))['restyle'])
     new = {}
-    for wp in data['dress']:
+    for wp in [w for w in data['dress'] if int(w) not in skip]:
         dw, dc, w, c, script = dressed(wp, data)
         conv = lambda fs: [[[None if q is None else TABLE[q] for q in r] for r in f] for f in fs]
         new[('BMP ', int(wp))] = s.picture(conv(dw))
@@ -302,7 +321,7 @@ def build(base, out, data):
             new[('CBMP', int(wp))] = s.picture(conv(dc))
         wr_like = B.get(('SCMD', int(wp)), b'')
         new[('SCMD', int(wp))] = s.sl_script_for_wr(script, wr_like or b'\0' * (s.SLOTS * 2))
-    s.write_ranged(base, new, out); print(out, len(data['dress']), 'figures')
+    s.write_ranged(base, new, out); print(out, sum(k[0] == 'BMP ' for k in new), 'figures dressed')
 
 
 if __name__ == '__main__':
