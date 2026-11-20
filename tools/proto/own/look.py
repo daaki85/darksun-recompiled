@@ -11,7 +11,7 @@ import rig, paint, poses, sheet
 def smooth(p):
     b = rig.body(p)
     dep, nrm, mat, prt, ton = paint.raster(b.rows, b.mats, b.parts)
-    v = paint.light(dep, nrm, ton, np.median(paint.project(b.rows)[:, 2]))
+    v = paint.light(dep, nrm, ton, np.median(paint.project(b.rows)[:, 2]))[0]
     tint = {'skin': (120, 90, 255), 'hair': (90, 70, 50), 'cloth': (230, 120, 40), 'sash': (240, 200, 60),
             'gold': (240, 200, 60), 'leather': (60, 40, 25)}
     o = np.zeros(dep.shape + (4,), np.uint8)

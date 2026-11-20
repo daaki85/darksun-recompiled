@@ -1,7 +1,9 @@
 """The jann drawn from scratch (rig.py, paint.py, poses.py), set beside WR's and SL's figures.
 
-    python3 sheet.py OUTDIR      jann-sheet.png (4x: WR 2458 | ours | SL's party man, on mid-grey),
-                                 jann-compare-3x.png (ours beside SL's man frame for frame, and WR's jann),
+    python3 sheet.py OUTDIR [BEFORE.json]
+                                 jann-sheet.png (4x: WR 2458 | ours | SL's party man, on mid-grey),
+                                 jann-compare-3x.png (ours beside SL's man frame for frame, and WR's jann;
+                                 with BEFORE, an earlier round's frames beside the new),
                                  jann-walk-1x.png and -2x.png (the walks at the game's size beside SL's
                                  man), jann-walk.gif (both walks playing, ours then SL's, 3x),
                                  jann-sl.png (ours in SL's own palette, before conversion),
@@ -56,7 +58,7 @@ def walk_gif(cycles, out, Z=3, ms=160):
     pics[0].save(out, save_all=True, append_images=pics[1:], duration=ms, loop=0)
 
 
-def build(outdir):
+def build(outdir, before=None):
     js = jann(); ours = [f for _, f in js]
     wr = pd.frames_of(pd.B, 'BMP ', WR_PIC) + pd.frames_of(pd.B, 'CBMP', WR_PIC)
     walk, _, _, _ = pd.body(SL_MAN)
@@ -77,10 +79,14 @@ def build(outdir):
         labelled(game, Z, f'{Z}x').save(os.path.join(outdir, f'jann-walk-{Z}x.png'))
     walk_gif([side, front, walk[11:15], walk[3:7]], os.path.join(outdir, 'jann-walk.gif'))
     pairs = [('standing front', 0), ('standing side', 2), ('walk side 1', 11), ('walk side 3', 13), ('walk front 1', 3)]
-    labelled([('pairs, ours then SL man: standing front, standing side, walk side 1, walk side 3, '
-               'walk toward 1; then WR 2458 front',
-               pd.strip([row([k[n], walk[i]], pd.WRPAL, pd.TABLE, 2) for n, i in pairs] + [row(wr[:1], pd.WRPAL)], 10))],
-             3, 'Side by side, 3x').save(os.path.join(outdir, 'jann-compare-3x.png'))
+    rows = [('pairs, ours then SL man: standing front, standing side, walk side 1, walk side 3, '
+             'walk toward 1; then WR 2458 front',
+             pd.strip([row([k[n], walk[i]], pd.WRPAL, pd.TABLE, 2) for n, i in pairs] + [row(wr[:1], pd.WRPAL)], 10))]
+    if before:                          # an earlier round's frames (its jann-frames.json), to judge the change
+        old = json.load(open(before))
+        rows.append((f'before ({os.path.basename(before)}) then now: standing front, walk side 1',
+                     pd.strip([row([old[n], k[n]], pd.WRPAL, pd.TABLE, 2) for n in ('standing front', 'walk side 1')], 10)))
+    labelled(rows, 3, 'Side by side, 3x').save(os.path.join(outdir, 'jann-compare-3x.png'))
     labelled([('ours in SL palette numbers (before conversion)', row(ours, pd.SLPAL)),
               ('SL man, SL palette', row(walk, pd.SLPAL))], 4, 'SL palette').save(os.path.join(outdir, 'jann-sl.png'))
     json.dump({n: f for n, f in js}, open(os.path.join(outdir, 'jann-frames.json'), 'w'))
@@ -89,4 +95,4 @@ def build(outdir):
 
 
 if __name__ == '__main__':
-    build(sys.argv[1])
+    build(sys.argv[1], sys.argv[2] if len(sys.argv) > 2 else None)

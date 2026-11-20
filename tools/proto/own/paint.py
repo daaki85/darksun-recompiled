@@ -27,12 +27,14 @@ The style's rules, in the order they are applied:
      drawn where they show: on their own part and not hidden behind another.
   7. An outline one pixel outside the silhouette: black (254) on the shadow side (right and bottom),
      and on the lit edges (upper left) the material's second-darkest shade instead, a lighter line.
+     7b. Its outer edge redrawn clean too, as in 5b.
   8. A last pass for orphans: a pixel whose colour none of its eight neighbours has takes the
      neighbouring colour nearest it in its own ramp, or failing that the commonest one round it
      (the outline and the marks are left: a mark is meant to stand alone).
 """
 import math
 import numpy as np
+import lines
 
 PITCH = 32                       # degrees the camera looks down
 Z = 4                            # drawn at Z times, then reduced
@@ -55,15 +57,19 @@ SHADE = dict(ambient=0.15, diffuse=0.85, depth=0.03, hollow=0.5, hollow_r=1.5)
 # where the light (0 dark .. 1 full) crosses into each next shade, by the number of shades: the
 # darkest shade is kept for deep shadow and the lightest for a small highlight
 CUTS = {1: [], 3: [0.35, 0.8], 4: [0.3, 0.6, 0.92], 5: [0.3, 0.5, 0.75, 0.97]}
-# the skin's own: the whole shadow side in its darkest shade (big dark shapes, as SL's black), a thin
-# terminator, two lit shades, and its lightest only at the peaks (with the marks' one-pixel lights)
-CUTS_OF = {'skin': [0.5, 0.58, 0.8, 1.12]}
+# the skin's own: the shadow side one flat shade (159: the near-black is kept for the black areas,
+# rule 6c, and lines), two lit shades, and its lightest only at the peaks (with the marks' lights)
+CUTS_OF = {'skin': [0.0, 0.5, 0.8, 1.12]}
 LINE_GAP = 1.4                   # depth gap (1x pixels) between parts that earns a line (rule 6)
 ALWAYS = {frozenset(pair) for pair in (('arm_l', 'torso'), ('arm_r', 'torso'), ('hand_l', 'torso'),
           ('hand_r', 'torso'), ('leg_l', 'leg_r'), ('head', 'torso'), ('hand_l', 'arm_l'), ('hand_r', 'arm_r'),
           ('hand_l', 'leg_l'), ('hand_l', 'leg_r'), ('hand_r', 'leg_l'), ('hand_r', 'leg_r'))}
 # (material above, material below): the role the pixel below takes (rule 6's seams)
-SEAMS = {('sash', 'cloth'): 'black', ('gold', 'skin'): 'dark', ('skin', 'gold'): 'dark', ('hair', 'skin'): 'darker'}
+SEAMS = {('hair', 'skin'): 'darker'}
+# the gold sits on black, as SL's wristbands do: these materials' pixels touching it go black
+EDGED = {'gold': {'skin'}, 'sash': {'skin', 'cloth'}}
+HOLLOW_BLACK = 0.5               # a pixel this deep in a hollow (1x pixels) is black (rule 6c)
+FAR_BLACK = 1.5                  # a limb this far behind the torso (1x pixels) has its shadow black
 MARK_TOL = 1.2                   # how far (1x pixels) a mark may sit behind the surface and still show
 # a material's light before it is cut into shades: (contrast, offset); the hair is dark and its
 # locks need more contrast to break into clumps at 1x, skin and cloth a little more than the light
@@ -119,18 +125,18 @@ def light(dep, nrm, ton, centre):
     mean = box(d, r) / np.maximum(box(full.astype(float), r), 1)
     hollow = np.clip((mean - d) / Z, 0, 2)
     v = SHADE['ambient'] + SHADE['diffuse'] * np.maximum(0, nrm @ LIGHT)
-    return v + SHADE['depth'] * (dep - centre) / Z - SHADE['hollow'] * hollow + ton
+    return v + SHADE['depth'] * (dep - centre) / Z - SHADE['hollow'] * hollow + ton, hollow
 
 
 def reduce(dep, nrm, mat, prt, ton, centre):
-    """Rule 4: (material, light, part, depth) per 1x pixel; material -1 where empty."""
-    v = light(dep, nrm, ton, centre)
+    """Rule 4: (material, light, part, depth, hollow) per 1x pixel; material -1 where empty."""
+    v, hol = light(dep, nrm, ton, centre)
     full = np.isfinite(dep)
     blk = lambda a: a.reshape(H1, Z, W1, Z).swapaxes(1, 2).reshape(H1, W1, Z * Z)
-    F, M, P, Vb, D = blk(full), blk(mat), blk(prt), blk(v), blk(np.where(full, dep, 0))
+    F, M, P, Vb, D, Hb = blk(full), blk(mat), blk(prt), blk(v), blk(np.where(full, dep, 0)), blk(hol)
     cover = F.sum(-1)
     out_m = np.full((H1, W1), -1); out_v = np.zeros((H1, W1)); out_p = np.zeros((H1, W1), int)
-    out_d = np.zeros((H1, W1))
+    out_d = np.zeros((H1, W1)); out_h = np.zeros((H1, W1))
     for j in range(H1):
         for i in range(W1):
             if cover[j, i] < COVER:
@@ -140,7 +146,8 @@ def reduce(dep, nrm, mat, prt, ton, centre):
             sel = f & (M[j, i] == m)
             out_m[j, i] = m; out_v[j, i] = Vb[j, i][sel].mean()
             out_p[j, i] = np.bincount(P[j, i][f]).argmax(); out_d[j, i] = D[j, i][f].mean() / Z
-    return out_m, out_v, out_p, out_d
+            out_h[j, i] = Hb[j, i][f].mean()
+    return out_m, out_v, out_p, out_d, out_h
 
 
 def bands(m, v):
@@ -193,6 +200,71 @@ def tidy_shades(m, s):
             break
 
 
+
+def clean_edges(m, s, p, d):
+    """Rule 5b: the silhouette's edges, then each material's shade boundaries, redrawn as clean
+    lines (lines.py), each both ways round (rows, then columns)."""
+    def both(get_mask, fill, clear):
+        lines.regularise(get_mask(), fill, clear)
+        lines.regularise(get_mask().T, lambda y, x, f: fill(x, y, f, True), lambda y, x: clear(x, y))
+
+    def copy(y, x, sy, sx):
+        m[y, x], s[y, x], p[y, x], d[y, x] = m[sy, sx], s[sy, sx], p[sy, sx], d[sy, sx]
+
+    def sil_fill(y, x, f, t=False):
+        if m[y, x] < 0:
+            copy(y, x, *((f, x) if t else (y, f)))
+
+    def sil_clear(y, x):
+        m[y, x] = -1
+    both(lambda: m >= 0, sil_fill, sil_clear)
+    for k, name in enumerate(MATS):
+        for level in range(1, len(RAMPS[name])):
+            def fill(y, x, f, t=False):
+                if m[y, x] == k and s[y, x] < level:
+                    s[y, x] = level
+
+            def clear(y, x):
+                if m[y, x] == k and s[y, x] >= level:
+                    s[y, x] = level - 1
+            both(lambda: (m == k) & (s >= level), fill, clear)
+
+
+def merge_small(m, s, p, least=3):
+    """Rule 5c: a patch of one shade (within one material and part) under LEAST pixels takes the
+    shade most of its neighbours in that material have: fewer, bigger shade shapes."""
+    seen = np.zeros(m.shape, bool)
+    for y0 in range(H1):
+        for x0 in range(W1):
+            if m[y0, x0] < 0 or seen[y0, x0]:
+                continue
+            key = (m[y0, x0], s[y0, x0], p[y0, x0]); patch = [(x0, y0)]; seen[y0, x0] = True
+            for x, y in patch:
+                for dx, dy in N4:
+                    X, Y = x + dx, y + dy
+                    if 0 <= X < W1 and 0 <= Y < H1 and not seen[Y, X] and (m[Y, X], s[Y, X], p[Y, X]) == key:
+                        seen[Y, X] = True; patch.append((X, Y))
+            if len(patch) >= least:
+                continue
+            nb = [s[y + dy, x + dx] for x, y in patch for dx, dy in N4
+                  if at(m, x + dx, y + dy) == key[0] and (x + dx, y + dy) not in patch]
+            if nb:
+                for x, y in patch:
+                    s[y, x] = max(set(nb), key=nb.count)
+
+
+def darks(body, m, s, p, h):
+    """Rule 6c: SL's big dark areas. Black where the body is deep in a hollow (under the arms and
+    the chin, between the legs, the crotch), and the shadow side of a limb well behind the torso
+    (by its balls' mean distance from the viewer, so height doesn't count)."""
+    dark = (m >= 0) & (h > HOLLOW_BLACK)
+    z = lambda part: np.mean([r[2] for r, q in zip(body.rows, body.parts) if q == part])
+    for part in ('arm_l', 'arm_r', 'hand_l', 'hand_r', 'leg_l', 'leg_r'):
+        if z(part) < z('torso') - FAR_BLACK:
+            dark |= (m >= 0) & (p == PARTS.index(part)) & (s == 0)
+    hair = m == MATS.index('hair')
+    return dark & ~hair
+
 def role(name, mat, shade):
     """The colour a line, seam or mark of role NAME takes on a pixel of MAT at SHADE."""
     ramp = RAMPS[MATS[mat]]
@@ -216,8 +288,8 @@ def lined(m, p, d, x, y):
     return None
 
 
-def colours(m, s, p, d):
-    """Rules 6 and 7: SL palette numbers, None where clear."""
+def colours(m, s, p, d, dark):
+    """Rules 6 and 7: SL palette numbers, None where clear (DARK: rule 6c's black areas)."""
     out = [[None if m[y, x] < 0 else RAMPS[MATS[m[y, x]]][s[y, x]] for x in range(W1)] for y in range(H1)]
     for y in range(H1):
         for x in range(W1):
@@ -226,6 +298,11 @@ def colours(m, s, p, d):
             r = lined(m, p, d, x, y)
             if r is None and y > 0 and m[y - 1, x] >= 0:
                 r = SEAMS.get((MATS[m[y - 1, x]], MATS[m[y, x]]))
+            if r is None and any(MATS[m[y, x]] in EDGED.get(MATS[q], ()) for q in
+                                 (at(m, x + dx, y + dy) for dx, dy in N4) if q >= 0):
+                r = 'black'
+            if r is None and dark[y, x]:
+                r = 'black'
             if r:
                 out[y][x] = role(r, m[y, x], s[y, x])
     for y in range(H1):
@@ -247,7 +324,7 @@ def colours(m, s, p, d):
 def marks(out, body, m, s, p, d):
     """Rule 6b: the body's marks drawn into OUT where they show; the pixels drawn, as a set."""
     done = set()
-    for pts, name, part in body.marks:
+    for pts, name, part, mat in body.marks:
         pts = np.hstack([pts, np.zeros((len(pts), 2))])
         sx, sy, sd, _ = (project(pts) / Z).T
         path = [(sx[0], sy[0], sd[0])]
@@ -259,8 +336,8 @@ def marks(out, body, m, s, p, d):
             x, y = int(fx), int(fy)
             if (x, y) in done or at(m, x, y) < 0 or PARTS[p[y, x]] != part or fd < d[y, x] - MARK_TOL:
                 continue
-            if MATS[m[y, x]] != 'skin':
-                continue                      # (marks are on the skin: not over the sash or a bracer)
+            if MATS[m[y, x]] != mat:
+                continue                      # (a mark is on its own material: not over the sash or a bracer)
             if out[y][x] == BLACK:
                 continue                      # (an inner line or the outline is there already)
             out[y][x] = role(name, m[y, x], s[y, x]); done.add((x, y))
@@ -271,12 +348,31 @@ def frame(body):
     """A Body (rig.body) to a frame: rows of SL palette numbers or None, W1 x H1."""
     dep, nrm, mat, prt, ton = raster(body.rows, body.mats, body.parts)
     centre = np.median(project(body.rows)[:, 2])
-    m, v, p, d = reduce(dep, nrm, mat, prt, ton, centre)
+    m, v, p, d, h = reduce(dep, nrm, mat, prt, ton, centre)
     s = bands(m, v)
     tidy_silhouette(m, s, p, d)
     tidy_shades(m, s)
-    out = colours(m, s, p, d)
+    clean_edges(m, s, p, d)
+    merge_small(m, s, p)
+    out = colours(m, s, p, d, darks(body, m, s, p, h))
+    clean_outline(out)
     return orphans(out, marks(out, body, m, s, p, d))
+
+
+def clean_outline(out):
+    """Rule 7b: the outer edge (the outline's) redrawn clean as well (lines.py): a pixel gained
+    takes the colour of the edge pixel beside it."""
+    def mask():
+        return np.array([[q is not None for q in r] for r in out])
+
+    def fill(y, x, f, t=False):
+        if out[y][x] is None:
+            out[y][x] = out[f][x] if t else out[y][f]
+
+    def clear(y, x):
+        out[y][x] = None
+    lines.regularise(mask(), fill, clear)
+    lines.regularise(mask().T, lambda y, x, f: fill(x, y, f, True), lambda y, x: clear(x, y))
 
 
 def orphans(out, keep=()):

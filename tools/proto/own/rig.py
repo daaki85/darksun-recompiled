@@ -113,15 +113,15 @@ class Balls:
                 t = i / n
                 self.ball(a + (b - a) * t, ra + (rb - ra) * t, mat, part, tone)
 
-    def mark(self, points, role, part):
-        self.marks.append((np.array(points, dtype=float), role, part))
+    def mark(self, points, role, part, mat='skin'):
+        self.marks.append((np.array(points, dtype=float), role, part, mat))
 
 
 class Body(NamedTuple):
     rows: np.ndarray        # balls: x, y, z, r, tone (grounded: the lowest point on y=0)
     mats: list
     parts: list
-    marks: list             # (points N x 3, role, part), grounded the same way
+    marks: list             # (points N x 3, role, part, material), grounded the same way
     J: dict                 # the skeleton
 
 
@@ -151,6 +151,7 @@ def _hair():
 
 
 HAIR = _hair()
+FOLDS = (-55, 5, 60)             # the trouser folds' places round the leg (degrees, 0 to the front, + outward)
 
 
 def _on(c, r, d):
@@ -173,6 +174,9 @@ def body(pose):
     for c, r in pecs:
         B.ball(c, r, 'skin', 'torso')
     B.sweep([(ch + C @ X(1.4, -5.0, 0.1), 2.0 * g), (ch + C @ X(-1.4, -5.0, 0.1), 2.0 * g)], 'skin', 'torso')
+    for sg in (1, -1):              # the flanks: straight from the armpit to the sash (the V)
+        B.sweep([(ch + C @ X(sg * 3.0, -1.8, 0), 2.2 * g), (ch + C @ X(sg * 1.5, -6.2, 0.1), 2.0 * g)],
+                'skin', 'torso')
     belly = (ch + C @ V(0, -4.0, 0.8), 1.8 * g)
     B.ball(*belly, 'skin', 'torso')
     B.sweep([(pv + P @ X(1.5, 0.0, 0), 2.25 * g), (pv + P @ X(-1.5, 0.0, 0), 2.25 * g)], 'cloth', 'torso')
@@ -188,7 +192,8 @@ def body(pose):
     B.sweep([(J['neck'], 1.7 * g), (J['head'] + H @ V(0, -0.8, -0.3), 1.5)], 'skin', 'torso')   # neck
     hd, k = J['head'], S['head_r'] / 2.45
     B.ball(hd, S['head_r'], 'skin', 'head')
-    B.ball(hd + H @ V(0, -1.1, 0.75) * k, 1.45 * k, 'skin', 'head')            # jaw
+    for c, r in ((V(0.8, -1.2, 0.5), 1.05), (V(-0.8, -1.2, 0.5), 1.05), (V(0, -1.55, 1.0), 0.95)):
+        B.ball(hd + H @ c * k, r * k, 'skin', 'head')                          # a square jaw and chin
     nose = hd + H @ V(0, -0.15, 2.05) * k
     B.ball(nose, 0.55 * k, 'skin', 'head')
     for path, tone in HAIR:
@@ -196,25 +201,35 @@ def body(pose):
     face = lambda x, y: _on(hd, S['head_r'], H @ V(x, y, 2.1))
     B.mark([face(x, 0.25) for x in (-1.15, -0.6, 0, 0.6, 1.15)], 'dark', 'head')          # the eyes
     B.mark([_on(nose, 0.55 * k, H @ V(0, 0.3, 1))], 'light', 'head')
-    # arms: deltoid (its light), upper arm, forearm, bracer, fist
-    for side in 'lr':
+    # arms: deltoid (flat-topped: a short level run across the shoulder; its light), upper arm,
+    # forearm (tapering straight), bracer, fist
+    for side, sg in (('l', 1), ('r', -1)):
         sh, el, ha, U, F = (J[side + k] for k in ('_sh', '_el', '_ha', 'U', 'F'))
         part = 'arm_' + side
-        delt = (sh + U @ V(0, -0.4, 0), 2.15 * a)
+        delt = (sh + U @ V(0, -0.5, 0), 2.0 * a)
+        B.sweep([(sh + C @ V(-sg * 0.7, 0.1, 0), 1.85 * a), (sh + C @ V(sg * 0.5, -0.1, 0), 1.85 * a)], 'skin', part)
         B.ball(*delt, 'skin', part)
         B.mark([_on(*delt, C @ V(0, 1, 0.5))], 'light', part)
         B.sweep([(sh, 1.9 * a), (sh + (el - sh) * 0.45, 2.0 * a), (el, 1.45 * a)], 'skin', part)
-        B.sweep([(el, 1.5 * a), (el + (ha - el) * 0.35, 1.6 * a), (ha, 1.15 * a)], 'skin', part)
+        B.sweep([(el, 1.6 * a), (ha, 1.1 * a)], 'skin', part)
         B.sweep([(el + (ha - el) * 0.86, 1.45 * a), (ha, 1.4 * a)], 'gold', part)
         B.ball(ha + F @ V(0, -1.0, 0.1), (1.8 if p[side + '_fist'] else 1.6) * a, 'skin', 'hand_' + side)
-    # legs: trousers balloon from the hip to below the knee, gathered at the cuff; short boots
-    for side in 'lr':
-        hp, kn, an, Fo = J[side + '_hip'], J[side + '_kn'], J[side + '_an'], J[side + 'Fo']
+    # legs: trousers balloon from the hip to below the knee, gathered at the cuff, with folds (dark
+    # wedges from the knee to the cuff, around the leg); short boots
+    for side, sg in (('l', 1), ('r', -1)):
+        hp, kn, an, Fo, Sh = (J[side + k] for k in ('_hip', '_kn', '_an', 'Fo', 'S'))
         part = 'leg_' + side
         cuff = an + (kn - an) * 0.16
         B.sweep([(hp, 2.0 * g), (hp + (kn - hp) * 0.5, 1.95 * g), (kn, 2.1 * g),
                  (kn + (an - kn) * 0.5, 2.5 * g), (cuff + (kn - an) * 0.1, 2.3 * g), (cuff, 1.55 * g)],
                 'cloth', part)
+        r_at = lambda t: g * (2.1 + 0.8 * t if t < 0.5 else 2.5 - 1.6 * (t - 0.5))     # (the sweep's radius)
+        on = lambda t, th: kn + (cuff - kn) * t + Sh @ V(math.sin(math.radians(th)), 0,
+                                                         math.cos(math.radians(th))) * r_at(t) * 0.95
+        for th in FOLDS:
+            th *= sg
+            B.mark([on(t, th) for t in (0.05, 0.5, 0.92)], 'dark', part, 'cloth')
+            B.mark([on(t, th + 14 * sg) for t in (0.5, 0.92)], 'dark', part, 'cloth')      # (the wedge widens)
         B.sweep([(cuff, 1.15 * g), (an, 1.1 * g)], 'leather', part)
         heel = an + Fo @ V(0, -0.55, -0.4)
         toe = an + Fo @ V(0, -0.75, S['foot'])
@@ -222,5 +237,5 @@ def body(pose):
     rows = np.array([r[:5] for r in B.rows], dtype=float)
     lift = (rows[:, 1] - rows[:, 3]).min()
     rows[:, 1] -= lift
-    marks = [(pts - V(0, lift, 0), role, part) for pts, role, part in B.marks]
+    marks = [(pts - V(0, lift, 0), role, part, mat) for pts, role, part, mat in B.marks]
     return Body(rows, [r[5] for r in B.rows], [r[6] for r in B.rows], marks, J)
