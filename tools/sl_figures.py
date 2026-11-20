@@ -7,7 +7,8 @@ a copy of the sequel's OBJEX.GFF with the party's figures taken from Shattered L
     sl_figures.py build  SL_DIR WR_DIR OUT.GFF  WR's OBJEX.GFF with objects 300-313 drawn as SL's
     sl_figures.py build-ui SL_DIR WR_DIR OUT.GFF  WR's RESOURCE.GFF with SL's interface pictures and icons
     sl_figures.py regrade SL_DIR WR_DIR RGNxxx STRENGTH OUT.GFF  a WR region's colours moved toward SL's
-    sl_figures.py squash WR_DIR RGNxxx FACTOR OUT_DIR  a WR region's structures seen from SL's steeper angle
+    sl_figures.py squash WR_DIR RGNxxx FACTOR OUT_DIR [furniture]  a WR region's objects lowered (furniture: only
+                                                    tables, chairs and other map artwork; walls kept)
 
 Nothing of either game is in the repository: everything is read from the owner's two installs.
 `sheet` needs Pillow. `build` was seen working in the game (docs/FIGURES.md, "Seen in the game").
@@ -508,7 +509,7 @@ FLAT = {534, 535, 536, 537, 2385, 2386, 2896}
 FACE = 48  # WR's upright wall face, in rows
 
 
-def squash(wr_dir, region, factor, out_dir):
+def squash(wr_dir, region, factor, out_dir, what='all'):
     """A WR region's structures and furniture as seen from SL's steeper angle (about 65 degrees
     above the horizontal against WR's 50: upright faces shrink by cos 65 / cos 50, about 0.66).
     For every picture the region's entities place (not the animated ones: people, doors, curtains;
@@ -517,7 +518,10 @@ def squash(wr_dir, region, factor, out_dir):
     the camera stay joined; furniture is squashed toward its base. A picture only ever placed on top
     of something (an entity height of 30 or more: a wall's upper part) keeps its picture and comes
     down by DROP through its height. Every picture keeps its size, so its anchor (OJFF +2, +4: the
-    bottom centre) still holds. Tried on Tyr in the game, 2026-11-20 (docs/FIGURES.md)."""
+    bottom centre) still holds. Tried on Tyr in the game, 2026-11-20 (docs/FIGURES.md). WHAT
+    'furniture' leaves the structures and what stands on them alone (the owner's choice after the
+    second comparison: walls at WR's height, tables and other map artwork squashed)."""
+    furniture_only = what == 'furniture'
     factor = float(factor)
     drop = FACE - int(FACE * factor + 0.5)
     rpath = find(wr_dir, region if region.upper().endswith('.GFF') else region + '.GFF')
@@ -535,6 +539,8 @@ def squash(wr_dir, region, factor, out_dir):
         if ('SCMD', pic) in objex or pic in FLAT or ('BMP ', pic) not in objex:
             continue
         if all(etab[8 * k + 4] >= 30 for k in ents):
+            if furniture_only:
+                continue
             for k in ents:
                 etab[8 * k + 4] = max(0, etab[8 * k + 4] - drop)
             continue
@@ -544,6 +550,9 @@ def squash(wr_dir, region, factor, out_dir):
             w, h, px = decode_any(c, f)
             out = [[None] * w for _ in range(h)]
             if w <= 24 or h >= 56:
+                if furniture_only:
+                    out_frames = None
+                    break
                 for y in range(drop, h):
                     out[y] = list(px[y - drop])
             else:
@@ -552,6 +561,8 @@ def squash(wr_dir, region, factor, out_dir):
                     if src >= 0:
                         out[y] = list(px[src])
             out_frames.append(out)
+        if out_frames is None:
+            continue
         new[('BMP ', pic)] = picture(out_frames)
         for k in ents:
             if 0 < etab[8 * k + 4] < 30:
@@ -692,6 +703,8 @@ def build_ui(sl_dir, wr_dir, out):
 if __name__ == '__main__':
     cmds = {'report': (report, 2), 'sheet': (sheet, 3), 'build': (build, 3), 'build-ui': (build_ui, 3),
             'regrade': (regrade, 5), 'squash': (squash, 4)}
+    if len(sys.argv) == 7 and sys.argv[1] == 'squash':
+        cmds['squash'] = (squash, 5)
     if len(sys.argv) < 2 or sys.argv[1] not in cmds or len(sys.argv) != 2 + cmds[sys.argv[1]][1]:
         raise SystemExit(__doc__)
     cmds[sys.argv[1]][0](*sys.argv[2:])
