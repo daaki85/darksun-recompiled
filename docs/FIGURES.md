@@ -226,6 +226,26 @@ its size, so its anchor still holds. **`ETAB` x is in the camera's units** (DS:1
 The change is moderate at this factor. SL's wall tops (brick or rubble) and its cast shadows,
 which carry much of its look, are not added yet.
 
+## Wall tops and shadows (prototypes, 2026-11-20)
+
+On top of the squash, in the game (scripts in `tools/proto/`, as they ran):
+
+- **Tops:** each structure's top refilled with SL's ashlar, the arena district's tiles 5 and 43 (its
+  tiles 54 and 55 have floor at their edges), aligned on 16, with a darker edge line. On a thin
+  piece (24 wide or less: a wall running away from the camera) the whole picture is wall top; on a
+  wide one only the band above its face. Roofed walls keep their roofs. In play: Tyr's walls read
+  as SL's ashlar walls.
+- **Shadows:** baked into each structure's own picture, its outline offset 10 right and 6 down in a
+  near-black checkerboard (SL's light comes from the upper left). The canvas grows right and down,
+  so the anchor holds; nearer walls and objects, drawn later, cover what falls on them. In play: a
+  dark band right of each wall. Where two pictures' checkerboards overlap out of step, the shadow
+  comes out solid.
+- **Not understood yet: WR's ground.** `GMAP` holds per-cell flags (0, 64, 192), not tiles. `MAP`
+  (1-91) doesn't match the screen's ground at any grid offset with Tyr's `TILE`s. Shadows drawn
+  into the ground, as SL does, need that worked out from the game's drawing code first.
+- An entity's map-pixel place: (x - 896, y + 24) in Tyr, from the camera (screen = x - camera x).
+  `tools/proto/gffw.py` adds chunks to a GFF (a new index after the data).
+
 ## Still open
 
 - **Flag 40h.** `build` sets it on every step, as the sequel does for its own figures, and
