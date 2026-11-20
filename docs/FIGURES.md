@@ -338,6 +338,25 @@ What the numbers and views say:
 - **Already known:** SL's figures are 20-35% shorter on the same tiles; the interface is the same
   art (WR's in fewer colours).
 
+## Thick walls, heights restored (2026-11-20)
+
+After the second comparison: the squash undone (WR's own wall heights back), and Tyr's walls made
+thick SL's way.
+
+- **`GMAP` marks the walls:** 192 on wall cells, 64 on cells next to walls and furniture, 0 open
+  (128 on 38 cells, meaning unknown). Overlaid on the opening street, the 192 cells are two cells
+  (32 pixels) wide where WR draws its walls as 18-pixel strips: every wall already blocks a band
+  twice as wide as it looks.
+- **The trial** (`tools/proto/thickwalls.py`): every wall cell gets an SL ashlar top tile with a
+  darker edge line where it meets open ground, so the walls fill their blocked bands, as SL's thick
+  walls do; the wall pictures keep their ashlar tops (`build_tops.py nosquash`). 2,331 cells, 31 new
+  tiles. Nothing walkable is covered.
+- **In the game:** the street's walls are wide ashlar bands, the sandstone faces at full height, the
+  fight unaffected. Mixed spots remain where WR's own wall art meets the new tops (the red-tiled
+  roof column inside a band of ashlar).
+- **Next:** shadows can follow the same cells: the open cells just right of and below wall cells,
+  darkened, with straight cell-aligned edges, which needs few tiles.
+
 ## Still open
 
 - **Flag 40h.** `build` sets it on every step, as the sequel does for its own figures, and

@@ -8,12 +8,12 @@ _cache={}
 def load(p):
     if p not in _cache: _cache[p]=s.load(p)[1]
     return _cache[p]
-def draw(game, region, box=None):
+def draw(game, region, box=None, rgn_path=None, objex_path=None):
     if game=='SL':
         C=load(f'/tmp/playtest/inst/RGN{region:02X}.GFF'); O=load('/tmp/playtest/inst/SEGOBJEX.GFF')
         pal=s.vga(load('/tmp/playtest/inst/GPLDATA.GFF')[('PAL ',region)])
     else:
-        C=load(f'/tmp/playtest/rav/RGN{region:03X}.GFF'); O=load('/tmp/playtest/rav/OBJEX.GFF')
+        C=load(rgn_path or f'/tmp/playtest/rav/RGN{region:03X}.GFF'); O=load(objex_path or '/tmp/playtest/rav/OBJEX.GFF')
         pal=s.vga(C[next(k for k in C if k[0]=='PAL ')])
     m=C[next(k for k in C if k[0] in ('RMAP','MAP '))]
     tiles={i:s.decode_any(v,0)[2] for (t,i),v in C.items() if t=='TILE'}

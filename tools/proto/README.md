@@ -7,8 +7,8 @@ into `sl_figures.py`.
 
 - `tops.py`: refills a wall picture's top with SL tiles (ashlar: the arena district's tiles 5
   and 43), aligned on 16; thin pieces (24 wide or less) are all top; roofed walls are left alone.
-- `build_tops.py SRC_DIR OUT_DIR`: applies it to every structure Tyr places, after
-  `sl_figures.py squash` (SRC_DIR is the squash's output).
+- `build_tops.py SRC_DIR OUT_DIR [nosquash]`: applies it to every structure Tyr places, after
+  `sl_figures.py squash` (SRC_DIR is the squash's output), or at full height with `nosquash`.
 - `bakeshadow2.py OBJEX_IN RGN_IN OBJEX_OUT RGN_OUT`: bakes each structure's cast shadow into its own
   picture (its outline offset 10 right, 6 down, near-black) in **one global checkerboard**: a
   shadow pixel only where its screen x + y is even. A picture placed at both pixel parities gets a
@@ -33,3 +33,7 @@ into `sl_figures.py`.
   OBJEX (no baked shadows) and the squash's region file. Supersedes `bakeshadow2.py` for Tyr.
 - `region.py`: `draw(game, region, box)` draws any region of either game, ground and objects.
 - `metrics.py`: the per-region measurements of the second comparison (docs/FIGURES.md).
+- `thickwalls.py RGN_IN RGN_OUT`: **thick walls, SL's way**: every wall cell (`GMAP` 192: two cells
+  wide, though WR draws its walls as thin strips) gets an SL ashlar top tile (the arena district's 5
+  and 43), with a darker edge line where the wall meets open ground; 31 new tiles for Tyr. Use on the
+  regrade's region file with `build_tops.py ... nosquash`'s OBJEX (heights as WR's).
