@@ -80,8 +80,8 @@ for p in batch:
 for p, v in sorted(props.items(), key=lambda kv: int(kv[0])):
     users = ', '.join(sorted(set(v.get('users', []))))[:80]
     if v.get('confidence') in ('good', 'fair'):
-        add('Person', int(p), 'recolour', v.get('wr_what', ''), users, f"proposed ({v['confidence']} match)",
-            f"SL {v.get('sl_picture')} recoloured toward WR")
+        add('Person', int(p), 'recolour', v.get('wr_what', ''), users, "dressed, not yet seen in the game",
+            f"SL {v.get('sl_picture')} dressed in WR's colours")
     elif v.get('confidence') == 'none':
         add('No SL equivalent', int(p), 'restyle', v.get('wr_what', ''), users, 'restyled', "WR's own art restyled")
 
@@ -109,7 +109,7 @@ arrow) and the same frames after the change (right). Everything is drawn in Rava
 
 - **Party:** the Obsidian Edition's figures (Shattered Lands' party with the mod's elves and half-elves).
 - **Creature:** a Shattered Lands figure of the same kind swapped in.
-- **Person:** a Shattered Lands figure matched by look, recoloured toward Ravager's (proposals, not yet applied).
+- **Person:** a Shattered Lands figure matched by look, dressed in Ravager's colours part by part, as the Obsidian Edition makes its half-elves (`tools/proto/people_dress.py`).
 - **No SL equivalent:** Ravager's own figure restyled to sit with Shattered Lands' figures.
 - **Map artwork (squashed):** tables, chairs, beds and other objects on the map, lowered to two-thirds of
   their height toward their base, as Shattered Lands' steeper view shows them (walls keep their height).

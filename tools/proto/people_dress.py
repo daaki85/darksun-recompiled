@@ -47,6 +47,12 @@ def frames_of(C, t, p):
     return [s.decode_any(c, f)[2] for f in range(s.frames(c)[0])]
 
 
+def clear0(frames):
+    """FRAMES with palette 0 clear: some SL combat pictures (bodies 75 and 103) are drawn as whole
+    rectangles with 0 as the background, which Ravager would show as a box."""
+    return [[[None if q == 0 else q for q in r] for r in f] for f in frames]
+
+
 def body(sobj):
     """(walking frames, combat frames or None, the walking picture, script) in SL numbers."""
     oj = A[('OJFF', sobj)]
@@ -54,8 +60,8 @@ def body(sobj):
     script = A[('SCMD', oj[s.SL_SCRIPT])]
     combat = None
     if any(st[2] & s.COMBAT for st in s.steps(script)) and ('BMP ', spic + 1) in A:
-        combat = frames_of(A, 'BMP ', spic + 1)
-    return frames_of(A, 'BMP ', spic), combat, spic, script
+        combat = clear0(frames_of(A, 'BMP ', spic + 1))
+    return clear0(frames_of(A, 'BMP ', spic)), combat, spic, script
 
 
 def sprite_colours():
