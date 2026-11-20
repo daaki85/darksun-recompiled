@@ -413,6 +413,40 @@ Still untried: the Look box on a monster (the right-clicks missed them),
 talking to the new people (Kalzith), a shop, a charged item, a scroll,
 thief skills in play.
 
+The mod released 2.18.0 (the kits rebalanced) and 2.19.0 to 2.19.2 (the
+chance to hit, the squares in reach, quick saves and autosaves, the
+journal); the program was lifted against 2.19.2's helper on 20 November
+(`entries/ds1o-9c71bfc7`, the same helper as the mod's branch has now), and
+what that took:
+
+- **The rules never reached the helper**: its header's signature is
+  `DSCLOGve` from 2.18 (`DSCLOGva` to 2.17; the last letter is the header's
+  version), so `DS_RULES` found no header, said so, and every run went with
+  the rules off. It now takes `DSCLOGv` and any version letter, as the
+  Loader's dicelog.py does; the rule words are still at +170 and +270.
+- **Convergence**: 157 helper entries (2.17.1's, 161), about forty rounds
+  in all. The four scripts were not enough: the suite's `mod-spread`
+  hung on the rampager's turn in the scripted bout (no miss logged, an entry
+  in the middle of a function, then more), so tools/converge_mod.sh has a
+  fifth run, the bout to its end (the suite case's own input).
+- **Strays kept out**: a run gone astray once reported addresses in the
+  video memory (ABxxx) and in the helper's header (B0154, B0172: its filter
+  bytes and vector list, not code; the header runs to +1892). The script
+  keeps only B0000-BFFFF now; the header's two were taken out by hand.
+- Seven `UNHANDLED` instructions in the helper's segment (`into`, `jmp far
+  si`, at B70F7 and BFA3E-BFA8A): data the finder reached through a call,
+  never run by any of the five scripts or the suite.
+- The suite's Shattered Lands and mod cases pass (intro, menu, start, walk,
+  create, save1-write, save2-load, mt32-port, mod-recall, mod-spread,
+  mod-done); the Wake of the Ravager and transfer cases were not run (the
+  sequel was not built in that container, and nothing here touches it).
+
+Not reached headless: the helper's code the Loader switches on through its
+header rather than its rule words (the squares in reach, `squares_on` at
++1890; the figures' blending, `ghost_on` at +1828; the new members' gear,
+`gear_due` at +1830). With the Loader attached that code runs, and any
+entry it lacks is logged for the next build (misses.txt).
+
 ## Wake of the Ravager (GOG 1.1, DSUN.EXE 634,416 bytes)
 
 The same pipeline, pointed at `game/ds2` with `--args "-W0 -L"` and the CD
