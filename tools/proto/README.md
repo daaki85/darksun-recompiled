@@ -23,4 +23,5 @@ into `sl_figures.py`.
   unchanged with no changes.
 - `shadows.py`: **don't use**: it read the map 112 wide (it is 128 wide, 98 rows: docs/FIGURES.md)
   and wrote shadow tiles into `GMAP`, which turned out to be per-cell
-  flags (0, 64, 192), not the drawn tile map. How WR draws its ground is not known yet.
+  flags (0, 64, 192), not the drawn tile map. The ground is `MAP `: docs/FIGURES.md, "How WR draws its ground".
+- `frame.py`: `exact_frame` rebuilds the 320x200 frame, as palette numbers, from a DOSBox grab.
