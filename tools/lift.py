@@ -14,6 +14,7 @@ import json
 import os
 
 from dsimage import Image, OpType
+from syms import load as load_syms
 from decode16 import Instruction, Operand
 import lift16
 from lift16 import Lifter
@@ -179,6 +180,7 @@ def main(argv=None):
         TAG += 'o'                    # the mod's build of the game: its own entry beside the plain one
     native = NATIVE.get(exe_size, {})
     known = {lin: name_of(lin) for lin in funcs}
+    syms = load_syms(a.build)          # OpenDS's names (tools/syms.py), as comments only
     # Addresses the game is entered at in the middle of a function (the mod's
     # helper jumps far into the die routine's tail): the runtime notes them in
     # inside.txt; each gets a small entry of its own that starts the function
@@ -344,6 +346,8 @@ def main(argv=None):
             body = body.replace(f'void {name}(CPU *cpu)', f'static void {name}__body(CPU *cpu)', 1)
             body += (f'\nvoid {name}(CPU *cpu) {{ uint16_t _s = cpu->sp, _ss = cpu->ss, _bp = cpu->bp; '
                      f'{name}__body(cpu); recomp_sp_check(0x{lin:05X}, _s, _ss, _bp, cpu); }}')
+        if lin in syms:
+            body = f'/* {syms[lin]["name"]} ({syms[lin]["confidence"]}, OpenDS) */\n' + body
         bodies.append(body)
         calls |= lf.func_calls
 

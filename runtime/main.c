@@ -75,8 +75,8 @@ int game_main(void *arg)
         if (getenv("DS_RULES")) {
             unsigned long r = strtoul(getenv("DS_RULES"), NULL, 16);
             unsigned hdr = 0;                     /* the header's signature, on a paragraph, where the install left it (the Loader scans the same way) */
-            for (unsigned a = 0; a + 8 < 0x100000 && !hdr; a += 16)
-                if (!memcmp(cpu->mem + a, "DSCLOGva", 8)) hdr = a;
+            for (unsigned a = 0; a + 8 < 0x100000 && !hdr; a += 16)   /* "DSCLOGv" and the header's version letter ('a' to 2.17, 'e' from 2.18), as the Loader's dicelog.py matches it */
+                if (!memcmp(cpu->mem + a, "DSCLOGv", 7) && isalnum(cpu->mem[a + 7])) hdr = a;
             if (hdr) {
                 cpu->mem[hdr + 170] = r & 0xFF; cpu->mem[hdr + 171] = (r >> 8) & 0xFF;
                 cpu->mem[hdr + 270] = (r >> 16) & 0xFF; cpu->mem[hdr + 271] = (r >> 24) & 0xFF;

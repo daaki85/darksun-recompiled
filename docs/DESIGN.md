@@ -31,6 +31,14 @@
    addresses are IPs and near branches wrap at 64 KB as on the CPU. A far call
    to an overlay stub calls the stub's target directly.
 
+   With `OPENDS=<a checkout of OpenDS>` (or by hand: `python3 tools/syms.py build/ds1
+   game/ds1/DSUN.EXE <opends>/tools/ovr-map/syms/ds1.toml`), `tools/syms.py` turns OpenDS's curated
+   function catalogue into `build/<game>/symbols.json`, and the lifter puts each name, with its
+   confidence, in a comment above the function's C. The functions keep their address names. The
+   catalogue's resident rows are file offsets and its overlay rows (module, offset), as `build_image.py`
+   lays them out; `syms.py` checks every row against the image and says which ones do not start at a
+   function.
+
 4. **`runtime/`** is the PC the C runs on:
    - `bios.c`: the interrupt vector table, BIOS services, PIC and PIT, port
      I/O, the mouse driver (INT 33h) and an XMS driver (16 MB). Every vector

@@ -19,6 +19,9 @@ What changed, newest first. The dates are the commits'.
   creation on the program (`DS_RULES`, the mod's rule switches as its Loader sets them; the real
   return address under the grant routines' frames); `tools/converge_mod.sh` runs four scripts
   side by side and keeps every helper address a run finds; a fourteenth suite case, `mod-done`.
+- Lifted against the mod's 2.19.2 helper (`entries/ds1o-9c71bfc7`): `DS_RULES` finds the
+  helper's header by `DSCLOGv` and its version letter (2.18's is `DSCLOGve`); a fifth convergence
+  run, the arena's scripted bout to its end; the convergence keeps only the helper's segment.
 - The mouse: SDL's logical coordinates, a queue with a 60 ms hold for the games' polling, the
   middle button for the mod's map drag; keys; F11 for full screen.
 - A text error screen that waits for a key; `dsun.log` beside the program; a crash handler that
