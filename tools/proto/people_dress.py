@@ -184,13 +184,8 @@ def dressed(wpic, data):
 
 
 def load_data():
-    """people-dress.json with every proto/dress/*.json merged into it (one per batch of bodies)."""
-    import glob
-    data = json.load(open(DATA))
-    for f in sorted(glob.glob(os.path.join(os.path.dirname(DATA), 'dress', '*.json'))):
-        more = json.load(open(f))
-        data['bodies'].update(more.get('bodies', {})); data['dress'].update(more.get('dress', {}))
-    return data
+    """people-dress.json: every SL body's parts and every Ravager person's dress."""
+    return json.load(open(DATA))
 
 
 # ---- pictures for the eye ----

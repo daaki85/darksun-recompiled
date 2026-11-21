@@ -32,7 +32,7 @@ into `sl_figures.py`.
   tiles, others take the nearest shape of the same tile or stay unshadowed. Use with `build_tops.py`'s
   OBJEX (no baked shadows) and the squash's region file. Supersedes `bakeshadow2.py` for Tyr.
 - `region.py`: `draw(game, region, box)` draws any region of either game, ground and objects.
-- `metrics.py`: the per-region measurements of the second comparison (docs/FIGURES.md).
+- `metrics.py` (the per-region measurements of the second comparison, docs/FIGURES.md), `draw_people.py` (people drawn new on SL bodies) and `own/`'s look, measure and variants: kept on the branch `claude/ravager-figure-experiments`, not in main.
 - `thickwalls.py RGN_IN RGN_OUT [sl | wr:PIC:X:Y]`: **thick walls, SL's way**: every wall cell (`GMAP` 192: two cells
   wide, though WR draws its walls as thin strips) gets an SL ashlar top tile (the arena district's 5
   and 43), with a darker edge line where the wall meets open ground; 31 new tiles for Tyr. Use on the
