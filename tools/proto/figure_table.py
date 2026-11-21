@@ -1,7 +1,7 @@
 """The before-and-after table of Wake of the Ravager's figures (docs/RAVAGER-FIGURES.md): for each WR
 figure picture, its front, side and combat frames as shipped beside the same frames after the change
 (Shattered Lands' party or creature swapped in, recoloured, or WR's own art restyled), one small PNG a
-figure in docs/img/ravager-figures/. Reads the owner's installs and the built OBJEX files; writes only
+figure in docs/img/ravager-figures/ (git-ignored: made from the game's art, never committed). Reads the owner's installs and the built OBJEX files; writes only
 pictures and the page.
 
 figure_table.py WR_OBJEX PARTY_SWAP_OBJEX RECOLOUR_OBJEX RESTYLE_OBJEX PROPOSALS.json BATCH1.json OUT_DIR PAGE.md
@@ -125,8 +125,8 @@ The pictures are made from the owner's own copies of the games by `tools/proto/f
         rs = [r for r in rows if r[0] == kind]
         if not rs:
             continue
-        f.write(f'## {kind} ({len(rs)})\n\n| WR picture | What it is | Used for | Change | Status | Before → after |\n|---|---|---|---|---|---|\n')
+        f.write(f'## {kind} ({len(rs)})\n\n| WR picture | What it is | Used for | Change | Status |\n|---|---|---|---|---|\n')
         for _, pic, what, users, via, status, name in rs:
-            f.write(f'| {pic} | {what} | {users} | {via} | {status} | ![{pic}](img/ravager-figures/{name}) |\n')
+            f.write(f'| {pic} | {what} | {users} | {via} | {status} |\n')
         f.write('\n')
 print(len(rows), 'rows:', {k: sum(r[0] == k for r in rows) for k in ('Party', 'Creature', 'Person', 'No SL equivalent', 'Map artwork (squashed)')})
