@@ -1343,6 +1343,62 @@
     }
    ]
   },
+  "70": {
+   "name": "tailed lizard creature (SL picture 719): dark crest, orange-brown scales, red eyes",
+   "parts": [
+    {
+     "name": "crest",
+     "colours": [
+      208,
+      209,
+      210,
+      211,
+      212,
+      213,
+      214,
+      216
+     ],
+     "top": 10
+    },
+    {
+     "name": "eyes",
+     "colours": [
+      164
+     ]
+    },
+    {
+     "name": "skin",
+     "colours": [
+      208,
+      129,
+      204,
+      209,
+      203,
+      128,
+      195,
+      134,
+      179,
+      210,
+      205,
+      180,
+      211,
+      201,
+      212,
+      181,
+      213,
+      200,
+      182,
+      168,
+      214,
+      169,
+      170,
+      216,
+      171,
+      68
+     ]
+    }
+   ]
+  },
   "73": {
    "name": "bald commoner (SL picture 424): bare chest with brown straps, green-blue loincloth, green bands",
    "parts": [
@@ -7113,6 +7169,221 @@
     "152": 99,
     "153": 100
    }
+  },
+  "2850": {
+   "body": 70,
+   "note": "verini (tan ape-lizard): one-colour scales, dark eyes",
+   "skin": [
+    204,
+    205,
+    93,
+    95,
+    97,
+    99,
+    101,
+    103
+   ],
+   "crest": [
+    204,
+    205,
+    93
+   ],
+   "eyes": [
+    254,
+    208
+   ]
+  },
+  "2852": {
+   "body": 70,
+   "note": "verini (yellow ape-lizard): one-colour scales, dark eyes",
+   "skin": [
+    179,
+    180,
+    181,
+    182,
+    183,
+    200,
+    170,
+    171
+   ],
+   "crest": [
+    179,
+    180,
+    181
+   ],
+   "eyes": [
+    254,
+    208
+   ]
+  },
+  "2853": {
+   "body": 70,
+   "note": "verini (dark red ape-lizard): one-colour scales, dark eyes",
+   "skin": [
+    16,
+    16,
+    202,
+    163,
+    240
+   ],
+   "crest": [
+    16,
+    16,
+    202
+   ],
+   "eyes": [
+    254,
+    208
+   ]
+  },
+  "2854": {
+   "body": 70,
+   "note": "verini (grey ape-lizard): one-colour scales, dark eyes",
+   "skin": [
+    208,
+    209,
+    210,
+    211,
+    212,
+    213,
+    214
+   ],
+   "crest": [
+    208,
+    209,
+    210
+   ],
+   "eyes": [
+    254,
+    208
+   ]
+  },
+  "2855": {
+   "body": 70,
+   "note": "verini (white ape-lizard): one-colour scales, dark eyes",
+   "skin": [
+    210,
+    211,
+    212,
+    213,
+    214,
+    216,
+    46
+   ],
+   "crest": [
+    210,
+    211,
+    212
+   ],
+   "eyes": [
+    254,
+    208
+   ]
+  },
+  "2858": {
+   "body": 70,
+   "note": "verini (green ape-lizard): one-colour scales, dark eyes",
+   "skin": [
+    188,
+    189,
+    190,
+    191,
+    192,
+    193
+   ],
+   "crest": [
+    188,
+    189,
+    190
+   ],
+   "eyes": [
+    254,
+    208
+   ]
+  },
+  "2859": {
+   "body": 70,
+   "note": "verini (orange ape-lizard): one-colour scales, dark eyes",
+   "skin": [
+    128,
+    135,
+    136,
+    137,
+    138,
+    139,
+    140,
+    141
+   ],
+   "crest": [
+    128,
+    135,
+    136
+   ],
+   "eyes": [
+    254,
+    208
+   ]
+  },
+  "2860": {
+   "body": 70,
+   "note": "verini (purple ape-lizard): one-colour scales, dark eyes",
+   "skin": [
+    174,
+    175,
+    176,
+    177,
+    178
+   ],
+   "crest": [
+    174,
+    175,
+    176
+   ],
+   "eyes": [
+    254,
+    208
+   ]
+  },
+  "2861": {
+   "body": 70,
+   "note": "verini (red ape-lizard): one-colour scales, dark eyes",
+   "skin": [
+    16,
+    202,
+    163,
+    240,
+    164
+   ],
+   "crest": [
+    16,
+    202,
+    163
+   ],
+   "eyes": [
+    254,
+    208
+   ]
+  },
+  "2863": {
+   "body": 70,
+   "note": "verini (brown ape-lizard): one-colour scales, dark eyes",
+   "skin": [
+    129,
+    128,
+    204,
+    207,
+    205,
+    206
+   ],
+   "crest": [
+    129,
+    128,
+    204
+   ],
+   "eyes": [
+    254,
+    208
+   ]
   },
   "2884": {
    "body": 24,
