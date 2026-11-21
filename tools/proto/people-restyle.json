@@ -1,0 +1,7 @@
+{
+ "note": "WR people restyled from Ravager's own art (restyle/restyle.py --people) instead of dressed: only the air and fire elementals. The owner tried the humanoids restyled (jann, revenant, knights) and found them bad, 2026-11-20: those are dressed on better SL bodies (dress/E.json).",
+ "restyle": [
+  2405,
+  2557
+ ]
+}
