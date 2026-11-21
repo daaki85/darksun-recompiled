@@ -4,7 +4,7 @@ import json, sys
 import os
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path[:0] = [HERE, os.path.join(HERE, '..'), os.path.join(HERE, '..', '..'), os.path.join(HERE, '..', 'own')]
-import walk6 as W, restyle as R, people_dress as pd, sheet, sl_figures as s
+import moves as L, walk6 as W, restyle as R, people_dress as pd, sheet, sl_figures as s
 from PIL import Image, ImageDraw
 DATA = pd.load_data(); SWAP = {2420: 18}
 def bottom(f):
@@ -25,8 +25,9 @@ def build(pic, Z, out):
     rows = [('SL party man', sl_set(man_w, man_c), pd.TABLE, None),
             ('dressed (now)', sl_set(dw, dc), pd.TABLE, None),
             ('restyled + walk fix', dict(stand=[fr['ST']], toward=[fr[k] for k in (t1, 'TA1', 'TA', t2, 'TB1', 'TB')],
-                                         side=[fr[k] for k in W.SIDE(pic)], fight=wc[:6]), None,
-             dict(toward=[fixed[k] for k in (t1, 'TA1', 'TA', t2, 'TB1', 'TB')]))]
+                                         side=[L.lean(fr[k]) for k in W.SIDE(pic)], fight=wc[:6]), None,
+             dict(toward=[fixed[k] for k in (t1, 'TA1', 'TA', t2, 'TB1', 'TB')],
+                  side=[(an[k][0] + L.P, an[k][1] + L.P) for k in W.SIDE(pic)]))]
     CW, RH = 46, 46; cols = ('stand', 'toward', 'side', 'fight')
     frames = []
     for k in range(12):

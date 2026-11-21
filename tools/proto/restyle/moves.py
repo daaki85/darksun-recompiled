@@ -30,3 +30,16 @@ def crop(f):
 def low(f, x0, x1):
     """The lowest filled row in columns X0..X1."""
     return max(y for y, r in enumerate(f) for x, q in enumerate(r) if q is not None and x0 <= x <= x1)
+
+def lean(f, by=3, hip=0.55):
+    """F with its upper body leaned forward (to the right) BY pixels at the crown, nothing below the
+    hips (HIP of the height from the top) moved: SL's profiles walk with the head ahead of the hips.
+    Padded by P, as apply."""
+    g = pad(f)
+    ys = [y for y, r in enumerate(g) if any(q is not None for q in r)]; top, bot = min(ys), max(ys)
+    h = top + round(hip * (bot - top + 1))
+    for y in range(top, h):
+        k = round(by * (h - y) / (h - top))
+        if k:
+            g[y] = [None] * k + g[y][:-k]
+    return g
