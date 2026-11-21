@@ -899,6 +899,20 @@
       152,
       153
      ]
+    },
+    {
+     "name": "folds",
+     "colours": [
+      129,
+      205
+     ]
+    },
+    {
+     "name": "warm",
+     "colours": [
+      60,
+      141
+     ]
     }
    ]
   },
@@ -7099,6 +7113,381 @@
     "152": 99,
     "153": 100
    }
+  },
+  "2884": {
+   "body": 24,
+   "note": "mind flayer: green robe, purple collar, lavender head with face tentacles (flayer.py)",
+   "hair": [
+    175,
+    37,
+    12,
+    8
+   ],
+   "skin": [
+    37,
+    12,
+    12,
+    8,
+    8,
+    13,
+    5,
+    1
+   ],
+   "tentacles": [
+    175,
+    37,
+    12,
+    8,
+    13,
+    5
+   ],
+   "warm": [
+    12,
+    8
+   ],
+   "bands": [
+    175,
+    37
+   ],
+   "robe": [
+    188,
+    189,
+    190,
+    191,
+    250
+   ],
+   "hood": [
+    158,
+    159,
+    174,
+    175,
+    37,
+    38
+   ],
+   "folds": [
+    188,
+    189
+   ]
+  },
+  "2885": {
+   "body": 24,
+   "note": "mind flayer: pinkish-brown robe, purple collar, lavender head with face tentacles (flayer.py)",
+   "hair": [
+    175,
+    37,
+    12,
+    8
+   ],
+   "skin": [
+    37,
+    12,
+    12,
+    8,
+    8,
+    13,
+    5,
+    1
+   ],
+   "tentacles": [
+    175,
+    37,
+    12,
+    8,
+    13,
+    5
+   ],
+   "warm": [
+    12,
+    8
+   ],
+   "bands": [
+    175,
+    37
+   ],
+   "robe": [
+    16,
+    58,
+    58,
+    194,
+    60
+   ],
+   "hood": [
+    158,
+    159,
+    174,
+    175,
+    37,
+    38
+   ],
+   "folds": [
+    16,
+    58
+   ]
+  },
+  "2887": {
+   "body": 24,
+   "note": "mind flayer: orange robe, red collar, lavender head with face tentacles (flayer.py)",
+   "hair": [
+    175,
+    37,
+    12,
+    8
+   ],
+   "skin": [
+    37,
+    12,
+    12,
+    8,
+    8,
+    13,
+    5,
+    1
+   ],
+   "tentacles": [
+    175,
+    37,
+    12,
+    8,
+    13,
+    5
+   ],
+   "warm": [
+    12,
+    8
+   ],
+   "bands": [
+    175,
+    37
+   ],
+   "robe": [
+    128,
+    135,
+    136,
+    137,
+    138,
+    139
+   ],
+   "hood": [
+    16,
+    202,
+    163,
+    240
+   ],
+   "folds": [
+    128,
+    135
+   ]
+  },
+  "2888": {
+   "body": 24,
+   "note": "mind flayer: red robe, brown collar, lavender head with face tentacles (flayer.py)",
+   "hair": [
+    175,
+    37,
+    12,
+    8
+   ],
+   "skin": [
+    37,
+    12,
+    12,
+    8,
+    8,
+    13,
+    5,
+    1
+   ],
+   "tentacles": [
+    175,
+    37,
+    12,
+    8,
+    13,
+    5
+   ],
+   "warm": [
+    12,
+    8
+   ],
+   "bands": [
+    175,
+    37
+   ],
+   "robe": [
+    16,
+    202,
+    163,
+    240,
+    76
+   ],
+   "hood": [
+    204,
+    207,
+    205
+   ],
+   "folds": [
+    16,
+    202
+   ]
+  },
+  "2889": {
+   "body": 24,
+   "note": "mind flayer: teal robe, black collar, lavender head with face tentacles (flayer.py)",
+   "hair": [
+    175,
+    37,
+    12,
+    8
+   ],
+   "skin": [
+    37,
+    12,
+    12,
+    8,
+    8,
+    13,
+    5,
+    1
+   ],
+   "tentacles": [
+    175,
+    37,
+    12,
+    8,
+    13,
+    5
+   ],
+   "warm": [
+    12,
+    8
+   ],
+   "bands": [
+    175,
+    37
+   ],
+   "robe": [
+    69,
+    70,
+    53,
+    71,
+    57
+   ],
+   "hood": [
+    254,
+    208,
+    209,
+    210
+   ],
+   "folds": [
+    69,
+    70
+   ]
+  },
+  "2890": {
+   "body": 24,
+   "note": "mind flayer: black robe, red collar, lavender head with face tentacles (flayer.py)",
+   "hair": [
+    175,
+    37,
+    12,
+    8
+   ],
+   "skin": [
+    37,
+    12,
+    12,
+    8,
+    8,
+    13,
+    5,
+    1
+   ],
+   "tentacles": [
+    175,
+    37,
+    12,
+    8,
+    13,
+    5
+   ],
+   "warm": [
+    12,
+    8
+   ],
+   "bands": [
+    175,
+    37
+   ],
+   "robe": [
+    254,
+    208,
+    209,
+    210
+   ],
+   "hood": [
+    16,
+    202,
+    163,
+    240
+   ],
+   "folds": [
+    254,
+    208
+   ]
+  },
+  "2891": {
+   "body": 24,
+   "note": "mind flayer: purple-blue robe, red collar, lavender head with face tentacles (flayer.py)",
+   "hair": [
+    175,
+    37,
+    12,
+    8
+   ],
+   "skin": [
+    37,
+    12,
+    12,
+    8,
+    8,
+    13,
+    5,
+    1
+   ],
+   "tentacles": [
+    175,
+    37,
+    12,
+    8,
+    13,
+    5
+   ],
+   "warm": [
+    12,
+    8
+   ],
+   "bands": [
+    175,
+    37
+   ],
+   "robe": [
+    174,
+    158,
+    159,
+    160,
+    38,
+    161
+   ],
+   "hood": [
+    16,
+    202,
+    163,
+    240
+   ],
+   "folds": [
+    174,
+    158
+   ]
   },
   "3605": {
    "body": 18,

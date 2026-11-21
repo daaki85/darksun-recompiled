@@ -172,6 +172,10 @@ def dressed(wpic, data):
         walk, combat, spic, script = body(d['body'])
         parts = data['bodies'][str(d['body'])]['parts']
         dw, dc = dress_frames(walk, parts, d), (dress_frames(combat, parts, d) if combat else None)
+    if d.get('tentacles'):  # (a mind flayer's face: flayer.py)
+        import flayer
+        dw = flayer.tentacles(dw, d['tentacles'])
+        dc = flayer.tentacles(dc, d['tentacles']) if dc else None
     if d.get('weapon') == 'pick':  # (a pick in the hands: weapons_draw.py)
         import weapons_draw as wd
         groups = [[wd.armed(r, f, spic, i, False, SLPAL) for i, (r, f) in enumerate(zip(walk, dw))]]
