@@ -1,0 +1,782 @@
+{
+ "bodies": {},
+ "dress": {
+  "715": {
+   "body": 118,
+   "note": "shopkeeper (a woman, per the owner 2026-11-21): dark reddish-brown skin, red turban, black robe (on the robed woman)",
+   "hair": [
+    88,
+    16,
+    16,
+    202,
+    202,
+    202,
+    163,
+    163,
+    163
+   ],
+   "skin": [
+    88,
+    89,
+    89,
+    90,
+    91,
+    92,
+    93,
+    94,
+    95,
+    96,
+    97,
+    98,
+    99,
+    100,
+    101,
+    102
+   ],
+   "robe": [
+    254,
+    254,
+    208,
+    208,
+    209,
+    209,
+    210,
+    211
+   ],
+   "skirt": [
+    254,
+    254,
+    208,
+    208,
+    209,
+    209,
+    210,
+    211
+   ],
+   "bands": [
+    208,
+    209
+   ]
+  },
+  "3612": {
+   "body": 32003,
+   "note": "woman miner (moved off the man's body 2026-11-21): dark red hair, purple top, grey chain-wrapped legs; a pick drawn in her hand",
+   "hair": [
+    88,
+    16,
+    16,
+    202,
+    202,
+    163,
+    163,
+    240
+   ],
+   "skin": [
+    88,
+    90,
+    92,
+    93,
+    94,
+    95,
+    96,
+    97,
+    98,
+    99,
+    100,
+    101,
+    102,
+    103,
+    104,
+    153,
+    154
+   ],
+   "top": [
+    174,
+    174,
+    175,
+    175,
+    176
+   ],
+   "legs": [
+    254,
+    209,
+    210,
+    211,
+    212,
+    213
+   ],
+   "bands": [
+    175,
+    176
+   ],
+   "weapon": "pick"
+  },
+  "2475": {
+   "body": "halfelf-woman",
+   "note": "woman: dark red hair, purple dress (on the Obsidian Edition's half-elf woman, her cloak as the robe; the owner's pick 2026-11-21)",
+   "hair": [
+    88,
+    16,
+    202,
+    202,
+    163,
+    163
+   ],
+   "cloak": [
+    174,
+    174,
+    175,
+    176,
+    177
+   ],
+   "skin": [
+    88,
+    90,
+    92,
+    94,
+    96,
+    98,
+    100,
+    102
+   ]
+  },
+  "2461": {
+   "body": 32003,
+   "note": "woman (moved off the man's body 2026-11-21): grey helm over red hair, grey armour top, green loincloth",
+   "hair": [
+    254,
+    19,
+    21,
+    23,
+    25,
+    27,
+    29,
+    31,
+    52
+   ],
+   "skin": [
+    88,
+    90,
+    92,
+    93,
+    94,
+    95,
+    96,
+    97,
+    98,
+    99,
+    100,
+    101,
+    102,
+    103,
+    104,
+    153,
+    154
+   ],
+   "top": [
+    20,
+    21,
+    23,
+    25,
+    27,
+    29,
+    31
+   ],
+   "legs": [
+    188,
+    188,
+    189,
+    190,
+    191
+   ],
+   "bands": [
+    189,
+    190
+   ]
+  },
+  "3613": {
+   "body": 32000,
+   "note": "bald tan miner, huge (moved off the spearman 2026-11-21, on the half-giant as 2469): dark purple-grey loincloth; a pick drawn in his hand",
+   "hair": {
+    "208": 93,
+    "209": 95,
+    "129": 92,
+    "128": 94,
+    "133": 96,
+    "179": 95,
+    "180": 97
+   },
+   "cloth": [
+    174,
+    175,
+    210,
+    211,
+    212,
+    213,
+    214
+   ],
+   "skin": [
+    88,
+    89,
+    90,
+    91,
+    92,
+    93,
+    94,
+    95,
+    96,
+    97,
+    98,
+    99,
+    100,
+    101,
+    102,
+    103,
+    104
+   ],
+   "weapon": "pick"
+  },
+  "2432": {
+   "body": "halfelf-man",
+   "note": "man in green tunic, dark blue-black hair (on the Obsidian Edition's half-elf man, the owner's pick 2026-11-21)",
+   "skin": [
+    88,
+    90,
+    92,
+    94,
+    96,
+    98,
+    100,
+    102,
+    104
+   ],
+   "hair": [
+    254,
+    208,
+    17,
+    19,
+    21,
+    21
+   ],
+   "jerkin": [
+    188,
+    53,
+    189,
+    54,
+    190,
+    55
+   ],
+   "sleeve": [
+    188,
+    53,
+    189,
+    54,
+    190,
+    55
+   ],
+   "legs": [
+    208,
+    209,
+    210,
+    211,
+    212,
+    212
+   ],
+   "boots": [
+    254,
+    208,
+    204,
+    207,
+    205
+   ]
+  },
+  "2431": {
+   "body": "halfelf-man",
+   "note": "man: black curly hair, bright blue shirt, grey kilt (on the Obsidian Edition's half-elf man, the owner's pick 2026-11-21)",
+   "skin": [
+    88,
+    90,
+    92,
+    94,
+    96,
+    98,
+    100,
+    102,
+    104
+   ],
+   "hair": [
+    254,
+    208,
+    208,
+    209,
+    210,
+    210
+   ],
+   "jerkin": [
+    208,
+    48,
+    160,
+    161,
+    161,
+    162
+   ],
+   "sleeve": [
+    208,
+    48,
+    160,
+    161,
+    161,
+    162
+   ],
+   "legs": [
+    209,
+    210,
+    211,
+    212,
+    213,
+    213
+   ],
+   "boots": [
+    254,
+    208,
+    204,
+    207,
+    205
+   ]
+  },
+  "2464": {
+   "body": "halfelf-man",
+   "note": "man (as 2431): black hair, blue shirt, grey kilt (on the Obsidian Edition's half-elf man, the owner's pick 2026-11-21)",
+   "skin": [
+    88,
+    90,
+    92,
+    94,
+    96,
+    98,
+    100,
+    102,
+    104
+   ],
+   "hair": [
+    254,
+    208,
+    208,
+    209,
+    210,
+    210
+   ],
+   "jerkin": [
+    208,
+    48,
+    160,
+    161,
+    161,
+    162
+   ],
+   "sleeve": [
+    208,
+    48,
+    160,
+    161,
+    161,
+    162
+   ],
+   "legs": [
+    209,
+    210,
+    211,
+    212,
+    213,
+    213
+   ],
+   "boots": [
+    254,
+    208,
+    204,
+    207,
+    205
+   ]
+  },
+  "2415": {
+   "body": "halfelf-man",
+   "note": "red-haired man, purple tunic, dark legs (on the Obsidian Edition's half-elf man, the owner's pick 2026-11-21)",
+   "skin": [
+    88,
+    90,
+    92,
+    94,
+    96,
+    98,
+    100,
+    102,
+    104
+   ],
+   "hair": [
+    202,
+    135,
+    136,
+    137,
+    138,
+    139
+   ],
+   "jerkin": [
+    174,
+    174,
+    175,
+    176,
+    176,
+    177
+   ],
+   "sleeve": [
+    174,
+    174,
+    175,
+    176,
+    176,
+    177
+   ],
+   "legs": [
+    254,
+    208,
+    209,
+    210,
+    211,
+    211
+   ],
+   "boots": [
+    254,
+    208,
+    204,
+    207,
+    205
+   ]
+  },
+  "2422": {
+   "body": "halfelf-man",
+   "note": "red-haired man in a purple robe (on the Obsidian Edition's half-elf man, the owner's pick 2026-11-21)",
+   "skin": [
+    88,
+    90,
+    92,
+    94,
+    96,
+    98,
+    100,
+    102,
+    104
+   ],
+   "hair": [
+    16,
+    202,
+    163,
+    163,
+    240,
+    240
+   ],
+   "jerkin": [
+    174,
+    174,
+    175,
+    176,
+    176,
+    177
+   ],
+   "sleeve": [
+    174,
+    174,
+    175,
+    176,
+    176,
+    177
+   ],
+   "legs": [
+    174,
+    174,
+    175,
+    176,
+    176,
+    177
+   ],
+   "boots": [
+    254,
+    208,
+    204,
+    207,
+    205
+   ]
+  },
+  "2453": {
+   "body": "halfelf-man",
+   "note": "orange-haired man in a purple tunic (on the Obsidian Edition's half-elf man, the owner's pick 2026-11-21)",
+   "skin": [
+    88,
+    90,
+    92,
+    94,
+    96,
+    98,
+    100,
+    102,
+    104
+   ],
+   "hair": [
+    135,
+    137,
+    139,
+    140,
+    141,
+    142
+   ],
+   "jerkin": [
+    174,
+    174,
+    175,
+    176,
+    176,
+    177
+   ],
+   "sleeve": [
+    174,
+    174,
+    175,
+    176,
+    176,
+    177
+   ],
+   "legs": [
+    254,
+    208,
+    209,
+    210,
+    211,
+    211
+   ],
+   "boots": [
+    254,
+    208,
+    204,
+    207,
+    205
+   ]
+  },
+  "2476": {
+   "body": "halfelf-man",
+   "note": "red-haired man in a grey tunic (on the Obsidian Edition's half-elf man, the owner's pick 2026-11-21)",
+   "skin": [
+    88,
+    90,
+    92,
+    94,
+    96,
+    98,
+    100,
+    102,
+    104
+   ],
+   "hair": [
+    16,
+    202,
+    163,
+    163,
+    240,
+    240
+   ],
+   "jerkin": [
+    19,
+    21,
+    23,
+    25,
+    27,
+    29
+   ],
+   "sleeve": [
+    19,
+    21,
+    23,
+    25,
+    27,
+    29
+   ],
+   "legs": [
+    19,
+    21,
+    23,
+    25,
+    27,
+    29
+   ],
+   "boots": [
+    254,
+    208,
+    204,
+    207,
+    205
+   ]
+  },
+  "2423": {
+   "body": "halfelf-man",
+   "note": "red-haired man, dark red robe (on the Obsidian Edition's half-elf man, the owner's pick 2026-11-21)",
+   "skin": [
+    88,
+    90,
+    92,
+    94,
+    96,
+    98,
+    100,
+    102,
+    104
+   ],
+   "hair": [
+    202,
+    135,
+    136,
+    137,
+    138,
+    139
+   ],
+   "jerkin": [
+    16,
+    16,
+    195,
+    195,
+    202,
+    163
+   ],
+   "sleeve": [
+    16,
+    16,
+    195,
+    195,
+    202,
+    163
+   ],
+   "legs": [
+    16,
+    16,
+    195,
+    195,
+    202,
+    163
+   ],
+   "boots": [
+    254,
+    208,
+    204,
+    207,
+    205
+   ]
+  },
+  "2558": {
+   "body": "halfelf-man",
+   "note": "man: brown hair, dark green cloth over the shoulder (a green shirt here), black loincloth (on the Obsidian Edition's half-elf man, the owner's pick 2026-11-21)",
+   "skin": [
+    88,
+    90,
+    92,
+    94,
+    96,
+    98,
+    100,
+    102,
+    104
+   ],
+   "hair": [
+    204,
+    207,
+    205,
+    205,
+    201,
+    201
+   ],
+   "jerkin": [
+    188,
+    188,
+    53,
+    189,
+    54,
+    190
+   ],
+   "sleeve": [
+    188,
+    188,
+    53,
+    189,
+    54,
+    190
+   ],
+   "legs": [
+    254,
+    208,
+    208,
+    209,
+    210,
+    210
+   ],
+   "boots": [
+    254,
+    208,
+    204,
+    207,
+    205
+   ]
+  },
+  "2427": {
+   "body": "halfelf-woman",
+   "note": "blonde woman: yellow hair, red robe over the shoulders (on the Obsidian Edition's half-elf woman, her cloak as the robe; the owner's pick 2026-11-21)",
+   "hair": [
+    182,
+    183,
+    166,
+    244,
+    167,
+    167
+   ],
+   "cloak": [
+    16,
+    195,
+    202,
+    163,
+    240
+   ],
+   "skin": [
+    92,
+    94,
+    96,
+    98,
+    100,
+    102
+   ]
+  },
+  "2416": {
+   "body": "halfelf-woman",
+   "note": "dark-skinned woman: black hair, orange-red robe (on the Obsidian Edition's half-elf woman, her cloak as the robe; the owner's pick 2026-11-21)",
+   "hair": [
+    254,
+    208,
+    208,
+    209,
+    210
+   ],
+   "cloak": [
+    16,
+    202,
+    163,
+    240,
+    139,
+    140
+   ],
+   "skin": [
+    88,
+    89,
+    90,
+    91,
+    92,
+    93,
+    94,
+    95
+   ]
+  }
+ }
+}

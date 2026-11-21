@@ -35,6 +35,7 @@ The data, tools/proto/people-dress.json:
 import sys, os, json, struct, collections
 sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), '..'))
 import sl_figures as s
+import halfelf_dress
 
 SL_DIR, WR_DIR = '/tmp/playtest/sl_mod', '/tmp/playtest/rav'
 DATA = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'people-dress.json')
@@ -164,9 +165,22 @@ def dress_frames(frames, parts, dress):
 
 def dressed(wpic, data):
     d = data['dress'][str(wpic)]
-    walk, combat, spic, script = body(d['body'])
-    parts = data['bodies'][str(d['body'])]['parts']
-    return dress_frames(walk, parts, d), (dress_frames(combat, parts, d) if combat else None), walk, combat, script
+    if d['body'] in halfelf_dress.BODIES:  # (the Obsidian Edition's half-elves: halfelf_dress.py)
+        dw, dc, walk, combat, script = halfelf_dress.dressed(d, body, SLPAL)
+        spic = body(halfelf_dress.BODIES[d['body']])[2]
+    else:
+        walk, combat, spic, script = body(d['body'])
+        parts = data['bodies'][str(d['body'])]['parts']
+        dw, dc = dress_frames(walk, parts, d), (dress_frames(combat, parts, d) if combat else None)
+    if d.get('weapon') == 'pick':  # (a pick in the hands: weapons_draw.py)
+        import weapons_draw as wd
+        groups = [[wd.armed(r, f, spic, i, False, SLPAL) for i, (r, f) in enumerate(zip(walk, dw))]]
+        if dc:
+            groups.append([wd.armed(r, f, spic, i, True, SLPAL) for i, (r, f) in enumerate(zip(combat, dc))])
+        groups, (dx, dy) = wd.trim(groups)
+        dw, dc = groups[0], (groups[1] if dc else None)
+        script = wd.shift(script, dx, dy)
+    return dw, dc, walk, combat, script
 
 
 def load_data():
