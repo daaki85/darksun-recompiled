@@ -174,6 +174,29 @@ The before-and-after pictures are not kept in this repository: they are made fro
 | 3509 | tree creature |  | WR's own art restyled | restyled |
 | 3866 | Generoe, plant woman | generoe | WR's own art restyled | restyled |
 
+## Additional named figures (10)
+
+| WR picture | What it is | Used for | Change | Status |
+|---|---|---|---|---|
+| 269 | Tarrasque | Tarrasque encounter | Original Ravager art | awaiting figure review |
+| 849 | Psurlon | Psurlon and Garzak | Original Ravager art | awaiting figure review |
+| 1736 | Bit o’Tarrasque | Tarrasque encounter | Original Ravager art | awaiting figure review |
+| 1759 | Intellect devourer | Intellect devourer | Original Ravager art | awaiting figure review |
+| 2395 | Dust devil | Dust devil | Original Ravager art | awaiting figure review |
+| 3238 | Mordenk’s Sword | Mordenk’s Sword | Original Ravager art | awaiting figure review |
+| 3312 | Air drake | Air drake | Original Ravager art | awaiting figure review |
+| 3313 | Fire drake | Fire drake | Original Ravager art | awaiting figure review |
+| 3314 | Earth drake | Earth drake | Original Ravager art | awaiting figure review |
+| 3855 | Rybochka | Rybochka | Original Ravager art | awaiting figure review |
+
+## Unidentified combat sprites (3)
+
+| WR picture | What it is | Used for | Change | Status |
+|---|---|---|---|---|
+| 2541 | Combat sprite | Unknown | Original Ravager art | identity and use unverified |
+| 2900 | Combat sprite | Unknown | Original Ravager art | identity and use unverified |
+| 3918 | Combat sprite | Unknown | Original Ravager art | identity and use unverified |
+
 ## Map artwork (squashed) (60)
 
 | WR picture | What it is | Used for | Change | Status |
