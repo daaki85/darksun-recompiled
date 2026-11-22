@@ -100,6 +100,23 @@ for p, v in sorted(props.items(), key=lambda kv: int(kv[0])):
     elif v.get('confidence') == 'none':
         add('No SL equivalent', int(p), 'restyle', v.get('wr_what', ''), users, 'restyled', "WR's own art restyled")
 
+srcs['stock'] = W
+for pic, what, users in (
+    (269, 'Tarrasque', 'Tarrasque encounter'),
+    (849, 'Psurlon', 'Psurlon and Garzak'),
+    (1736, 'Bit o’Tarrasque', 'Tarrasque encounter'),
+    (1759, 'Intellect devourer', 'Intellect devourer'),
+    (2395, 'Dust devil', 'Dust devil'),
+    (3238, 'Mordenk’s Sword', 'Mordenk’s Sword'),
+    (3312, 'Air drake', 'Air drake'),
+    (3313, 'Fire drake', 'Fire drake'),
+    (3314, 'Earth drake', 'Earth drake'),
+    (3855, 'Rybochka', 'Rybochka'),
+):
+    add('Additional named figures', pic, 'stock', what, users, 'awaiting figure review', 'Original Ravager art')
+for pic in (2541, 2900, 3918):
+    add('Unidentified combat sprites', pic, 'stock', 'Combat sprite', 'Unknown', 'identity and use unverified', 'Original Ravager art')
+
 if srcs['squash'] is not None and squash_rgn:
     S = srcs['squash']
     _, R = s.load(squash_rgn); e = R[next(k for k in R if k[0] == 'ETAB')]
@@ -132,7 +149,7 @@ arrow) and the same frames after the change (right). Everything is drawn in Rava
 The pictures are made from the owner's own copies of the games by `tools/proto/figure_table.py`.
 
 ''')
-    for kind in ('Party', 'Creature', 'Person', 'No SL equivalent', 'Map artwork (squashed)'):
+    for kind in ('Party', 'Creature', 'Person', 'No SL equivalent', 'Additional named figures', 'Unidentified combat sprites', 'Map artwork (squashed)'):
         rs = [r for r in rows if r[0] == kind]
         if not rs:
             continue
@@ -140,4 +157,4 @@ The pictures are made from the owner's own copies of the games by `tools/proto/f
         for _, pic, what, users, via, status, name in rs:
             f.write(f'| {pic} | {what} | {users} | {via} | {status} |\n')
         f.write('\n')
-print(len(rows), 'rows:', {k: sum(r[0] == k for r in rows) for k in ('Party', 'Creature', 'Person', 'No SL equivalent', 'Map artwork (squashed)')})
+print(len(rows), 'rows:', {k: sum(r[0] == k for r in rows) for k in ('Party', 'Creature', 'Person', 'No SL equivalent', 'Additional named figures', 'Unidentified combat sprites', 'Map artwork (squashed)')})
