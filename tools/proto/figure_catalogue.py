@@ -3,8 +3,10 @@ Shattered Lands figure it is matched with (where there is one) and ours, each fr
 standing frame and the whole walk toward the viewer, from the side and away, and the side attack, as the
 figures' scripts play them. All in Ravager's colours (Tyr's palette), twice the game's size.
 
-figure_catalogue.py OURS_OBJEX OUT_DIR
-    OURS_OBJEX: the built OBJEX (people_dress.build, then restyle.py over it). Writes OUT_DIR/IMG/*.png and
+figure_catalogue.py OURS_OBJEX PARTY_OBJEX OUT_DIR
+    OURS_OBJEX: the built OBJEX (people_dress.build, then restyle.py over it); PARTY_OBJEX: the sequel's
+    OBJEX with the mod's party figures (sl_figures.py build, from the modded Shattered Lands). Writes
+    OUT_DIR/img/*.png (the frames side by side), OUT_DIR/img/*.gif (the same, playing) and
     OUT_DIR/README.md. The pictures are made from the games' art: OUT_DIR belongs in the owner's private
     installation files, never in this repository."""
 import json, os, struct, sys
@@ -94,16 +96,49 @@ def figure(pic, rows_in, path):
         d.line([(0, y * Z - 1), (W * Z, y * Z - 1)], fill=(90, 90, 96))
     o.save(path)
 
-def main(ours_path, out):
+def animation(rows_in, path):
+    """ROWS_IN as figure(), each group playing its run in place, at 3x."""
+    Z3 = 3; lab = 92; top = 12; ggap = 14
+    lines = []
+    for label, groups in rows_in:
+        up = max([ay for _, ims in groups for _, ax, ay in ims] + [1]) + 2
+        down = max([im.height - ay for _, ims in groups for im, ax, ay in ims] + [1]) + 2
+        left = [max([ax for _, ax, _ in ims] + [1]) + 2 for _, ims in groups]
+        right = [max([im.width - ax for im, ax, _ in ims] + [1]) + 2 for _, ims in groups]
+        widths = [max(l + r, 40) for l, r in zip(left, right)]
+        lines.append((label, groups, up, down, left, widths))
+    W = lab + max(sum(w + ggap for w in L[5]) for L in lines); H = sum(L[2] + L[3] + top for L in lines)
+    n = max(len(ims) for _, groups, *_ in lines for _, ims in groups)
+    n = max(n * 2, 8)
+    pics = []
+    for k in range(n):
+        o = Image.new('RGB', (W * Z3, H * Z3), (58, 58, 62)); d = ImageDraw.Draw(o); y = 0
+        for label, groups, up, down, left, widths in lines:
+            d.text((4, (y + top + up // 2) * Z3), label, fill=(240, 230, 160)); x = lab
+            for (title, ims), l, w in zip(groups, left, widths):
+                d.text((x * Z3, y * Z3 + 2), title, fill=(170, 170, 170))
+                im, ax, ay = ims[k % len(ims)]
+                big = im.resize((im.width * Z3, im.height * Z3), Image.NEAREST)
+                o.paste(big, ((x + l - ax) * Z3, (y + top + up - ay) * Z3), big); x += w + ggap
+            y += top + up + down
+            d.line([(0, y * Z3 - 1), (W * Z3, y * Z3 - 1)], fill=(90, 90, 96))
+        pics.append(o.convert('P', palette=Image.ADAPTIVE, colors=255))
+    pics[0].save(path, save_all=True, append_images=pics[1:], duration=180, loop=0, optimize=True)
+
+def main(ours_path, party_path, out):
     os.makedirs(os.path.join(out, 'img'), exist_ok=True)
-    W = pd.B; _, O = s.load(ours_path)
+    W = pd.B; _, O = s.load(ours_path); _, P = s.load(party_path)
     props = json.load(open(os.path.join(HERE, 'people-proposals.json')))
     dress = json.load(open(os.path.join(HERE, 'people-dress.json')))['dress']
     batch = json.load(open(os.path.join(HERE, 'creatures-batch1.json')))
     restyled = set(json.load(open(os.path.join(HERE, 'people-restyle.json')))['restyle'])
     from restyle import figure_walks, knight_melee
     redrawn = set(figure_walks.PICTURES) | set(knight_melee.PICTURES)
-    entries = [(int(p), v.get('wr_what', ''), v.get('confidence')) for p, v in props.items()]
+    party = {}
+    for o in s.PARTY:
+        party.setdefault(struct.unpack_from('<H', W[('OJFF', o)], s.PIC)[0], o)
+    entries = [(int(p), v.get('wr_what', ''), v.get('confidence')) for p, v in props.items() if int(p) not in party]
+    entries += [(pic, (props.get(str(pic), {}).get('wr_what') or 'party figure'), 'party') for pic in party]
     entries += [(int(p), 'creature: Shattered Lands figure swapped in', 'batch') for p in batch]
     table = []
     for pic, what, conf in sorted(entries):
@@ -113,13 +148,15 @@ def main(ours_path, out):
         sl, how = None, ''
         if conf == 'batch':
             sl = batch[str(pic)]; how = 'the Shattered Lands figure swapped in'
+        elif conf == 'party':
+            sl = party[pic]; how = "the Shattered Lands party figure (the mod's)"
         elif str(pic) in dress and pic not in restyled and isinstance(dress[str(pic)].get('body'), int):
             sl = dress[str(pic)]['body']; how = 'dressed on this Shattered Lands body'
         elif pic in ANALOG:
             sl = ANALOG[pic]; how = 'nearest Shattered Lands creature, for comparison'
         if sl is not None and ('OJFF', sl) in pd.A:
             w, c, spic, script = pd.body(sl)
-            rows.append((f'Shattered Lands', strip(w, c, script, pd.TABLE, sl=True)))
+            rows.append(('Shattered Lands' + (' (ours: swapped in)' if conf == 'batch' else ''), strip(w, c, script, pd.TABLE, sl=True)))
         if pic in redrawn:
             kind = "redrawn (Codex)"
         elif str(pic) in dress and pic not in restyled:
@@ -128,19 +165,22 @@ def main(ours_path, out):
             kind = 'swapped'
         else:
             kind = 'restyled'
-        if conf != 'batch' and ('SCMD', pic) in O and O.get(('BMP ', pic)) != W.get(('BMP ', pic)):
+        if conf not in ('batch', 'party') and ('SCMD', pic) in O and O.get(('BMP ', pic)) != W.get(('BMP ', pic)):
             ours = strip(frames_rows(O, 'BMP ', pic), frames_rows(O, 'CBMP', pic), O[('SCMD', pic)])
             rows.append((f'Ours: {kind}', ours))
         elif conf == 'party':
-            kind = "the Obsidian Edition's party figure, put in by the Loader (not in this build)"
+            kind = "the Obsidian Edition's party figure"
+            ours = strip(frames_rows(P, 'BMP ', pic), frames_rows(P, 'CBMP', pic), P[('SCMD', pic)])
+            rows.append((f'Ours: party figure', ours))
         elif conf != 'batch':
             kind = 'not changed yet'
         name = f'{pic}.png'
         figure(pic, rows, os.path.join(out, 'img', name))
+        animation(rows, os.path.join(out, 'img', f'{pic}.gif'))
         table.append((pic, what, kind, f'{how} (SL {sl})' if sl is not None else '', name))
         print(pic, kind, flush=True)
     with open(os.path.join(out, 'README.md'), 'w') as f:
-        f.write('# Ravager figure catalogue\n\nEvery Wake of the Ravager figure the port changes. Each picture has up to '
+        f.write('# Ravager figure catalogue\n\nEvery Wake of the Ravager figure the port changes. Each figure has an animation (every view playing, three times the game\'s size) and the same frames laid out side by side. Each has up to '
                 'three rows: Ravager as shipped, the Shattered Lands figure it is matched with (where there is one), '
                 'and ours (redrawn by Codex, dressed on a Shattered Lands body, restyled from Ravager\'s art, or the '
                 'Shattered Lands figure swapped in). Each row shows the standing frame and the whole walk toward you, '
@@ -148,7 +188,7 @@ def main(ours_path, out):
                 'twice the game\'s size. Made by `tools/proto/figure_catalogue.py` (darksun-recompiled).\n\n')
         for pic, what, kind, how, name in table:
             f.write(f'## {pic}: {what}\n\nOurs: {kind}' + (f'. Shattered Lands row: {how}' if how else '') +
-                    f'.\n\n![{pic}](img/{name})\n\n')
+                    f'.\n\n![{pic} playing](img/{pic}.gif)\n\n![{pic}](img/{name})\n\n')
 
 if __name__ == '__main__':
-    main(*sys.argv[1:3])
+    main(*sys.argv[1:4])
