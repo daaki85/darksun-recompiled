@@ -47,7 +47,7 @@ def anchors(pic, combat):
     return out
 DEBUG=[]
 ALL45=[693,716,1754,1755,1756,1757,1758,2345,2394,2403,2526,2537,2539,2554,2555,2556,2570,2843,2844,2845,2846,2847,2849,2850,2852,2853,2854,2855,2858,2859,2860,2861,2863,2884,2885,2887,2888,2889,2890,2891,2895,3461,3509,3866,1753]
-def restyle_frames(frs, pic, combat, stats_from=None):
+def _restyle_raw(frs, pic, combat, stats_from=None, gain=1.0):
     small=[downscale(f) for f in frs]
     labs=np.concatenate([f[~np.isnan(f[...,0])] for f in small])
     mL,sdL=labs[:,0].mean(),max(labs[:,0].std(),1); C=np.hypot(labs[:,1],labs[:,2]); mC=max(C.mean(),1)
@@ -98,12 +98,14 @@ def restyle_frames(frs, pic, combat, stats_from=None):
             fs=f
             if (dl[allE]<19).mean()>=EDGE_GOAL: break   # 19: dither lifts values near 25
     DEBUG.append((pic,combat,round(float(base),2),round(float(fs),2)))
+    dl=np.where(allS,allL*fs,np.where(allE,allL*min(1,fs+0.45),allL)); mu=dl.mean()
     out=[]
     for i,(f,w) in enumerate(zip(small,work)):
         H,W=f.shape[:2]; res=np.full((H,W),-1)
         if not w: out.append(res); continue
         m,L,a,b,shade_edge,lit_edge,ys,xs=w
         L=np.where(shade_edge,L*fs,np.where(lit_edge,L*min(1,fs+0.45),L))
+        L=np.where(L<mu,mu+(L-mu)*gain,L)
         Tlab=np.stack([np.clip(L,0,100),a,b],-1)
         ax,ay=anc.get(i,(W//2,H-1))
         for y,x in zip(ys,xs):
@@ -114,6 +116,75 @@ def restyle_frames(frs, pic, combat, stats_from=None):
             res[y,x]=cand[i2] if BAYER[(y-ay)%2,(x-ax)%2]<t else cand[i1]
         out.append(res)
     return out
+SHADES=16; DARK_MIN=0.08; DARK_MAX=0.45
+_RAW={}
+def _raw(pic, combat, gain=1.0):
+    t='CBMP' if combat else 'BMP '
+    if (pic,combat,gain) not in _RAW: _RAW[(pic,combat,gain)]=_restyle_raw(frames(B,t,pic),pic,combat,gain=gain) if (t,pic) in B else []
+    return _RAW[(pic,combat,gain)]
+def shade_map(groups, n=SHADES):
+    """SL's figures hold about 20 to 30 colours, shaded in flat bands. Merge the figure's colours (all
+    its walking and fighting frames together, so both agree) until n are left: each time the pair whose
+    merge moves the fewest pixels the least (count x Lab distance squared), the rarer into the commoner.
+    The dither between two neighbours then reads as SL's speckled band edge. Returns {old: new}."""
+    cnt={}
+    for g in groups:
+        for f in g:
+            v,c=np.unique(f[f>=0],return_counts=True)
+            for q,k in zip(v.tolist(),c.tolist()): cnt[q]=cnt.get(q,0)+k
+    keep=dict(cnt); m={q:q for q in cnt}
+    while len(keep)>n:
+        ks=list(keep); lab=WRLAB[ks]; d=((lab[:,None]-lab[None])**2).sum(-1); np.fill_diagonal(d,np.inf)
+        c=np.array([keep[q] for q in ks],float); cost=d*np.minimum(c[:,None],c[None])
+        i,j=np.unravel_index(np.argmin(cost),cost.shape)
+        lo,hi=(ks[i],ks[j]) if keep[ks[i]]<keep[ks[j]] else (ks[j],ks[i])
+        keep[hi]+=keep.pop(lo)
+        for q in m:
+            if m[q]==lo: m[q]=hi
+    return m
+def remap(frs, m):
+    out=[]
+    for f in frs:
+        g=f.copy()
+        for q,r in m.items():
+            if q!=r: g[f==q]=r
+        out.append(g)
+    return out
+GAINS_UP=(1.0,1.3,1.6,2.0,2.5,3.0); GAINS_DOWN=(1.0,0.8,0.6,0.45,0.3)
+def dark_share(groups):
+    q=np.concatenate([f[f>=0] for g in groups for f in g]); return float((WRLAB[q][:,0]<19).mean()) if len(q) else 0.0
+def _final(pic, gain, shades):
+    mine,other=_raw(pic,False,gain),_raw(pic,True,gain)
+    m=shade_map([mine,other], shades)
+    return [despeckle(f) for f in remap(mine,m)],[despeckle(f) for f in remap(other,m)]
+def restyle_frames(frs, pic, combat, stats_from=None, shades=None):
+    """_restyle_raw, the shade cut (shade_map) over the picture's walking and fighting frames
+    together, despeckle, and the dark share brought into SL's range: SL's pale creatures still show
+    dark hollows (its skeleton 9% near-black, its man 30%) and none of its figures is a silhouette.
+    Below DARK_MIN the shades under the figure's mean are spread further down (its own sockets, rib
+    gaps and folds deepen); above DARK_MAX they are drawn up toward the mean; measured on the final
+    colours, since the palette's own steps move the share."""
+    shades=shades or SHADES
+    w,c=_final(pic,1.0,shades); d=dark_share([w,c])
+    seq=GAINS_UP if d<DARK_MIN else GAINS_DOWN if d>DARK_MAX else (1.0,)
+    for g in seq[1:]:
+        w,c=_final(pic,g,shades); d=dark_share([w,c])
+        if DARK_MIN<=d<=DARK_MAX: break
+    DEBUG.append(('dark',pic,g if len(seq)>1 else 1.0,round(d,2)))
+    return c if combat else w
+def despeckle(f):
+    """A lone pixel inside a band (its four neighbours filled, none its colour, three of them one
+    colour) takes that colour: SL's bands are clusters, the dither's single dots are not."""
+    g=f.copy(); H,W=f.shape
+    for y in range(1,H-1):
+        for x in range(1,W-1):
+            q=f[y,x]
+            if q<0: continue
+            nb=[f[y-1,x],f[y+1,x],f[y,x-1],f[y,x+1]]
+            if min(nb)>=0 and q not in nb:
+                v,c=np.unique(nb,return_counts=True)
+                if c.max()>=3: g[y,x]=v[c.argmax()]
+    return g
 def chunk(frs):
     return s.picture([[[None if q<0 else int(q) for q in row] for row in f] for f in frs])
 def script(sc):
