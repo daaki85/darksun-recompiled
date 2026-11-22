@@ -1,7 +1,20 @@
 {
- "note": "WR people restyled from Ravager's own art (restyle/restyle.py --people) instead of dressed: only the air and fire elementals. The owner tried the humanoids restyled (jann, revenant, knights) and found them bad, 2026-11-20: those are dressed on better SL bodies (dress/E.json).",
+ "note": "Use the Ravager bodies for the elementals, plate knights, thief and verini. The knights have dedicated side stances, walks and melee and the thief and verini have custom walks.",
  "restyle": [
   2405,
-  2557
+  2411,
+  2557,
+  2850,
+  2852,
+  2853,
+  2854,
+  2855,
+  2858,
+  2859,
+  2860,
+  2861,
+  2863,
+  3605,
+  3606
  ]
 }

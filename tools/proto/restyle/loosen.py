@@ -15,7 +15,9 @@ sys.path[:0] = [HERE, os.path.join(HERE, '..'), os.path.join(HERE, '..', '..'), 
 import numpy as np
 import moves as L, restyle as R, walk6 as W6, golem4 as G4, sl_figures as s
 
-LOOSE = [1753, 1754, 2555, 2850, 2852, 2853, 2854, 2855, 2858, 2859, 2860, 2861, 2863, 2539, 693, 2394]
+# Codex's painted walks (figure_walks.py: the skeletons, umber hulk, verini, thief, soulshard) and
+# knights (knight_melee.py) replace this for their figures: only the golems still use it.
+LOOSE = [693, 2394]
 END, COMBAT = 0x02, 0x20
 # the verini seen from behind are mostly tail: moving their 'legs' breaks it, so that view keeps
 # Ravager's stand

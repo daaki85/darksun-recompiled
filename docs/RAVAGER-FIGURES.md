@@ -11,6 +11,8 @@ Each row is a Wake of the Ravager figure and what was changed. The pictures (fro
 
 The before-and-after pictures are not kept in this repository: they are made from the game's art, which stays out of git. `tools/proto/figure_table.py` makes them from the owner's own copies of the games into `docs/img/ravager-figures/` (git-ignored); the owner's private gallery shows them too.
 
+The redrawn figures' sheets (`tools/proto/restyle/walks/` and `knights/`, read by `figure_walks.py` and `knight_melee.py`) are drawn from Ravager's art, so they are kept in the owner's private installation files (`ravager-figure-redraws/`) and copied into those two folders, which git ignores, before a build.
+
 ## Party (14)
 
 | WR picture | What it is | Used for | Change | Status |
@@ -43,7 +45,7 @@ The before-and-after pictures are not kept in this repository: they are made fro
 | 2409 | notaku | notaku | SL figure swapped in | done |
 | 2420 | templar (purple robe) | templar (purple robe) | SL figure swapped in | done |
 
-## Person (75)
+## Person (76)
 
 | WR picture | What it is | Used for | Change | Status |
 |---|---|---|---|---|
@@ -63,7 +65,7 @@ The before-and-after pictures are not kept in this repository: they are made fro
 | 2405 | greater air elemental (white cloud) | grt air elem | WR's own art restyled (SL's nearest figure had the wrong shape) | restyled, not yet seen in the game |
 | 2408 | dark-skinned man, purple sash | caravan master, guard, miner | SL 2131 dressed in WR's colours | dressed, not yet seen in the game |
 | 2410 | woman, white top, green skirt | fayina | SL 2059 dressed in WR's colours | dressed, not yet seen in the game |
-| 2411 | thief: man, white shirt, red headband | thief | SL 630 dressed in WR's colours | dressed, not yet seen in the game |
+| 2411 | thief: man, white shirt, red headband | thief | Ravager figure with custom directional walks | walk verified in the built game data |
 | 2412 | dark-skinned man, black shorts | draxan, kitchen slave, mercenary, miner, va guard | SL 924 dressed in WR's colours | dressed, not yet seen in the game |
 | 2413 | jann (blue skin, yellow trousers) | jann | SL 2252 dressed in WR's colours | dressed, not yet seen in the game |
 | 2414 | man, red shirt (Draxan soldier) | draxan x5, pedestrian, prisoner, slave, zeegrat | SL 239 dressed in WR's colours | dressed, not yet seen in the game |
@@ -74,6 +76,7 @@ The before-and-after pictures are not kept in this repository: they are made fro
 | 2421 | bald muscular man, blue loincloth (soldier) | tyrian soldier x2, warrior | SL 559 dressed in WR's colours | dressed, not yet seen in the game |
 | 2422 | red-haired man, purple | ladel, miner x3, slave, warrior, winchester | SL 424 dressed in WR's colours | dressed, not yet seen in the game |
 | 2423 | red-haired man, red | arslan, mug, slave | SL 195 dressed in WR's colours | dressed, not yet seen in the game |
+| 2424 | Receptionist, purple sash | Receptionist | Dressed SL body from 2408 with the original 27 action slots | seen in Tyr using a stand-in |
 | 2426 | long blonde hair, slender, light dress | preserver, va member | SL 2059 dressed in WR's colours | dressed, not yet seen in the game |
 | 2427 | blonde woman in red robe, green skirt | deathraker, draxan x7, jumah, kranix, templar x6, zorani | SL 154 dressed in WR's colours | dressed, not yet seen in the game |
 | 2428 | bald muscular man, wristbands (Draxan/gladiator) | draxan x9, gladiator x4 | SL 563 dressed in WR's colours | dressed, not yet seen in the game |
@@ -118,8 +121,8 @@ The before-and-after pictures are not kept in this repository: they are made fro
 | 2558 | man, dark green | butler, leader | SL 2131 dressed in WR's colours | dressed, not yet seen in the game |
 | 2575 | lord warrior, black armour | lord warrior | SL 1179 dressed in WR's colours | dressed, not yet seen in the game |
 | 2778 | tavernkeeper, green (no walking) | tavernkeeper | SL 1448 dressed in WR's colours | dressed, not yet seen in the game |
-| 3605 | white knight, silver armour | alhena, white knight | SL 1484 dressed in WR's colours | dressed, not yet seen in the game |
-| 3606 | black knight, black armour | black knight | SL 1179 dressed in WR's colours | dressed, not yet seen in the game |
+| 3605 | white knight, silver armour | alhena, white knight | Ravager plate with redrawn side stance, walk and side-melee recovery | tested in the opening ambush using stand-in slots |
+| 3606 | black knight, black armour | black knight | Ravager plate with redrawn side stance, walk and side-melee recovery | tested in the opening ambush using stand-in slots |
 | 3612 | woman, purple (miner) | miner x2 | SL 2095 dressed in WR's colours | dressed, not yet seen in the game |
 | 3613 | miner with pick | miner | SL 559 dressed in WR's colours | dressed, not yet seen in the game |
 
@@ -129,8 +132,8 @@ The before-and-after pictures are not kept in this repository: they are made fro
 |---|---|---|---|---|
 | 693 | magma golem (orange blob giant) | magma golem | WR's own art restyled | restyled |
 | 716 | beggar, seated | beggar | WR's own art restyled | restyled |
-| 1753 | skeleton (white bones) | skeleton | WR's own art restyled | restyled |
-| 1754 | skeleton warrior, red cloak, sword | skeletonwarrior x3 | WR's own art restyled | restyled |
+| 1753 | skeleton (white bones) | skeleton | Ravager figure with custom directional walks | walk seen in Tyr using a stand-in |
+| 1754 | skeleton warrior, red cloak, sword | skeletonwarrior x3 | Ravager figure with custom directional walks | walk verified in the built game data |
 | 1755 | yuan-ti (purple serpent) | yuan-ti x2 | WR's own art restyled | restyled |
 | 1756 | giant snake (white) | giant snake x3 | WR's own art restyled | restyled |
 | 1757 | snake (orange) | kartang | WR's own art restyled | restyled |
@@ -140,9 +143,9 @@ The before-and-after pictures are not kept in this repository: they are made fro
 | 2403 | snappersaw (spiky plant) | snappersaw | WR's own art restyled | restyled |
 | 2526 | mushroom lady, crouched | mushroom lady | WR's own art restyled | restyled |
 | 2537 | aurumvorax (small golden beast) | aurumvorax | WR's own art restyled | restyled |
-| 2539 | soulshard (grey stone man) | soulshard | WR's own art restyled | restyled |
+| 2539 | soulshard (grey stone man) | soulshard | Ravager figure with custom directional walks | walk seen in Tyr using a stand-in |
 | 2554 | great feyr (tentacled maw) | great feyr x2, greater feyr | WR's own art restyled | restyled |
-| 2555 | umber hulk | umber hulk x3 | WR's own art restyled | restyled |
+| 2555 | umber hulk | umber hulk x3 | Ravager figure with custom directional walks | walk verified in the built game data |
 | 2556 | shambling mound (green) | shambling mound | WR's own art restyled | restyled |
 | 2570 | Zorani, seated cross-legged | zorani | WR's own art restyled | restyled |
 | 2843 | yuan-ti (red and gold serpent) | yuan-ti | WR's own art restyled | restyled |
@@ -151,16 +154,16 @@ The before-and-after pictures are not kept in this repository: they are made fro
 | 2846 | serpent (teal) | jestris | WR's own art restyled | restyled |
 | 2847 | serpent (orange) | solurnis | WR's own art restyled | restyled |
 | 2849 | serpent (green) | senturnis | WR's own art restyled | restyled |
-| 2850 | verini (tan ape-lizard) | guard x2, verini x2 | WR's own art restyled | restyled |
-| 2852 | verini (yellow) | prosser, verini child, winter | WR's own art restyled | restyled |
-| 2853 | verini (dark red) | galinix, rhone, silvan, speaker | WR's own art restyled | restyled |
-| 2854 | verini (grey) | nortemus, zydeko | WR's own art restyled | restyled |
-| 2855 | verini (white) | fori | WR's own art restyled | restyled |
-| 2858 | verini (green) | elovan, farmer, xarax | WR's own art restyled | restyled |
-| 2859 | verini (orange) | guard, jakath, verini x2 | WR's own art restyled | restyled |
-| 2860 | verini (purple) | kell, yerath | WR's own art restyled | restyled |
-| 2861 | verini (red) | brotel, guard x2, talo | WR's own art restyled | restyled |
-| 2863 | verini (brown) | guard x3, verini | WR's own art restyled | restyled |
+| 2850 | verini (tan ape-lizard) | guard x2, verini x2 | Ravager figure with custom directional walks | walk verified in the built game data |
+| 2852 | verini (yellow) | prosser, verini child, winter | Ravager figure with custom directional walks | walk verified in the built game data |
+| 2853 | verini (dark red) | galinix, rhone, silvan, speaker | Ravager figure with custom directional walks | walk verified in the built game data |
+| 2854 | verini (grey) | nortemus, zydeko | Ravager figure with custom directional walks | walk verified in the built game data |
+| 2855 | verini (white) | fori | Ravager figure with custom directional walks | walk seen in Tyr using a stand-in |
+| 2858 | verini (green) | elovan, farmer, xarax | Ravager figure with custom directional walks | walk verified in the built game data |
+| 2859 | verini (orange) | guard, jakath, verini x2 | Ravager figure with custom directional walks | walk verified in the built game data |
+| 2860 | verini (purple) | kell, yerath | Ravager figure with custom directional walks | walk verified in the built game data |
+| 2861 | verini (red) | brotel, guard x2, talo | Ravager figure with custom directional walks | walk verified in the built game data |
+| 2863 | verini (brown) | guard x3, verini | Ravager figure with custom directional walks | walk verified in the built game data |
 | 2884 | mind flayer, green robe | mindflayer | WR's own art restyled | restyled |
 | 2885 | mind flayer, pink robe | mindflayer x3 | WR's own art restyled | restyled |
 | 2887 | mind flayer, orange robe | mind flayer | WR's own art restyled | restyled |

@@ -5,7 +5,7 @@ import json, sys
 import os
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path[:0] = [HERE, os.path.join(HERE, '..'), os.path.join(HERE, '..', '..'), os.path.join(HERE, '..', 'own')]
-import moves as L, restyle as R, people_dress as pd, sheet
+import moves as L
 from PIL import Image
 AMP = {2575: 1}                     # the lord's robe: a smaller step
 
@@ -34,7 +34,7 @@ def ops(rg, fwd, down, amp):
 
 def layout(pic):
     """{stand: (a, b)}: the toward (0) and away (1) cycles 'S a S b S' in the figure's script."""
-    import sl_figures as s
+    import restyle as R, sl_figures as s
     st = [x for x in s.steps(R.B[('SCMD', pic)]) if not x[2] & 0x20]; out = {}
     for i in range(len(st) - 4):
         f = [x[0] for x in st[i:i + 5]]
@@ -43,9 +43,14 @@ def layout(pic):
     return out
 
 def make(pic):
+    import restyle as R
     d = [[[None if q < 0 else int(q) for q in r] for r in __import__('numpy').asarray(f)]
-         for f in R.restyle_frames(R.frames(R.B, 'BMP ', pic), pic, False)]; anc = R.anchors(pic, False); amp = AMP.get(pic, 2); P = L.P
-    new, an = {}, dict(anc); lay = layout(pic)
+         for f in R.restyle_frames(R.frames(R.B, 'BMP ', pic), pic, False)]; anc = R.anchors(pic, False)
+    return make_from_frames(d, anc, AMP.get(pic, 2), layout(pic))
+
+def make_from_frames(d, anc, amp, lay):
+    P = L.P
+    new, an = {}, dict(anc)
     for stand, tag, down in ((0, 'T', 1), (1, 'A', -1)):
         lifts = lay[stand]
         rg = regions(d[stand])
@@ -75,6 +80,7 @@ def make(pic):
     return d, new, an, fixed, lay
 
 def show(pic):
+    import people_dress as pd, sheet
     d, new, an, fixed, lay = make(pic)
     fr = {i: f for i, f in enumerate(d)} | new
     (t1, t2), (a1, a2) = lay[0], lay[1]; side = SIDE(pic)
@@ -96,13 +102,14 @@ def show(pic):
 
 def SIDE(pic):
     """The side walk cycle from the script: the first run of non-stand steps after a stand 2."""
-    import sl_figures as s
+    import restyle as R, sl_figures as s
     st = [x for x in s.steps(R.B[('SCMD', pic)]) if not x[2] & 0x20]
     for i, x in enumerate(st):
         if x[0] == 2 and x[2] & 2 and i + 6 < len(st) and st[i + 1][0] != 2:
             return [y[0] for y in st[i + 1:i + 7]]
 
 if __name__ == '__main__':
+    import sheet
     OUT = sys.argv[1]; os.makedirs(OUT, exist_ok=True)
     ims = [show(int(p)) for p in sys.argv[2:]]
     W = max(i.width for i in ims); H = sum(i.height + 6 for i in ims); o = Image.new('RGBA', (W, H), (0, 0, 0, 0)); y = 0

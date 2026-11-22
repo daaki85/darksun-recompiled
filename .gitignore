@@ -4,3 +4,5 @@
 __pycache__/
 *.pyc
 /docs/img/ravager-figures/
+tools/proto/restyle/walks/
+tools/proto/restyle/knights/
