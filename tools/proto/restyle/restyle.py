@@ -212,7 +212,8 @@ if __name__=='__main__':
         elif a=='--people': pics+=PEOPLE
         else: pics.append(int(a))
     new={}
-    for p in pics: new.update(restyle(p)); print('restyled',p)
+    import loosen   # the looser stands and fuller walks (loosen.LOOSE) go in with the restyle
+    for p in pics: new.update(loosen.build(p) if p in loosen.LOOSE else restyle(p)); print('restyled',p)
     s.write_ranged(base,new,out)
     _,R=s.load(out)
     for k in new:
