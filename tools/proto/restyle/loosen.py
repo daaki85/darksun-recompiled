@@ -13,7 +13,8 @@ import os, struct, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path[:0] = [HERE, os.path.join(HERE, '..'), os.path.join(HERE, '..', '..'), os.path.join(HERE, '..', 'own')]
 import numpy as np
-import moves as L, restyle as R, walk6 as W6, golem4 as G4, sl_figures as s
+import moves as L, walk6 as W6, golem4 as G4, sl_figures as s
+from _rs import R
 
 # Codex's painted walks (figure_walks.py: the skeletons, umber hulk, verini, thief, soulshard) and
 # knights (knight_melee.py) replace this for their figures: only the golems still use it.

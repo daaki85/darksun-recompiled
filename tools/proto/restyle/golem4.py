@@ -6,7 +6,8 @@ import json, sys
 import os
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path[:0] = [HERE, os.path.join(HERE, '..'), os.path.join(HERE, '..', '..'), os.path.join(HERE, '..', 'own')]
-import moves as L, restyle as R, people_dress as pd, sheet, walk6 as W6
+import moves as L, people_dress as pd, sheet, walk6 as W6
+from _rs import R
 from PIL import Image
 LAYOUT = {693: dict(T=(0, 3, 4), A=(1, 5, 6), S=[7, 8, 9, 10]), 2394: dict(T=(0, 4, 5), A=(1, 6, 7), S=[8, 9, 10, 11])}
 

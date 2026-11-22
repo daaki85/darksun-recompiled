@@ -34,7 +34,7 @@ def ops(rg, fwd, down, amp):
 
 def layout(pic):
     """{stand: (a, b)}: the toward (0) and away (1) cycles 'S a S b S' in the figure's script."""
-    import restyle as R, sl_figures as s
+    import sl_figures as s; from _rs import R
     st = [x for x in s.steps(R.B[('SCMD', pic)]) if not x[2] & 0x20]; out = {}
     for i in range(len(st) - 4):
         f = [x[0] for x in st[i:i + 5]]
@@ -43,7 +43,7 @@ def layout(pic):
     return out
 
 def make(pic):
-    import restyle as R
+    from _rs import R
     d = [[[None if q < 0 else int(q) for q in r] for r in __import__('numpy').asarray(f)]
          for f in R.restyle_frames(R.frames(R.B, 'BMP ', pic), pic, False)]; anc = R.anchors(pic, False)
     return make_from_frames(d, anc, AMP.get(pic, 2), layout(pic))
@@ -102,7 +102,7 @@ def show(pic):
 
 def SIDE(pic):
     """The side walk cycle from the script: the first run of non-stand steps after a stand 2."""
-    import restyle as R, sl_figures as s
+    import sl_figures as s; from _rs import R
     st = [x for x in s.steps(R.B[('SCMD', pic)]) if not x[2] & 0x20]
     for i, x in enumerate(st):
         if x[0] == 2 and x[2] & 2 and i + 6 < len(st) and st[i + 1][0] != 2:
