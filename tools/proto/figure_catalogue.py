@@ -9,7 +9,7 @@ figure_catalogue.py OURS_OBJEX PARTY_OBJEX OUT_DIR
     OUT_DIR/img/*.png (the frames side by side), OUT_DIR/img/*.gif (the same, playing) and
     OUT_DIR/README.md. The pictures are made from the games' art: OUT_DIR belongs in the owner's private
     installation files, never in this repository."""
-import json, os, struct, sys
+import json, os, re, struct, sys
 HERE = os.path.dirname(os.path.abspath(__file__))
 sys.path[:0] = [HERE, os.path.join(HERE, '..')]
 import sl_figures as s, people_dress as pd
@@ -63,6 +63,12 @@ def strip(walk, combat, script, conv=None, sl=False):
         if ims:
             out.append((title, ims))
     return out
+
+def poses(frames):
+    """A picture with no script (one stored pose, or poses another figure's script plays): its frames,
+    feet on one line, in groups of up to 9."""
+    ims = [(img(f, pd.WRPAL), len(f[0]) // 2, len(f) - 1) for f in frames]
+    return [('stored poses' if k == 0 else '', ims[k:k + 9]) for k in range(0, len(ims), 9)]
 
 def frames_rows(C, t, pic):
     c = C.get((t, pic))
@@ -140,11 +146,19 @@ def main(ours_path, party_path, out):
     entries = [(int(p), v.get('wr_what', ''), v.get('confidence')) for p, v in props.items() if int(p) not in party]
     entries += [(pic, (props.get(str(pic), {}).get('wr_what') or 'party figure'), 'party') for pic in party]
     entries += [(int(p), 'creature: Shattered Lands figure swapped in', 'batch') for p in batch]
+    # every other picture a creature or character record (RDFF kinds 2 and 5) puts on the map
+    known = {e[0] for e in entries}; extra = {}
+    for (t, o), r in W.items():
+        if t == 'RDFF' and len(r) > 2 and r[2] in (2, 5) and ('OJFF', o) in W:
+            pic = struct.unpack_from('<H', W[('OJFF', o)], s.PIC)[0]
+            if pic not in known and ('BMP ', pic) in W:
+                m = re.search(rb"[A-Za-z][A-Za-z' .-]{2,}", r[:64])
+                extra.setdefault(pic, set()).add(m.group(0).decode().strip() if m else '?')
+    entries += [(pic, ', '.join(sorted(n)), 'record') for pic, n in extra.items()]
     table = []
     for pic, what, conf in sorted(entries):
-        if ('SCMD', pic) not in W:
-            continue
-        rows = [('Ravager', strip(frames_rows(W, 'BMP ', pic), frames_rows(W, 'CBMP', pic), W[('SCMD', pic)]))]
+        rows = [('Ravager', strip(frames_rows(W, 'BMP ', pic), frames_rows(W, 'CBMP', pic), W[('SCMD', pic)])
+                 if ('SCMD', pic) in W else poses(frames_rows(W, 'BMP ', pic)))]
         sl, how = None, ''
         if conf == 'batch':
             sl = batch[str(pic)]; how = 'the Shattered Lands figure swapped in'
@@ -157,7 +171,9 @@ def main(ours_path, party_path, out):
         if sl is not None and ('OJFF', sl) in pd.A:
             w, c, spic, script = pd.body(sl)
             rows.append(('Shattered Lands' + (' (ours: swapped in)' if conf == 'batch' else ''), strip(w, c, script, pd.TABLE, sl=True)))
-        if pic in redrawn:
+        if pic == 2424:
+            kind = "dressed (the 2408 man's Shattered Lands body, in the receptionist's own 27 poses: receptionist.py)"
+        elif pic in redrawn:
             kind = "redrawn (Codex)"
         elif str(pic) in dress and pic not in restyled:
             kind = 'dressed'
@@ -165,15 +181,17 @@ def main(ours_path, party_path, out):
             kind = 'swapped'
         else:
             kind = 'restyled'
-        if conf not in ('batch', 'party') and ('SCMD', pic) in O and O.get(('BMP ', pic)) != W.get(('BMP ', pic)):
-            ours = strip(frames_rows(O, 'BMP ', pic), frames_rows(O, 'CBMP', pic), O[('SCMD', pic)])
+        if conf not in ('batch', 'party') and ('BMP ', pic) in O and O.get(('BMP ', pic)) != W.get(('BMP ', pic)):
+            ours = (strip(frames_rows(O, 'BMP ', pic), frames_rows(O, 'CBMP', pic), O[('SCMD', pic)])
+                    if ('SCMD', pic) in O else poses(frames_rows(O, 'BMP ', pic)))
             rows.append((f'Ours: {kind}', ours))
         elif conf == 'party':
             kind = "the Obsidian Edition's party figure"
             ours = strip(frames_rows(P, 'BMP ', pic), frames_rows(P, 'CBMP', pic), P[('SCMD', pic)])
             rows.append((f'Ours: party figure', ours))
         elif conf != 'batch':
-            kind = 'not changed yet'
+            kind = 'not changed yet' + (' (one stored pose, no script)' if ('SCMD', pic) not in W and len(frames_rows(W, 'BMP ', pic)) == 1 else
+                                        ' (no script of its own)' if ('SCMD', pic) not in W else '')
         name = f'{pic}.png'
         figure(pic, rows, os.path.join(out, 'img', name))
         animation(rows, os.path.join(out, 'img', f'{pic}.gif'))
