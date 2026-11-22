@@ -19,6 +19,7 @@ figures as drawn in WR's colours, the creatures' actual neighbours; party_target
 import os, sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from common import *
+import figure_walks, knight_melee
 HERE=os.path.dirname(os.path.abspath(__file__))
 T=json.load(open(os.path.join(HERE,'party_target.json')))
 K=0.82; MEAN_PULL=0.7; MAX_SHIFT=15.0; PALE=10.0; PALE_C=20.0; SAT=40.0; SAT_SHIFT=6.0; SAT_KEEP=0.85; EDGE_GOAL=0.41; MAX_DROP=5.0; MAX_DROP_DARK=13.0; PALE_PULL=0.1; PALE_MAX=4.0; KNEE=T['C_p90']; ABOVE=0.5; C_TARGET=45.0; EDGE_L=18.0
@@ -123,9 +124,24 @@ def script(sc):
     return bytes(out)
 def restyle(pic):
     new={}
-    for t,combat in (('BMP ',False),('CBMP',True)):
-        if (t,pic) in B: new[(t,pic)]=chunk(restyle_frames(frames(B,t,pic),pic,combat))
     if ('SCMD',pic) in B: new[('SCMD',pic)]=script(B[('SCMD',pic)])
+    for t,combat in (('BMP ',False),('CBMP',True)):
+        if (t,pic) in B:
+            source = frames(B,t,pic)
+            output = restyle_frames(source,pic,combat)
+            if not combat and pic in figure_walks.PICTURES:
+                palette = None
+                if pic in figure_walks.VERINI and pic != 2850:
+                    palette = figure_walks.verini_palette(pic, frames(B,t,2850), source)
+                new['SCMD',pic] = figure_walks.install(pic, output, new['SCMD',pic], anchors(pic, False), palette)
+            if not combat and pic in knight_melee.PICTURES:
+                new['SCMD',pic] = knight_melee.install_profiles(pic, output, new['SCMD',pic])
+            if combat and pic in knight_melee.PICTURES:
+                first_melee_frame = len(output)
+                output.extend(knight_melee.attack_frames(pic))
+            new[(t,pic)] = chunk(output)
+    if pic in knight_melee.PICTURES:
+        new[('SCMD',pic)] = knight_melee.side_attacks(new[('SCMD',pic)], first_melee_frame)
     return new
 # People whose Shattered Lands match has the wrong shape (no legs, wrong build): restyled instead
 # of dressed (people_dress.py leaves them out). Chosen by the owner, 2026-11-20.

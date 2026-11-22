@@ -9,6 +9,7 @@ figure_table.py WR_OBJEX PARTY_SWAP_OBJEX RECOLOUR_OBJEX RESTYLE_OBJEX PROPOSALS
 import sys, os, json, struct
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), '..'))
 import sl_figures as s
+from restyle.figure_walks import PICTURES as CUSTOM_WALKS
 from PIL import Image, ImageDraw
 
 wr_path, party_path, recol_path, rest_path, props_path, batch_path, out_dir, page = sys.argv[1:9]
@@ -77,10 +78,20 @@ batch_names = {'915': 'water elemental', '2538': 'air elemental', '2540': 'fire 
                '2425': 'defiler', '3893': 'shadow', '2409': 'notaku', '2420': 'templar (purple robe)'}
 for p in batch:
     add('Creature', int(p), 'party', batch_names.get(p, ''), batch_names.get(p, ''), 'done', 'SL figure swapped in')
+add('Person', 2424, 'recolour', 'Receptionist, purple sash', 'Receptionist',
+    'seen in Tyr using a stand-in', 'Dressed SL body from 2408 with the original 27 action slots')
 RESTYLED = set(json.load(open(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'people-restyle.json')))['restyle'])
 for p, v in sorted(props.items(), key=lambda kv: int(kv[0])):
     users = ', '.join(sorted(set(v.get('users', []))))[:80]
-    if v.get('confidence') in ('good', 'fair') and int(p) in RESTYLED:
+    if int(p) in (3605, 3606):
+        add('Person', int(p), 'recolour', v.get('wr_what', ''), users,
+            'tested in the opening ambush using stand-in slots', 'Ravager plate with redrawn side stance, walk and side-melee recovery')
+    elif int(p) in CUSTOM_WALKS:
+        person = v.get('confidence') in ('good', 'fair')
+        status = 'walk seen in Tyr using a stand-in' if int(p) in (1753, 2539, 2855) else 'walk verified in the built game data'
+        add('Person' if person else 'No SL equivalent', int(p), 'recolour' if person else 'restyle',
+            v.get('wr_what', ''), users, status, 'Ravager figure with custom directional walks')
+    elif v.get('confidence') in ('good', 'fair') and int(p) in RESTYLED:
         add('Person', int(p), 'recolour', v.get('wr_what', ''), users, 'restyled, not yet seen in the game',
             "WR's own art restyled (SL's nearest figure had the wrong shape)")
     elif v.get('confidence') in ('good', 'fair'):

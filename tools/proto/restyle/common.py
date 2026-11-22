@@ -1,6 +1,7 @@
 import sys,json,struct
+from pathlib import Path
 import numpy as np
-sys.path.insert(0,'/home/user/darksun-recompiled/tools')
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 import sl_figures as s
 _,A=s.load('/tmp/playtest/sl_mod/SEGOBJEX.GFF'); _,B=s.load('/tmp/playtest/rav/OBJEX.GFF')
 SLPAL=s.vga(s.load('/tmp/playtest/inst/GPLDATA.GFF')[1][('PAL ',1)])

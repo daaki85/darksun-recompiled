@@ -323,18 +323,25 @@ def sheet(out, pics, data, Z=3):
 
 
 def build(base, out, data, every=False):
-    """The dressed figures into BASE, as OUT; those in people-restyle.json are left out (restyled)."""
+    """The dressed figures into BASE, as OUT, with the Ravager figures that have custom animations unless comparing every dressed body."""
     skip = set() if every else set(json.load(open(os.path.join(os.path.dirname(DATA), 'people-restyle.json')))['restyle'])
     new = {}
+    if not every:
+        from restyle.restyle import figure_walks, knight_melee, restyle
+        for pic in knight_melee.PICTURES + figure_walks.PICTURES:
+            new.update(restyle(pic))
     for wp in [w for w in data['dress'] if int(w) not in skip]:
         dw, dc, w, c, script = dressed(wp, data)
         conv = lambda fs: [[[None if q is None else TABLE[q] for q in r] for r in f] for f in fs]
+        if int(wp) == 2408:
+            import receptionist
+            new['BMP ', 2424] = receptionist.picture(conv(dw), conv(dc), frames_of(B, 'BMP ', 2424), s.picture)
         new[('BMP ', int(wp))] = s.picture(conv(dw))
         if dc:
             new[('CBMP', int(wp))] = s.picture(conv(dc))
         wr_like = B.get(('SCMD', int(wp)), b'')
         new[('SCMD', int(wp))] = s.sl_script_for_wr(script, wr_like or b'\0' * (s.SLOTS * 2))
-    s.write_ranged(base, new, out); print(out, sum(k[0] == 'BMP ' for k in new), 'figures dressed')
+    s.write_ranged(base, new, out); print(out, sum(k[0] == 'BMP ' for k in new), 'figure pictures written')
 
 
 if __name__ == '__main__':
