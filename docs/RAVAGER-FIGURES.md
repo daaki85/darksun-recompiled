@@ -13,6 +13,16 @@ The before-and-after pictures are not kept in this repository: they are made fro
 
 The redrawn figures' sheets (`tools/proto/restyle/walks/` and `knights/`, read by `figure_walks.py` and `knight_melee.py`) are drawn from Ravager's art, so they are kept in the owner's private installation files (`ravager-figure-redraws/`) and copied into those two folders, which git ignores, before a build.
 
+**The approved redraws** of the figure catalogue (the owner's private installation files,
+`ravager-figure-redraws/catalogue/`, reviewed there figure by figure) go in last:
+`tools/proto/import_catalogue.py CATALOGUE BASE_DIR OUT_DIR [STOCK_DIR]` reads the catalogue's
+`approved.json` (which package holds each approved picture, in the order they apply), writes them
+over the build in BASE_DIR, moves the greater elementals' objects to their own figures (428 to 3954,
+429 to 3955) and writes the region chunks a scene needs (the Mines3 dining table, `RGN03A.GFF`). A
+still figure's package may hold only its pictures; its script then comes from the shipped game in
+STOCK_DIR, since the dressing gives some of those pictures a walking script. Every frame written is
+decoded and every script step checked against the frames it shows, before the game sees it.
+
 ## Party (14)
 
 | WR picture | What it is | Used for | Change | Status |
