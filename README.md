@@ -134,4 +134,13 @@ feeds them back in.
 - [OpenDS](https://github.com/VirInvictus/opends) (MIT): the documentation of
   DSUN.EXE's Borland overlay format that `build_image.py` follows.
 
+## License
+
+The project's own code, tools and documentation are under the [MIT license](LICENSE).
+That covers nothing of the game: the code translated from `DSUN.EXE` and every file
+made from the game are generated on the player's machine from their own copy and are
+not part of this repository. The libraries under `third_party/` keep their own
+licenses (pcrecomp MIT, Nuked OPL3 LGPL-2.1, Munt LGPL-2.1, stb_vorbis public
+domain/MIT, SDL2 zlib, Spleen BSD-2-Clause).
+
 Fan project, not affiliated with or endorsed by SSI, Wizards of the Coast or GOG.
