@@ -1,0 +1,1355 @@
+{
+ "25": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "party",
+  "wr_what": "Terrannus (object 300, human man)",
+  "sl_what": "already swapped by the party build (sl_figures.py build)",
+  "users": [
+   "terrannus"
+  ]
+ },
+ "598": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "party",
+  "wr_what": "Gerrakis (half-giant man)",
+  "sl_what": "already swapped by the party build (sl_figures.py build)",
+  "users": [
+   "gerrakis"
+  ]
+ },
+ "650": {
+  "sl_object": 310,
+  "sl_picture": 2470,
+  "confidence": "fair",
+  "wr_what": "small villager, green shirt (halfling-sized)",
+  "sl_what": "halfling man (party)",
+  "users": [
+   "villager",
+   "strongrip",
+   "branch"
+  ]
+ },
+ "651": {
+  "sl_object": 311,
+  "sl_picture": 2472,
+  "confidence": "fair",
+  "wr_what": "small villager, red (halfling-sized)",
+  "sl_what": "halfling woman (party)",
+  "users": [
+   "soothsurg",
+   "villager",
+   "greshard",
+   "leaftop",
+   "halfling"
+  ]
+ },
+ "691": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "party",
+  "wr_what": "elf man (object 304)",
+  "sl_what": "already swapped by the party build (sl_figures.py build)",
+  "users": [
+   "armorer x2",
+   "weaponer x2",
+   "salesperson x6"
+  ]
+ },
+ "693": {
+  "confidence": "none",
+  "wr_what": "magma golem (orange blob giant)",
+  "sl_what": "red brute beast",
+  "users": [
+   "magma golem"
+  ],
+  "note": "owner, 2026-11-20: the SL stand-in doesn't fit; needs new art",
+  "rejected_sl_picture": 1691
+ },
+ "714": {
+  "sl_object": 85,
+  "sl_picture": 1669,
+  "confidence": "fair",
+  "wr_what": "innkeeper, teal (behind a counter, no walking)",
+  "sl_what": "man in blue tunic",
+  "users": [
+   "innkeeper"
+  ]
+ },
+ "715": {
+  "sl_object": 206,
+  "sl_picture": 2131,
+  "confidence": "fair",
+  "wr_what": "shopkeeper, dark (no walking)",
+  "sl_what": "dark-haired man",
+  "users": [
+   "shopkeeper"
+  ]
+ },
+ "716": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "beggar, seated",
+  "sl_what": "none: needs new art (an SL body could be dressed for it)",
+  "users": [
+   "beggar"
+  ]
+ },
+ "718": {
+  "sl_object": 85,
+  "sl_picture": 1669,
+  "confidence": "fair",
+  "wr_what": "man, teal, holding cloth (no walking)",
+  "sl_what": "man in blue tunic",
+  "users": [
+   "stitches"
+  ]
+ },
+ "719": {
+  "sl_object": 118,
+  "sl_picture": 154,
+  "confidence": "fair",
+  "wr_what": "merchant woman, purple robe (no walking)",
+  "sl_what": "robed blonde woman, purple",
+  "users": [
+   "merchant"
+  ]
+ },
+ "720": {
+  "sl_object": 206,
+  "sl_picture": 2131,
+  "confidence": "fair",
+  "wr_what": "merchant, black (no walking)",
+  "sl_what": "dark-haired man",
+  "users": [
+   "merchant"
+  ]
+ },
+ "721": {
+  "sl_object": 32003,
+  "sl_picture": 2059,
+  "confidence": "fair",
+  "wr_what": "woman, pink dress (no walking)",
+  "sl_what": "woman, purple top",
+  "users": [
+   "tasarla"
+  ]
+ },
+ "722": {
+  "sl_object": 206,
+  "sl_picture": 2131,
+  "confidence": "fair",
+  "wr_what": "merchant, black (no walking)",
+  "sl_what": "dark-haired man",
+  "users": [
+   "merchant"
+  ]
+ },
+ "779": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "party",
+  "wr_what": "Ar'Anda (half-elf/elf woman)",
+  "sl_what": "already swapped by the party build (sl_figures.py build)",
+  "users": [
+   "ar'anda"
+  ]
+ },
+ "914": {
+  "sl_object": 12,
+  "sl_picture": 48,
+  "confidence": "fair",
+  "wr_what": "beast-headed giant, skull head, loincloth",
+  "sl_what": "giant brute",
+  "users": [
+   "ptar",
+   "beasthead giant x2"
+  ]
+ },
+ "1268": {
+  "sl_object": 12,
+  "sl_picture": 48,
+  "confidence": "fair",
+  "wr_what": "beast-headed giant, crouched",
+  "sl_what": "giant brute",
+  "users": [
+   "ptar"
+  ]
+ },
+ "1412": {
+  "sl_object": 12,
+  "sl_picture": 48,
+  "confidence": "fair",
+  "wr_what": "beast-headed giant, horned, loincloth",
+  "sl_what": "giant brute",
+  "users": [
+   "ptar's friend",
+   "beasthead giant x2"
+  ]
+ },
+ "1754": {
+  "confidence": "none",
+  "wr_what": "skeleton warrior, red cloak, sword",
+  "sl_what": "skeleton warrior",
+  "users": [
+   "skeletonwarrior x3"
+  ],
+  "note": "owner, 2026-11-20: the SL stand-in doesn't fit; needs new art",
+  "rejected_sl_picture": 686
+ },
+ "1755": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "yuan-ti (purple serpent)",
+  "sl_what": "none: needs new art (needs drawing)",
+  "users": [
+   "yuan-ti x2"
+  ]
+ },
+ "1756": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "giant snake (white)",
+  "sl_what": "none: needs new art (needs drawing)",
+  "users": [
+   "giant snake x3"
+  ]
+ },
+ "1757": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "snake (orange)",
+  "sl_what": "none: needs new art (needs drawing)",
+  "users": [
+   "kartang"
+  ]
+ },
+ "1758": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "snake (teal)",
+  "sl_what": "none: needs new art (needs drawing)",
+  "users": [
+   "traxiss",
+   "kartang"
+  ]
+ },
+ "2022": {
+  "sl_object": 309,
+  "sl_picture": 2468,
+  "confidence": "fair",
+  "wr_what": "big woman, orange hair",
+  "sl_what": "half-giant woman (party)",
+  "users": [
+   "melody"
+  ]
+ },
+ "2345": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "sundew (plant blob)",
+  "sl_what": "none: needs new art (needs drawing)",
+  "users": [
+   "sundew"
+  ]
+ },
+ "2394": {
+  "confidence": "none",
+  "wr_what": "obsidian golem (black)",
+  "sl_what": "grey golem",
+  "users": [
+   "obsidian golem"
+  ],
+  "note": "owner, 2026-11-20: the SL stand-in doesn't fit; needs new art",
+  "rejected_sl_picture": 2246
+ },
+ "2403": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "snappersaw (spiky plant)",
+  "sl_what": "none: needs new art (needs drawing)",
+  "users": [
+   "snappersaw"
+  ]
+ },
+ "2405": {
+  "sl_object": 1646,
+  "sl_picture": 307,
+  "confidence": "fair",
+  "wr_what": "greater air elemental (white cloud)",
+  "sl_what": "cloud creature",
+  "users": [
+   "grt air elem"
+  ]
+ },
+ "2408": {
+  "sl_object": 206,
+  "sl_picture": 2131,
+  "confidence": "fair",
+  "wr_what": "dark-skinned man, purple sash",
+  "sl_what": "dark-haired man",
+  "users": [
+   "caravan master",
+   "miner",
+   "guard"
+  ]
+ },
+ "2410": {
+  "sl_object": 32003,
+  "sl_picture": 2059,
+  "confidence": "fair",
+  "wr_what": "woman, white top, green skirt",
+  "sl_what": "woman, purple top",
+  "users": [
+   "fayina"
+  ]
+ },
+ "2411": {
+  "sl_object": 112,
+  "sl_picture": 630,
+  "confidence": "fair",
+  "wr_what": "thief: man, white shirt, red headband",
+  "sl_what": "hooded rogue, green",
+  "users": [
+   "thief"
+  ]
+ },
+ "2412": {
+  "sl_object": 11,
+  "sl_picture": 924,
+  "confidence": "fair",
+  "wr_what": "dark-skinned man, black shorts",
+  "sl_what": "bare-chested man (slave/gladiator)",
+  "users": [
+   "miner",
+   "draxan",
+   "mercenary",
+   "va guard",
+   "kitchen slave"
+  ]
+ },
+ "2413": {
+  "sl_object": 122,
+  "sl_picture": 2252,
+  "confidence": "good",
+  "wr_what": "jann (blue skin, yellow trousers)",
+  "sl_what": "genie (blue-skinned, sash)",
+  "users": [
+   "jann"
+  ]
+ },
+ "2414": {
+  "sl_object": 23,
+  "sl_picture": 239,
+  "confidence": "fair",
+  "wr_what": "man, red shirt (Draxan soldier)",
+  "sl_what": "warrior with axe",
+  "users": [
+   "zeegrat",
+   "pedestrian",
+   "prisoner",
+   "slave",
+   "draxan x5"
+  ]
+ },
+ "2415": {
+  "sl_object": 32,
+  "sl_picture": 195,
+  "confidence": "fair",
+  "wr_what": "man, purple and red",
+  "sl_what": "commoner man",
+  "users": [
+   "pedestrian",
+   "halik",
+   "miner",
+   "guard"
+  ]
+ },
+ "2416": {
+  "sl_object": 118,
+  "sl_picture": 154,
+  "confidence": "fair",
+  "wr_what": "dark-skinned woman, orange robe",
+  "sl_what": "robed blonde woman, purple",
+  "users": [
+   "pedestrian"
+  ]
+ },
+ "2417": {
+  "sl_object": 103,
+  "sl_picture": 1053,
+  "confidence": "fair",
+  "wr_what": "blonde woman, green skirt",
+  "sl_what": "blonde woman",
+  "users": [
+   "pedestrian",
+   "thesisa",
+   "zombie"
+  ]
+ },
+ "2419": {
+  "sl_object": 55,
+  "sl_picture": 246,
+  "confidence": "fair",
+  "wr_what": "dark-skinned man in black",
+  "sl_what": "dark-clad warrior, sword",
+  "users": [
+   "va guard",
+   "slave x2",
+   "guard",
+   "warrior",
+   "miner"
+  ]
+ },
+ "2421": {
+  "sl_object": 75,
+  "sl_picture": 559,
+  "confidence": "fair",
+  "wr_what": "bald muscular man, blue loincloth (soldier)",
+  "sl_what": "spearman",
+  "users": [
+   "warrior",
+   "tyrian soldier x2"
+  ]
+ },
+ "2422": {
+  "sl_object": 73,
+  "sl_picture": 424,
+  "confidence": "fair",
+  "wr_what": "red-haired man, purple",
+  "sl_what": "bald commoner man",
+  "users": [
+   "miner x3",
+   "winchester",
+   "slave",
+   "ladel",
+   "warrior"
+  ]
+ },
+ "2423": {
+  "sl_object": 32,
+  "sl_picture": 195,
+  "confidence": "fair",
+  "wr_what": "red-haired man, red",
+  "sl_what": "commoner man",
+  "users": [
+   "mug",
+   "arslan",
+   "slave"
+  ]
+ },
+ "2426": {
+  "sl_object": 32003,
+  "sl_picture": 2059,
+  "confidence": "fair",
+  "wr_what": "long blonde hair, slender, light dress",
+  "sl_what": "woman, purple top",
+  "users": [
+   "preserver",
+   "va member"
+  ]
+ },
+ "2427": {
+  "sl_object": 118,
+  "sl_picture": 154,
+  "confidence": "fair",
+  "wr_what": "blonde woman in red robe, green skirt",
+  "sl_what": "robed blonde woman, purple",
+  "users": [
+   "deathraker",
+   "kranix",
+   "draxan x7",
+   "jumah",
+   "templar x6",
+   "zorani"
+  ]
+ },
+ "2428": {
+  "sl_object": 110,
+  "sl_picture": 563,
+  "confidence": "fair",
+  "wr_what": "bald muscular man, wristbands (Draxan/gladiator)",
+  "sl_what": "brute with axe",
+  "users": [
+   "draxan x9",
+   "gladiator x4"
+  ]
+ },
+ "2429": {
+  "sl_object": 293,
+  "sl_picture": 1781,
+  "confidence": "fair",
+  "wr_what": "huge muscular man, green bands (half-giant)",
+  "sl_what": "big brute",
+  "users": [
+   "slave",
+   "guard x2",
+   "miner x2",
+   "thug",
+   "draxan",
+   "zombie",
+   "fighter x3"
+  ]
+ },
+ "2430": {
+  "sl_object": 32003,
+  "sl_picture": 2059,
+  "confidence": "fair",
+  "wr_what": "woman, teal dress",
+  "sl_what": "woman, purple top",
+  "users": [
+   "chander",
+   "va member"
+  ]
+ },
+ "2431": {
+  "sl_object": 85,
+  "sl_picture": 1669,
+  "confidence": "good",
+  "wr_what": "man, blue shirt",
+  "sl_what": "man in blue tunic",
+  "users": [
+   "ulbin"
+  ]
+ },
+ "2432": {
+  "sl_object": 112,
+  "sl_picture": 630,
+  "confidence": "fair",
+  "wr_what": "man, green tunic",
+  "sl_what": "hooded rogue, green",
+  "users": [
+   "wren"
+  ]
+ },
+ "2433": {
+  "sl_object": 78,
+  "sl_picture": 354,
+  "confidence": "fair",
+  "wr_what": "man, purple robe",
+  "sl_what": "old robed mage, purple",
+  "users": [
+   "blick",
+   "va member"
+  ]
+ },
+ "2434": {
+  "sl_object": 55,
+  "sl_picture": 246,
+  "confidence": "fair",
+  "wr_what": "dark-haired man, bare chest",
+  "sl_what": "dark-clad warrior, sword",
+  "users": [
+   "guard x2",
+   "miner x2"
+  ]
+ },
+ "2435": {
+  "sl_object": 282,
+  "sl_picture": 493,
+  "confidence": "fair",
+  "wr_what": "grey-haired man",
+  "sl_what": "white-haired old man",
+  "users": [
+   "granger",
+   "miner",
+   "citizen x2",
+   "zombie",
+   "dream"
+  ]
+ },
+ "2436": {
+  "sl_object": 11,
+  "sl_picture": 924,
+  "confidence": "fair",
+  "wr_what": "bald man, pink loincloth",
+  "sl_what": "bare-chested man (slave/gladiator)",
+  "users": [
+   "mercenary",
+   "slave",
+   "guard x3",
+   "switchman",
+   "miner"
+  ]
+ },
+ "2437": {
+  "sl_object": 32000,
+  "sl_picture": 2072,
+  "confidence": "fair",
+  "wr_what": "huge man, teal (half-giant)",
+  "sl_what": "half-giant",
+  "users": [
+   "slave",
+   "brainsniffer"
+  ]
+ },
+ "2438": {
+  "sl_object": 41,
+  "sl_picture": 1252,
+  "confidence": "fair",
+  "wr_what": "woman, red top, teal skirt",
+  "sl_what": "woman warrior, sword",
+  "users": [
+   "drisha",
+   "guard x2"
+  ]
+ },
+ "2439": {
+  "sl_object": 32003,
+  "sl_picture": 2059,
+  "confidence": "fair",
+  "wr_what": "woman, purple",
+  "sl_what": "woman, purple top",
+  "users": [
+   "victim"
+  ]
+ },
+ "2451": {
+  "sl_object": 114,
+  "sl_picture": 676,
+  "confidence": "fair",
+  "wr_what": "small dark-haired man",
+  "sl_what": "small man",
+  "users": [
+   "snaggle",
+   "warrior",
+   "donno",
+   "scout"
+  ]
+ },
+ "2452": {
+  "sl_object": 302,
+  "sl_picture": 2454,
+  "confidence": "fair",
+  "wr_what": "small grey-haired man (dwarf-sized)",
+  "sl_what": "dwarf man (party)",
+  "users": [
+   "runner",
+   "cleave",
+   "firegazer",
+   "axestopper"
+  ]
+ },
+ "2453": {
+  "sl_object": 73,
+  "sl_picture": 424,
+  "confidence": "fair",
+  "wr_what": "orange-haired man, purple",
+  "sl_what": "bald commoner man",
+  "users": [
+   "dmitri",
+   "va member"
+  ]
+ },
+ "2454": {
+  "sl_object": 311,
+  "sl_picture": 2472,
+  "confidence": "fair",
+  "wr_what": "small woman, yellow",
+  "sl_what": "halfling woman (party)",
+  "users": [
+   "dodger",
+   "halla",
+   "glade",
+   "irma"
+  ]
+ },
+ "2455": {
+  "sl_object": 310,
+  "sl_picture": 2470,
+  "confidence": "fair",
+  "wr_what": "small man, purple",
+  "sl_what": "halfling man (party)",
+  "users": [
+   "halfling",
+   "sureshot",
+   "ash"
+  ]
+ },
+ "2456": {
+  "sl_object": 103,
+  "sl_picture": 1053,
+  "confidence": "fair",
+  "wr_what": "woman, pink top",
+  "sl_what": "blonde woman",
+  "users": [
+   "dariya",
+   "silvain"
+  ]
+ },
+ "2457": {
+  "sl_object": 122,
+  "sl_picture": 2252,
+  "confidence": "good",
+  "wr_what": "jann (blue skin, yellow)",
+  "sl_what": "genie (blue-skinned, sash)",
+  "users": [
+   "jann",
+   "asim drac",
+   "jerrid"
+  ]
+ },
+ "2458": {
+  "sl_object": 122,
+  "sl_picture": 2252,
+  "confidence": "fair",
+  "wr_what": "jann (blue skin, orange)",
+  "sl_what": "genie (blue-skinned, sash)",
+  "users": [
+   "masina",
+   "treasure guard",
+   "guard x2"
+  ]
+ },
+ "2459": {
+  "sl_object": 122,
+  "sl_picture": 2252,
+  "confidence": "fair",
+  "wr_what": "jann (blue skin, grey)",
+  "sl_what": "genie (blue-skinned, sash)",
+  "users": [
+   "treasure guard",
+   "guard x7"
+  ]
+ },
+ "2460": {
+  "sl_object": 122,
+  "sl_picture": 2252,
+  "confidence": "fair",
+  "wr_what": "jann (blue skin, green)",
+  "sl_what": "genie (blue-skinned, sash)",
+  "users": [
+   "magnolia"
+  ]
+ },
+ "2461": {
+  "sl_object": 32002,
+  "sl_picture": 2095,
+  "confidence": "fair",
+  "wr_what": "woman, green loincloth",
+  "sl_what": "dark-haired woman fighter",
+  "users": [
+   "surrakina"
+  ]
+ },
+ "2462": {
+  "sl_object": 282,
+  "sl_picture": 493,
+  "confidence": "fair",
+  "wr_what": "grey-haired man, brown robe",
+  "sl_what": "white-haired old man",
+  "users": [
+   "warrior"
+  ]
+ },
+ "2463": {
+  "sl_object": 14,
+  "sl_picture": 724,
+  "confidence": "fair",
+  "wr_what": "dark-skinned man, white robe",
+  "sl_what": "robed elder, blue, staff",
+  "users": [
+   "merchant",
+   "raenika"
+  ]
+ },
+ "2464": {
+  "sl_object": 85,
+  "sl_picture": 1669,
+  "confidence": "good",
+  "wr_what": "man, blue shirt",
+  "sl_what": "man in blue tunic",
+  "users": [
+   "acar",
+   "merchant",
+   "dhukkar",
+   "va member"
+  ]
+ },
+ "2466": {
+  "sl_object": 78,
+  "sl_picture": 354,
+  "confidence": "fair",
+  "wr_what": "white-haired old man, purple robe",
+  "sl_what": "old robed mage, purple",
+  "users": [
+   "nnamdi"
+  ]
+ },
+ "2467": {
+  "sl_object": 41,
+  "sl_picture": 1252,
+  "confidence": "fair",
+  "wr_what": "woman, red and orange",
+  "sl_what": "woman warrior, sword",
+  "users": [
+   "romila"
+  ]
+ },
+ "2468": {
+  "sl_object": 10,
+  "sl_picture": 1750,
+  "confidence": "good",
+  "wr_what": "grey-haired man, grey",
+  "sl_what": "grey-haired man",
+  "users": [
+   "matthias"
+  ]
+ },
+ "2469": {
+  "sl_object": 32000,
+  "sl_picture": 2072,
+  "confidence": "good",
+  "wr_what": "huge bald muscular man",
+  "sl_what": "half-giant",
+  "users": [
+   "gilad",
+   "davin",
+   "velden"
+  ]
+ },
+ "2470": {
+  "sl_object": 309,
+  "sl_picture": 2468,
+  "confidence": "good",
+  "wr_what": "big woman, red hair, purple",
+  "sl_what": "half-giant woman (party)",
+  "users": [
+   "kiril"
+  ]
+ },
+ "2471": {
+  "sl_object": 309,
+  "sl_picture": 2468,
+  "confidence": "fair",
+  "wr_what": "big woman, dark hair, teal",
+  "sl_what": "half-giant woman (party)",
+  "users": [
+   "helmine"
+  ]
+ },
+ "2472": {
+  "sl_object": 24,
+  "sl_picture": 1124,
+  "confidence": "fair",
+  "wr_what": "grey-haired old woman, long grey robe",
+  "sl_what": "hooded red robe",
+  "users": [
+   "melantha"
+  ]
+ },
+ "2473": {
+  "sl_object": 118,
+  "sl_picture": 154,
+  "confidence": "fair",
+  "wr_what": "woman, white robe, pink hair",
+  "sl_what": "robed blonde woman, purple",
+  "users": [
+   "aravinda"
+  ]
+ },
+ "2474": {
+  "sl_object": 55,
+  "sl_picture": 246,
+  "confidence": "fair",
+  "wr_what": "dark-armoured man, white headband",
+  "sl_what": "dark-clad warrior, sword",
+  "users": [
+   "leader"
+  ]
+ },
+ "2475": {
+  "sl_object": 32002,
+  "sl_picture": 2095,
+  "confidence": "fair",
+  "wr_what": "woman, purple",
+  "sl_what": "dark-haired woman fighter",
+  "users": [
+   "miner"
+  ]
+ },
+ "2476": {
+  "sl_object": 73,
+  "sl_picture": 424,
+  "confidence": "fair",
+  "wr_what": "red-haired man, grey",
+  "sl_what": "bald commoner man",
+  "users": [
+   "miner x2"
+  ]
+ },
+ "2526": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "mushroom lady, crouched",
+  "sl_what": "none: needs new art (an SL body could be dressed for it)",
+  "users": [
+   "mushroom lady"
+  ]
+ },
+ "2536": {
+  "sl_object": 39,
+  "sl_picture": 1342,
+  "confidence": "good",
+  "wr_what": "revenant (grey ghostly man)",
+  "sl_what": "grey ghoul",
+  "users": [
+   "revenant"
+  ]
+ },
+ "2537": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "aurumvorax (small golden beast)",
+  "sl_what": "none: needs new art (needs drawing)",
+  "users": [
+   "aurumvorax"
+  ]
+ },
+ "2539": {
+  "confidence": "none",
+  "wr_what": "soulshard (grey stone man)",
+  "sl_what": "grey golem",
+  "users": [
+   "soulshard"
+  ],
+  "note": "owner, 2026-11-20: the SL stand-in doesn't fit; needs new art",
+  "rejected_sl_picture": 2246
+ },
+ "2554": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "great feyr (tentacled maw)",
+  "sl_what": "none: needs new art (needs drawing)",
+  "users": [
+   "great feyr x2",
+   "greater feyr"
+  ]
+ },
+ "2555": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "umber hulk",
+  "sl_what": "none: needs new art (needs drawing)",
+  "users": [
+   "umber hulk x3"
+  ]
+ },
+ "2556": {
+  "confidence": "none",
+  "wr_what": "shambling mound (green)",
+  "sl_what": "green brute",
+  "users": [
+   "shambling mound"
+  ],
+  "note": "owner, 2026-11-20: the SL stand-in doesn't fit; needs new art",
+  "rejected_sl_picture": 2076
+ },
+ "2557": {
+  "sl_object": 172,
+  "sl_picture": 1077,
+  "confidence": "good",
+  "wr_what": "fire elemental (flames)",
+  "sl_what": "fire elemental",
+  "users": [
+   "fire elem",
+   "grt fire elem"
+  ]
+ },
+ "2558": {
+  "sl_object": 206,
+  "sl_picture": 2131,
+  "confidence": "fair",
+  "wr_what": "man, dark green",
+  "sl_what": "dark-haired man",
+  "users": [
+   "butler",
+   "leader"
+  ]
+ },
+ "2570": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "Zorani, seated cross-legged",
+  "sl_what": "none: needs new art (an SL body could be dressed for it)",
+  "users": [
+   "zorani"
+  ]
+ },
+ "2575": {
+  "sl_object": 5,
+  "sl_picture": 1179,
+  "confidence": "fair",
+  "wr_what": "lord warrior, black armour",
+  "sl_what": "dark-clad warrior, club",
+  "users": [
+   "lord warrior"
+  ]
+ },
+ "2778": {
+  "sl_object": 17,
+  "sl_picture": 1448,
+  "confidence": "fair",
+  "wr_what": "tavernkeeper, green (no walking)",
+  "sl_what": "green-cloaked elder",
+  "users": [
+   "tavernkeeper"
+  ]
+ },
+ "2843": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "yuan-ti (red and gold serpent)",
+  "sl_what": "none: needs new art (needs drawing)",
+  "users": [
+   "yuan-ti"
+  ]
+ },
+ "2844": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "yuan-ti (red serpent)",
+  "sl_what": "none: needs new art (needs drawing)",
+  "users": [
+   "yuan-ti"
+  ]
+ },
+ "2845": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "serpent (purple)",
+  "sl_what": "none: needs new art (needs drawing)",
+  "users": [
+   "tantris"
+  ]
+ },
+ "2846": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "serpent (teal)",
+  "sl_what": "none: needs new art (needs drawing)",
+  "users": [
+   "jestris"
+  ]
+ },
+ "2847": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "serpent (orange)",
+  "sl_what": "none: needs new art (needs drawing)",
+  "users": [
+   "solurnis"
+  ]
+ },
+ "2849": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "serpent (green)",
+  "sl_what": "none: needs new art (needs drawing)",
+  "users": [
+   "senturnis"
+  ]
+ },
+ "2850": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "verini (tan ape-lizard)",
+  "sl_what": "none: needs new art (needs drawing)",
+  "users": [
+   "verini x2",
+   "guard x2"
+  ]
+ },
+ "2852": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "verini (yellow)",
+  "sl_what": "none: needs new art (needs drawing)",
+  "users": [
+   "prosser",
+   "verini child",
+   "winter"
+  ]
+ },
+ "2853": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "verini (dark red)",
+  "sl_what": "none: needs new art (needs drawing)",
+  "users": [
+   "rhone",
+   "galinix",
+   "speaker",
+   "silvan"
+  ]
+ },
+ "2854": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "verini (grey)",
+  "sl_what": "none: needs new art (needs drawing)",
+  "users": [
+   "nortemus",
+   "zydeko"
+  ]
+ },
+ "2855": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "verini (white)",
+  "sl_what": "none: needs new art (needs drawing)",
+  "users": [
+   "fori"
+  ]
+ },
+ "2858": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "verini (green)",
+  "sl_what": "none: needs new art (needs drawing)",
+  "users": [
+   "elovan",
+   "farmer",
+   "xarax"
+  ]
+ },
+ "2859": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "verini (orange)",
+  "sl_what": "none: needs new art (needs drawing)",
+  "users": [
+   "jakath",
+   "verini x2",
+   "guard"
+  ]
+ },
+ "2860": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "verini (purple)",
+  "sl_what": "none: needs new art (needs drawing)",
+  "users": [
+   "kell",
+   "yerath"
+  ]
+ },
+ "2861": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "verini (red)",
+  "sl_what": "none: needs new art (needs drawing)",
+  "users": [
+   "talo",
+   "brotel",
+   "guard x2"
+  ]
+ },
+ "2863": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "verini (brown)",
+  "sl_what": "none: needs new art (needs drawing)",
+  "users": [
+   "guard x3",
+   "verini"
+  ]
+ },
+ "2884": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "mind flayer, green robe",
+  "sl_what": "none: needs new art (an SL robed body (354) with a new head)",
+  "users": [
+   "mindflayer"
+  ]
+ },
+ "2885": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "mind flayer, pink robe",
+  "sl_what": "none: needs new art (an SL robed body (354) with a new head)",
+  "users": [
+   "mindflayer x3"
+  ]
+ },
+ "2887": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "mind flayer, orange robe",
+  "sl_what": "none: needs new art (an SL robed body (354) with a new head)",
+  "users": [
+   "mind flayer"
+  ]
+ },
+ "2888": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "mind flayer, red robe",
+  "sl_what": "none: needs new art (an SL robed body (354) with a new head)",
+  "users": [
+   "mind flayer"
+  ]
+ },
+ "2889": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "mind flayer, teal robe",
+  "sl_what": "none: needs new art (an SL robed body (354) with a new head)",
+  "users": [
+   "mindflayer"
+  ]
+ },
+ "2890": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "mind flayer, black robe",
+  "sl_what": "none: needs new art (an SL robed body (354) with a new head)",
+  "users": [
+   "prim"
+  ]
+ },
+ "2891": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "mind flayer, purple robe",
+  "sl_what": "none: needs new art (an SL robed body (354) with a new head)",
+  "users": [
+   "mindflayer x6",
+   "mind flayer"
+  ]
+ },
+ "2895": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "yuan-ti (white serpent)",
+  "sl_what": "none: needs new art (needs drawing)",
+  "users": [
+   "yuan-ti"
+  ]
+ },
+ "3461": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "Sirah, crouched",
+  "sl_what": "none: needs new art (an SL body could be dressed for it)",
+  "users": [
+   "sirah"
+  ]
+ },
+ "3509": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "tree creature",
+  "sl_what": "none: needs new art (needs drawing)",
+  "users": []
+ },
+ "3605": {
+  "sl_object": 29,
+  "sl_picture": 1484,
+  "confidence": "fair",
+  "wr_what": "white knight, silver armour",
+  "sl_what": "blue-clad fighter",
+  "users": [
+   "alhena",
+   "white knight"
+  ]
+ },
+ "3606": {
+  "sl_object": 5,
+  "sl_picture": 1179,
+  "confidence": "fair",
+  "wr_what": "black knight, black armour",
+  "sl_what": "dark-clad warrior, club",
+  "users": [
+   "black knight"
+  ]
+ },
+ "3612": {
+  "sl_object": 32002,
+  "sl_picture": 2095,
+  "confidence": "fair",
+  "wr_what": "woman, purple (miner)",
+  "sl_what": "dark-haired woman fighter",
+  "users": [
+   "miner x2"
+  ]
+ },
+ "3613": {
+  "sl_object": 75,
+  "sl_picture": 559,
+  "confidence": "fair",
+  "wr_what": "miner with pick",
+  "sl_what": "spearman",
+  "users": [
+   "miner"
+  ]
+ },
+ "3866": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "none",
+  "wr_what": "Generoe, plant woman",
+  "sl_what": "none: needs new art (an SL body could be dressed for it)",
+  "users": [
+   "generoe"
+  ]
+ },
+ "3917": {
+  "sl_object": null,
+  "sl_picture": null,
+  "confidence": "party",
+  "wr_what": "Thy'rokh (thri-kreen)",
+  "sl_what": "already swapped by the party build (sl_figures.py build)",
+  "users": [
+   "thy-rohk"
+  ]
+ },
+ "1753": {
+  "confidence": "none",
+  "wr_what": "skeleton (white bones)",
+  "note": "owner, 2026-11-20: SL's skeleton warrior (686) doesn't fit; swap taken out; needs new art",
+  "users": [
+   "skeleton"
+  ]
+ }
+}

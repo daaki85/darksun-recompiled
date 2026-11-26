@@ -338,7 +338,8 @@ rendering.
   to draw the *Shattered Lands* figure in its place, per the owner's
   preference. The sequel's figures are larger, so this needs a mapping table
   (sprite id to sprite id) and handling of the size difference; it belongs to
-  the resource-loading layer, once both games run.
+  the resource-loading layer, once both games run. The data side is examined
+  in [FIGURES.md](FIGURES.md).
 - **The Obsidian Edition** patches DSUN.EXE in 185 places with `INT nn`
   instructions its DOS helper (DSCLOG) answers. The first route is to
   translate the patched EXE and the helper together; the second is to move
