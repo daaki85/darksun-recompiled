@@ -104,6 +104,40 @@ difference (the sequel's figures are larger).
 Higher frame rates where the engine allows, upscaled art, quality-of-life
 features through the C hooks.
 
+## Phase 10: Wake of the Ravager's colours (long term)
+
+The owner's choice (2026-11-27): Wake of the Ravager keeps its own colours in
+the DOSBox mod, and matching them to Shattered Lands is a job for this program.
+Measured against Shattered Lands, the sequel is darker and has more contrast:
+its shadows go to near black, and its shared colours are pure hues stepped down
+to black. Shattered Lands is lighter, warmer and dustier. The two games number
+their 256 colours differently, so Shattered Lands' palettes can't simply be
+used in the sequel. No palette slot is free in every area either (a count over
+every picture, the redrawn figures included), so there is no room in the 256
+for Shattered Lands' interface greys.
+
+- **A tone grade, applied where the picture goes to the screen.** A table
+  between the DAC and the screen in `vga_render` (`runtime/vga.c`) lifts the
+  shadows and warms the coloured entries. The "medium" grade from the mod's
+  research maps lightness 0, 15, 47, 85, 100 to 8, 28, 60, 89, 100 and adds up
+  to +6 b (Lab) to coloured entries, which brings the sequel to Shattered
+  Lands' lightness. Every picture keeps its relative colours: the sequel's art,
+  the redrawn figures and the portraits move together. It is a setting the
+  player can turn off, with the stock palette written unchanged to the DAC.
+- **Exact Shattered Lands interface colours.** A layer beside the 8-bit screen
+  records which palette each pixel was drawn in. Hooks on the lifted picture
+  routines set it: Shattered Lands' palette (its PAL 1000) for the Shattered
+  Lands interface art, the area's palette for the rest. `vga_render` then looks
+  each pixel up in its own palette, so the interface shows Shattered Lands'
+  exact colours with no rounding to the sequel's. Fades, colour cycling, and
+  the mod's dust and shadow tables (which rewrite pixels by index) must carry
+  the layer along.
+- **Depends on:** Wake of the Ravager playing in this program well past the
+  start of Tyr (Phase 6), and the mod carried over (Phase 5). The tone grade
+  can come first; the palette layer is weeks of work.
+- **Not covered:** the look of the sequel's map art itself (its clean whites
+  and crisp reds). No palette change reaches that.
+
 ## Risks
 
 - Subtle translation bugs across ~180,000 instructions (Phase 2).
