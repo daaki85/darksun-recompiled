@@ -11,10 +11,11 @@ Each row is a Wake of the Ravager figure and what was changed. The pictures (fro
 
 The before-and-after pictures are not kept in this repository: they are made from the game's art, which stays out of git. `tools/proto/figure_table.py` makes them from the owner's own copies of the games into `docs/img/ravager-figures/` (git-ignored); the owner's private gallery shows them too.
 
-The redrawn figures' sheets (`tools/proto/restyle/walks/` and `knights/`, read by `figure_walks.py` and `knight_melee.py`) are drawn from Ravager's art, so they are kept in the owner's private installation files (`ravager-figure-redraws/`) and copied into those two folders, which git ignores, before a build.
+The redrawn figures' sheets (`tools/proto/restyle/walks/` and `knights/`, read by `figure_walks.py` and `knight_melee.py`) are kept with the figure catalogue in the mod's repository (`reports/ravager-figure-redraws/` in darksun-obsidian-edition, moved there from the owner's private installation files on 2026-11-27) and copied into those two folders, which git ignores, before a build.
 
-**The approved redraws** of the figure catalogue (the owner's private installation files,
-`ravager-figure-redraws/catalogue/`, reviewed there figure by figure) go in last:
+**The approved redraws** of the figure catalogue (in the mod's repository,
+`reports/ravager-figure-redraws/catalogue/`, reviewed there figure by figure; a package's chunks that
+were byte-for-byte the shipped game's were taken out, and the import takes them from STOCK_DIR) go in last:
 `tools/proto/import_catalogue.py CATALOGUE BASE_DIR OUT_DIR [STOCK_DIR]` reads the catalogue's
 `approved.json` (which package holds each approved picture, in the order they apply), writes them
 over the build in BASE_DIR, moves the greater elementals' objects to their own figures (428 to 3954,
