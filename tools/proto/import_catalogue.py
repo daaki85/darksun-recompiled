@@ -2,15 +2,18 @@
 
     import_catalogue.py CATALOGUE BASE_DIR OUT_DIR [STOCK_DIR]
 
-CATALOGUE is the figure catalogue in the private darksun-installation-files repository
-(ravager-figure-redraws/catalogue); its approved.json lists the approved packages in the order
+CATALOGUE is the figure catalogue in the mod's repository (reports/ravager-figure-redraws/catalogue
+in darksun-obsidian-edition, moved there from the private repository on 2026-11-27); its approved.json lists the approved packages in the order
 they apply, the objects that move to a new figure number (the greater elementals) and the region
 chunks that change with a scene (the Mines3 dining room). BASE_DIR holds the OBJEX.GFF (and the
 region files) to build on, usually the mod's restyled build; OUT_DIR gets OBJEX.GFF and each changed
 region file. A package made for a stationary figure may hold only its pictures: it was drawn for
 the shipped script, so the script (and any combat pictures) it lacks are taken from the shipped
 game in STOCK_DIR (default BASE_DIR), since the mod's build may have given that picture another
-(the dressed people walk). Nothing in this repository holds the artwork: it stays in the private catalogue.
+(the dressed people walk). The catalogue holds none of SSI's chunks unchanged: a package's chunk that
+was a byte-for-byte copy of the shipped game's was taken out when it went public, so any bank a
+package lacks, its base picture too, and any package whose every chunk was the game's (its zip gone),
+comes from the shipped game in STOCK_DIR, which gives the same build as before.
 
 Every picture written is decoded frame by frame, and every step of every script is checked against
 the frames of the picture it runs on (base frames for walking steps, combat frames for steps flagged
@@ -26,16 +29,24 @@ FLAT = {'base': 'bmp', 'combat': 'cbmp', 'script': 'scmd'}
 COMBAT = 0x20
 
 
+class _Empty:
+    """A package whose chunks were all the shipped game's: its zip is gone, every bank from STOCK."""
+    def __enter__(self): return self
+    def __exit__(self, *a): return False
+    def namelist(self): return []
+
+
 def changes(catalogue, objex, stock):
     man = json.load(open(os.path.join(catalogue, 'approved.json')))
     new, source = {}, {}
     for p in man['packages']:
-        with zipfile.ZipFile(os.path.join(catalogue, p['zip'])) as z:
+        path = os.path.join(catalogue, p['zip'])
+        with (zipfile.ZipFile(path) if os.path.exists(path) else _Empty()) as z:
             names = set(z.namelist())
             for pic in p['pictures']:
                 got = {b: m for b in BANKS for m in (f'{pic}/{b}.chunk', f'{pic}.{FLAT[b]}-chunk') if m in names}
-                if 'base' not in got:
-                    raise SystemExit(f"{p['zip']}: no base picture for {pic}")
+                if 'base' not in got and ('BMP ', pic) not in stock:
+                    raise SystemExit(f"{p['zip']}: no base picture for {pic}, here or in the shipped game")
                 for b, m in got.items():
                     new[BANKS[b], pic] = z.read(m)
                 for b in BANKS:
