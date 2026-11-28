@@ -447,6 +447,57 @@ header rather than its rule words (the squares in reach, `squares_on` at
 `gear_due` at +1830). With the Loader attached that code runs, and any
 entry it lacks is logged for the next build (misses.txt).
 
+The program was lifted again on 28 November against the mod's
+`obsidian-edition` branch (its helper `704822a3`, after the Ravager port's
+#285 to #317 and the code audits), and what that took:
+
+- **The helper's symbols had been wrong without a word since the code
+  audit.** `tools/helper_symbols.py` read nasm's listing for its routines'
+  places; the audit moved the shared routines into macros
+  (`shared_routines.inc`), which a listing shows under `<1>` marks, so it
+  found none, and the image builder fell back to helper 2.5.0's table. It
+  now reads nasm's map file (`[map all]`), which gives every label's place
+  in the file whatever section or macro it comes from.
+- **The tails hold code**: TAIL_CALL and PL_CALL run routines in the
+  helper's tail with CS the tail's segment; the layout now names every
+  helper segment, and dispatch counts the whole helper as the helper's.
+- **The intro stalled, black, for 40 seconds**, and the suite's three mod
+  cases missed their screens. The mod's scene pointer (CINE_STEP, a site in
+  the scene player's loop) now reaches its handler through a resume block,
+  not an INT's return, and the handler runs with interrupts off, so every
+  millisecond's poll found them off and the timer never fired. The
+  runtime now delivers what is pending after helper code run from a resume
+  block (`irq_if_on`, as after an INT's iret).
+- **Convergence**: clean after nine rounds on the five scripts, five of them after the interrupt fix
+  (`entries/ds1o-704822a3`).
+
+## Wake of the Ravager with the Obsidian Edition mod
+
+`tools/build_mod.sh <mod> ravager` builds the mod's sequel, `DSUNLOG2.EXE`
+and its helper `DSCLOG2.EXE`, into `build/ds2o` (docs/DESIGN.md, "Wake of
+the Ravager with the mod"). It plays from the title through START GAME's
+narrated cinematic to the first scene in Tyr, with the mod's Shattered
+Lands portraits in the talk box (the suite's `wotr-mod-start`). The convergence
+(`tools/converge_mod.sh <mod> ravager`, two scripts) is clean
+(`entries/ds2o-2e4c72b4`, 757 entries with the helper's 739 seeded
+routines; four rounds on the helper of the same day). What it took, beyond the design's list:
+
+- **Three sites step past a whole far call.** The first convergence hung
+  66 seconds into START GAME, the game sent back to 2D24Ch, which the
+  lifted code had decoded as the middle of an instruction: FIG_KEEP's
+  site there covers the first 3 bytes of a `call far` and returns past
+  the segment left after it. The image builder now decodes the
+  instruction a site cut and steps over all of it (`cut_skip`); PACE_PASS
+  and PACE_DRAW are the same shape.
+- The Loader (mod PR, `dsloader/launch.py`) starts the sequel on this
+  program when it has `build/ds2o`, after preparing the sequel's files
+  and widening its sheets as for DOSBox; DOSBox-X chosen in its settings
+  still wins.
+
+Not seen yet: the creation screen (the CREATE script finds no miss, but
+nobody has looked at its pictures), play in Tyr past the opening talk, a fight, the mod's
+sequel screens (quest list, map controls) on this program.
+
 ## Wake of the Ravager (GOG 1.1, DSUN.EXE 634,416 bytes)
 
 The same pipeline, pointed at `game/ds2` with `--args "-W0 -L"` and the CD

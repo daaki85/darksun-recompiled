@@ -76,7 +76,7 @@ int game_main(void *arg)
             unsigned long r = strtoul(getenv("DS_RULES"), NULL, 16);
             unsigned hdr = 0;                     /* the header's signature, on a paragraph, where the install left it (the Loader scans the same way) */
             for (unsigned a = 0; a + 8 < 0x100000 && !hdr; a += 16)   /* "DSCLOGv" and the header's version letter ('a' to 2.17, 'e' from 2.18), as the Loader's dicelog.py matches it */
-                if (!memcmp(cpu->mem + a, "DSCLOGv", 7) && isalnum(cpu->mem[a + 7])) hdr = a;
+                if ((!memcmp(cpu->mem + a, "DSCLOGv", 7) || !memcmp(cpu->mem + a, "DSCLOGR", 7)) && isalnum(cpu->mem[a + 7])) hdr = a;   /* (DSCLOGR: Wake of the Ravager's DSCLOG2, its rule words at the same places) */
             if (hdr) {
                 cpu->mem[hdr + 170] = r & 0xFF; cpu->mem[hdr + 171] = (r >> 8) & 0xFF;
                 cpu->mem[hdr + 270] = (r >> 16) & 0xFF; cpu->mem[hdr + 271] = (r >> 24) & 0xFF;
@@ -307,52 +307,75 @@ static const char *locate(const GameDesc *g)           /* the game's folder, by 
  * files) the first time it starts the game. The folder is found as --mod
  * names it, as dsun.ini remembers it (mod=), or in the usual places: the
  * mod beside the program, or the program inside the mod's folder. */
-static const char *mod_dos_dir(const char *mod)      /* the prepared folder in or at mod, or NULL */
+/* The patched game the Loader writes into the mod's dos folder: Shattered Lands' DSUNLOG.EXE,
+ * Wake of the Ravager's DSUNLOG2.EXE (with DSCLOG2.EXE, its helper, and its data files' copies:
+ * the mod's dsloader/ravager.py). */
+static const char *patched_exe(int sequel) { return sequel ? "DSUNLOG2.EXE" : "DSUNLOG.EXE"; }
+
+static const char *mod_dos_dir_for(const char *mod, int sequel)   /* the prepared folder in or at mod, or NULL */
 {
     static char buf[1300];
     if (!mod) return NULL;
     snprintf(buf, sizeof buf, "%s/dos", mod);
-    if (exe_size_in(buf, "DSUNLOG.EXE") > 0) return buf;
+    if (exe_size_in(buf, patched_exe(sequel)) > 0) return buf;
     snprintf(buf, sizeof buf, "%s", mod);
-    if (exe_size_in(buf, "DSUNLOG.EXE") > 0) return buf;
+    if (exe_size_in(buf, patched_exe(sequel)) > 0) return buf;
     return NULL;
 }
+static const char *mod_dos_dir(const char *mod) { return mod_dos_dir_for(mod, 0); }
 
-static const char *find_mod(void)
+static const char *find_mod_for(int sequel)
 {
     static const char *rels[] = { "mod", "obsidian-edition", "darksun-obsidian-edition/obsidian-edition",
                                   "..", "../obsidian-edition", "../darksun-obsidian-edition/obsidian-edition" };
-    const char *d = mod_dos_dir(remembered("mod"));
+    const char *d = mod_dos_dir_for(remembered("mod"), sequel);
     if (d) return d;
     for (size_t i = 0; i < sizeof rels / sizeof *rels; i++) {
         const char *r = find_dir(rels[i]);
-        d = r ? mod_dos_dir(r) : NULL;
+        d = r ? mod_dos_dir_for(r, sequel) : NULL;
         if (d) { remember("mod", r); return d; }
     }
     return NULL;
 }
+static const char *find_mod(void) { return find_mod_for(0); }
 
-static const GameDesc *mod_setup(const char *mod, int headless)
+/* SEQUEL: Wake of the Ravager with the mod (ds2o), its CD on F: and the mod's folder on D:, as
+ * the Loader starts it in DOSBox. Its roster's and saves' character sheets must be the Loader's
+ * (48h bytes, its ravager.widen_files, done at each of its starts): the Loader starts this
+ * program after doing so; a player starting the program alone starts the mod once first. */
+static const GameDesc *mod_setup_game(const char *mod, int sequel, int headless)
 {
-    const GameDesc *o = by_tag("ds1o"), *g1 = by_tag("ds1");
-    if (!o) { say(headless, "This program was built without the Obsidian Edition's game (build/ds1o)."); return NULL; }
-    const char *dos = mod ? mod_dos_dir(mod) : find_mod();
+    const char *tag = sequel ? "ds2o" : "ds1o";
+    const GameDesc *o = by_tag(tag), *g1 = by_tag(sequel ? "ds2" : "ds1");
+    if (!o) {
+        say(headless, sequel ? "This program was built without Wake of the Ravager's Obsidian Edition (build/ds2o)."
+                             : "This program was built without the Obsidian Edition's game (build/ds1o).");
+        return NULL;
+    }
+    const char *dos = mod ? mod_dos_dir_for(mod, sequel) : find_mod_for(sequel);
     if (!dos) {
         char msg[1600];
-        snprintf(msg, sizeof msg, "The Obsidian Edition's prepared files were not found%s%s. Start the mod once with its own \"Start Obsidian Edition.bat\" (its Loader writes DSUNLOG.EXE and the data files into its dos folder), then start this program with --mod <the mod's obsidian-edition folder>, or put this program's folder inside it.",
-                 mod ? " in " : "", mod ? mod : "");
+        snprintf(msg, sizeof msg, "The Obsidian Edition's prepared files were not found%s%s. Start the mod once with its own \"Start Obsidian Edition.bat\" (its Loader writes %s and the data files into its dos folder), then start this program with --mod <the mod's obsidian-edition folder>, or put this program's folder inside it.",
+                 mod ? " in " : "", mod ? mod : "", patched_exe(sequel));
         say(headless, msg);
         return NULL;
     }
     if (!g_game_dir && g1) g_game_dir = locate(g1);
     if (!g_game_dir || game_in(g_game_dir) != g1) {
-        say(headless, "The Obsidian Edition needs Shattered Lands: give its folder with --game, or install it where this program finds it.");
+        say(headless, sequel ? "Wake of the Ravager's Obsidian Edition needs Wake of the Ravager: give its folder with --game, or install it where this program finds it."
+                             : "The Obsidian Edition needs Shattered Lands: give its folder with --game, or install it where this program finds it.");
         return NULL;
     }
     extern const char *g_cd_dir;
     g_cd_dir = dos;
     fprintf(stderr, "[main] Obsidian Edition: the mod's files from %s\n", dos);
     return o;
+}
+static const GameDesc *mod_setup(const char *mod, int headless)
+{
+    /* (--game naming Wake of the Ravager's folder: its mod) */
+    const GameDesc *g = g_game_dir ? game_in(g_game_dir) : NULL;
+    return mod_setup_game(mod, g && !strcmp(g->tag, "ds2"), headless);
 }
 
 /* The character transfer utility (CHARTRAN.EXE, in Wake of the Ravager's
@@ -415,21 +438,26 @@ static const GameDesc *choose_game(int headless)
     const char *want = getenv("DS_GAME");
     if (want) for (int i = 0; i < n; i++) if (!strcmp(found[i]->tag, want)) pick = i;
     if (want && !strcmp(want, "ct")) return transfer_setup(NULL, NULL, headless);
-    if (want && !strcmp(want, "ds1o")) return mod_setup(NULL, headless);
+    if (want && !strcmp(want, "ds1o")) return mod_setup_game(NULL, 0, headless);
+    if (want && !strcmp(want, "ds2o")) return mod_setup_game(NULL, 1, headless);
     /* With more than one thing to start, ask: the games found, the mod's
      * build when its prepared folder is found beside Shattered Lands, and the
      * transfer utility when both games are there. */
-    int has_ds1 = 0; for (int i = 0; i < n; i++) if (!strcmp(found[i]->tag, "ds1")) has_ds1 = 1;
+    int has_ds1 = 0, has_ds2 = 0;
+    for (int i = 0; i < n; i++) { if (!strcmp(found[i]->tag, "ds1")) has_ds1 = 1; if (!strcmp(found[i]->tag, "ds2")) has_ds2 = 1; }
     int with_mod = has_ds1 && by_tag("ds1o") && find_mod() != NULL;
+    int with_mod2 = has_ds2 && by_tag("ds2o") && find_mod_for(1) != NULL;
     int with_ct = n > 1 && by_tag("ct") != NULL;
-    int nb = n + with_mod + with_ct;
+    int nb = n + with_mod + with_mod2 + with_ct;
+    static const char MOD1[] = "Shattered Lands with the Obsidian Edition", MOD2[] = "Wake of the Ravager with the Obsidian Edition";
     if (nb > 1 && !want && !headless) {
         SDL_MessageBoxButtonData buttons[10];
         const char *texts[10];
         int k = 0;
         for (int i = 0; i < n; i++) {
             texts[k++] = found[i]->title;
-            if (with_mod && !strcmp(found[i]->tag, "ds1")) texts[k++] = "Shattered Lands with the Obsidian Edition";
+            if (with_mod && !strcmp(found[i]->tag, "ds1")) texts[k++] = MOD1;
+            if (with_mod2 && !strcmp(found[i]->tag, "ds2")) texts[k++] = MOD2;
         }
         if (with_ct) texts[k++] = "Transfer a party (Shattered Lands to Wake)";
         for (int i = 0; i < k; i++) {
@@ -441,11 +469,13 @@ static const GameDesc *choose_game(int headless)
         SDL_Init(SDL_INIT_VIDEO);
         if (SDL_ShowMessageBox(&box, &id) == 0 && id >= 0 && id < k) pick = id; else pick = 0;
         if (with_ct && pick == k - 1) return transfer_setup(NULL, NULL, headless);
-        if (!strcmp(texts[pick], "Shattered Lands with the Obsidian Edition")) return mod_setup(NULL, headless);
+        if (texts[pick] == MOD1) { g_game_dir = NULL; return mod_setup_game(NULL, 0, headless); }
+        if (texts[pick] == MOD2) { g_game_dir = NULL; return mod_setup_game(NULL, 1, headless); }
         for (int i = 0, j = 0; i < n; i++) {        /* back from a button to the game */
             if (j == pick) { pick = i; break; }
             j++;
             if (with_mod && !strcmp(found[i]->tag, "ds1")) { if (j == pick) { pick = i; break; } j++; }
+            if (with_mod2 && !strcmp(found[i]->tag, "ds2")) { if (j == pick) { pick = i; break; } j++; }
         }
     }
     g_game_dir = dirs[pick];
@@ -510,10 +540,17 @@ int main(int argc, char **argv)
     else if (g_game_dir) g_game = game_in(g_game_dir);
     else g_game = choose_game(headless);
     if (!g_game) return 1;
-    { extern const char *g_cd_dir;          /* the mod's Loader starts the game as --game <ds1> --cd <mod>/dos */
+    { extern const char *g_cd_dir;          /* the mod's Loader starts the game as --game <game> --cd <mod>/dos */
       if (g_cd_dir && !strcmp(g_game->tag, "ds1") && by_tag("ds1o") && mod_dos_dir(g_cd_dir)) {
           g_game = by_tag("ds1o");
           fprintf(stderr, "[main] Obsidian Edition: the mod's files from %s\n", g_cd_dir);
+      } else if (g_cd_dir && !strcmp(g_game->tag, "ds2") && mod_dos_dir_for(g_cd_dir, 1)) {
+          if (!by_tag("ds2o")) {
+              say(headless, "This program was built without Wake of the Ravager's Obsidian Edition (build/ds2o): a newer Dark Sun Recompiled is needed to play the sequel with the mod.");
+              return 1;
+          }
+          g_game = by_tag("ds2o");
+          fprintf(stderr, "[main] Wake of the Ravager's Obsidian Edition: the mod's files from %s\n", g_cd_dir);
       } }
     char build_rel[64], cd_rel[1200];
     if (!g_build_dir) {
@@ -521,8 +558,9 @@ int main(int argc, char **argv)
         g_build_dir = find_dir(build_rel);
         if (!g_build_dir) { fprintf(stderr, "cannot find %s (the folder with image.bin from tools/build_image.py)\n", build_rel); return 1; }
     }
-    { extern const char *g_cd_dir;
-      if (!g_cd_dir && g_game->cd_sub[0]) {
+    { extern const char *g_cd_dir, *g_disc_dir; extern int g_disc_drive;
+      int beside = g_cd_dir && !strcmp(g_game->tag, "ds2o");   /* (the mod's folder on D:, the CD on F:) */
+      if ((!g_cd_dir || beside) && g_game->cd_sub[0]) {
           snprintf(cd_rel, sizeof cd_rel, "%s/%s", g_game_dir, g_game->cd_sub);
           struct stat st;
           if (stat(cd_rel, &st) != 0) {
@@ -535,7 +573,10 @@ int main(int argc, char **argv)
                   if (n > 0) fprintf(stderr, "[main] %d files unpacked\n", n);
               } else fprintf(stderr, "[main] no %s and no game.gog: the CD's files are missing\n", cd_rel);
           }
-          if (stat(cd_rel, &st) == 0) g_cd_dir = cd_rel;
+          if (stat(cd_rel, &st) == 0) {
+              if (beside) { g_disc_dir = cd_rel; g_disc_drive = 5; fprintf(stderr, "[main] the CD's files on F: from %s\n", cd_rel); }
+              else g_cd_dir = cd_rel;
+          }
       } }
     fprintf(stderr, "[main] %s: game %s, build %s\n", g_game->title, g_game_dir, g_build_dir);
     g_cpu = &g_cpu_state;
@@ -551,16 +592,16 @@ int main(int argc, char **argv)
         /* The mod's helper in its dos folder must be the one this build was lifted from: its
          * code is in the image, and a newer helper's routines sit elsewhere (every run of it
          * would end in "no function at B....", or worse). Its file has a 32-byte header. */
-        char hp[1100]; snprintf(hp, sizeof hp, "%s/DSCLOG.EXE", g_cd_dir);
+        char hp[1100]; snprintf(hp, sizeof hp, "%s/%s", g_cd_dir, g_game->tsr_exe[0] ? g_game->tsr_exe : "DSCLOG.EXE");
         FILE *hf = fopen(hp, "rb");
         if (hf) {
             static unsigned char head[2048 + 32];
             size_t got = fread(head, 1, sizeof head, hf); fclose(hf);
             int diff = 0;
-            for (size_t i = 32; i < got; i++) if (head[i] != g_cpu->mem[(unsigned)g_game->tsr_cs * 16 + i - 32]) diff++;
+            for (size_t i = 32; i < got; i++) if (head[i] != g_cpu->mem[(unsigned)g_game->tsr_code * 16 + i - 32]) diff++;
             if (diff > 64) {
                 fprintf(stderr, "[main] the mod's helper %s is not the one this build was lifted from (%d of %zu bytes differ): rebuild with tools/build_mod.sh\n", hp, diff, got - 32);
-                say(headless, "The Obsidian Edition's helper (DSCLOG.EXE in its dos folder) is a different release from the one this program was built with. The mod may misbehave; a program built from this release of the mod is needed (tools/build_mod.sh).");
+                say(headless, "The Obsidian Edition's helper (in its dos folder) is a different release from the one this program was built with. The mod may misbehave; a program built from this release of the mod is needed (tools/build_mod.sh).");
             }
         }
     }

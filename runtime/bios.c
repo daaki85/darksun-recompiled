@@ -60,7 +60,7 @@ void run_guest_interrupt(CPU *cpu, int vec)
      * whose handler runs with interrupts off and spends the tick budget on
      * polls that find them off): deliver what is pending now that the iret
      * has them on again, or the timer never fires and the scene never moves. */
-    if ((cpu->flags & FLAG_IF) && g_irq_pending && !g_in_irq) irq_poll(cpu);
+    irq_if_on(cpu);
     if (watched)
         fprintf(stderr, "[int %02X] out cs:ip=%04X:%04X ds=%04X ss:sp=%04X:%04X ax=%04X flags=%04X\n", vec,
                 cpu->cs, cpu->ip, cpu->ds, cpu->ss, cpu->sp, cpu->ax, cpu->flags);
@@ -163,6 +163,14 @@ static void pit_update(void)
 
 void mouse_poll(CPU *cpu);
 void kbd_irq(CPU *cpu);
+
+/* What is pending, delivered if interrupts are on: after an INT's iret (above), and after the
+ * helper's code run from a lifted function's resume block (recomp_return), where a site's handler
+ * irets straight back into the game's function without coming through the INT's return here. */
+void irq_if_on(CPU *cpu)
+{
+    if ((cpu->flags & FLAG_IF) && g_irq_pending && !g_in_irq) irq_poll(cpu);
+}
 
 void irq_poll(CPU *cpu)
 {
@@ -503,13 +511,14 @@ static void int2f(CPU *cpu)
 {
     if (cpu->ax == 0x4300) { cpu->al = 0x80; return; }           /* XMS present */
     if (cpu->ax == 0x4310) { cpu->es = BIOS_SEG; cpu->bx = XMS_ENTRY_OFF; return; }
-    extern const char *g_cd_dir;
-    if (cpu->ax == 0x1500) { cpu->bx = g_cd_dir ? 1 : 0; cpu->cx = 3; return; }   /* MSCDEX: one drive, D: */
-    if (cpu->ax == 0x150B) { cpu->ax = (g_cd_dir && cpu->cx == 3) ? 0x0100 : 0; cpu->bx = 0xADAD; return; }
+    extern const char *g_cd_dir, *g_disc_dir; extern int g_disc_drive;
+    int disc = g_cd_dir || g_disc_dir, drv = g_disc_dir ? g_disc_drive : 3;   /* the CD: D:, or F: beside the mod's D: (dos.c) */
+    if (cpu->ax == 0x1500) { cpu->bx = disc ? 1 : 0; cpu->cx = (uint16_t)drv; return; }   /* MSCDEX: one drive */
+    if (cpu->ax == 0x150B) { cpu->ax = (disc && cpu->cx == drv) ? 0x0100 : 0; cpu->bx = 0xADAD; return; }
     if (cpu->ax == 0x150C) { cpu->bx = 0x0215; return; }         /* MSCDEX 2.21 */
-    if (cpu->ax == 0x150D) { if (g_cd_dir) mem_write8(cpu, cpu->es, cpu->bx, 3); return; }
+    if (cpu->ax == 0x150D) { if (disc) mem_write8(cpu, cpu->es, cpu->bx, (uint8_t)drv); return; }
     if (cpu->ax == 0x1600) { cpu->al = 0; return; }              /* not Windows */
-    if (cpu->ax == 0x1510 && g_cd_dir && cpu->cx == 3) {       /* send a device request to D: */
+    if (cpu->ax == 0x1510 && disc && cpu->cx == drv) {         /* send a device request to the CD */
         extern void cd_device_request(CPU *);
         cd_device_request(cpu);
         set_cf(cpu, 0);

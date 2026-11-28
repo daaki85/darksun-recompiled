@@ -57,7 +57,10 @@ typedef struct {
     const char *cd_sub;          /* folder under the game's with the CD's files, if it has a CD */
     const char *build;           /* name of the build folder (build/<build>) */
     const char *variant;         /* "" or "obsidian": the mod's patched game with its helper */
-    uint16_t tsr_psp, tsr_cs, tsr_ip, tsr_ss, tsr_sp;   /* the resident helper to run first, if any */
+    uint16_t tsr_psp, tsr_cs, tsr_ip, tsr_ss, tsr_sp;   /* the resident helper to run first, if any (its install's start) */
+    uint16_t tsr_code;           /* the segment the helper's resident code runs in (DSCLOG's is its start's; DSCLOG2 installs from a later segment) */
+    const char *tsr_exe;         /* the helper's file in the mod's dos folder (DSCLOG.EXE, DSCLOG2.EXE) */
+    unsigned tsr_end;            /* the linear end of the helper's code that stays (its segment and its tail's code and buffers) */
     const unsigned (*ranges)[2]; int nranges;           /* [start, end) of every lifted function, by start */
     const uint16_t (*umb)[2]; int numb;                 /* upper memory blocks (segment, paragraphs) for the helper */
 } GameDesc;
@@ -100,6 +103,7 @@ void irq_raise(int irq);
 void pit_write(uint16_t port, uint8_t val);
 uint8_t pit_read(uint16_t port);
 void irq_poll(CPU *cpu);                         /* deliver what is pending */
+void irq_if_on(CPU *cpu);                        /* deliver what is pending, if interrupts are on */
 
 /* VGA */
 void vga_init(void);

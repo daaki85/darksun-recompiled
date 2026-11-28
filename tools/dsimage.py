@@ -32,7 +32,8 @@ class Image:
         self.mod_vectors = set((self.layout.get('mod') or {}).get('vectors') or [])
         self.inline_args = {int(k, 16): v for k, v in (tsr.get('inline_args') or {}).items()}
         self.inline_plain_sites = {int(k, 16) for k in (tsr.get('inline_plain_sites') or [])}
-        self.tsr_cs = tsr.get('cs')
+        self.tsr_cs = tsr.get('code_cs', tsr.get('cs'))    # (the resident code's segment: DSCLOG2 installs from another)
+        self.tsr_segs = set(tsr.get('segs') or ([self.tsr_cs] if self.tsr_cs is not None else []))   # (its tail's and install's too)
         self._starts = [s['seg'] * 16 for s in segs]
         self._dec = {}
         # stub linear address -> the entry it jumps to (linear)

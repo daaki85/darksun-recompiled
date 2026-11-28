@@ -190,10 +190,16 @@ holding `DSUNLOG.EXE`):
   segments from the start (the copy still happens at run time).
 - Where the helper keeps the routines the builder has to know about (the
   three below, and `seg_space`) comes from its source: `build_image.py`
-  assembles `dsclog.asm` with nasm and reads the listing
+  assembles `dsclog.asm` with nasm and reads nasm's map file
   (`tools/helper_symbols.py`), after checking the assembled bytes equal the
   EXE, so a new helper moves nothing out from under the build; without nasm
-  it falls back to a built-in table (helper 2.5.0's offsets).
+  it falls back to a built-in table (helper 2.5.0's offsets). The map, not
+  the listing: the helper is built of sections that each number their
+  labels from 0, and the routines both helpers share come from macros in
+  `shared_routines.inc`, which the listing marks `<1>`. Reading the listing,
+  the builder found none of them once the mod's code audit made them shared
+  (2026-11-27) and fell back to the old table without a word; the build now
+  prints where it put the inline-argument routines.
 - Three of the helper's routines are called as `call X / db ARG`: they read
   the byte after the call through their return address and return past it,
   and one recognises its caller by that address. The decoder lengthens
@@ -241,6 +247,57 @@ holding `DSUNLOG.EXE`):
   move the return address. `DS_TRACE_INT=all` prints the registers around
   every user-vector interrupt, which is how a handler that leaves the stack
   off is found.
+
+### Wake of the Ravager with the mod (`ds2o`)
+
+The mod's port to the sequel is the same three things: the patched copy
+`DSUNLOG2.EXE` (772 patches, 273 of them `INT F5h` and a site number, the
+helper's `SITE`), the helper `DSCLOG2.EXE` (`dos/dsclog2.asm`, header
+`DSCLOGR1`) and the Loader's `dsloader/ravager.py`, which writes both and
+the data files' copies (`RESOURC2.GFF`, `GPLDAT2.GFF`, `OBJEX2.GFF`, the
+regions) into `<mod>/dos`, and widens the roster's and the saves'
+character sheets to 48h bytes in the game folder at each start.
+`tools/build_mod.sh <mod> ravager` builds it (tag `ds2o`), with what
+differs from Shattered Lands':
+
+- **The patches and sites** come from `ravager.PATCHES` (the EXE's size
+  tells the games apart); a `SITE` INT always carries its number byte. Three
+  sites (`fig_keep`, `pace_pass`, `pace_draw`) put the INT and its number over
+  the first 3 bytes of a 5-byte `call far`, read the segment left behind and
+  come back past it: the builder decodes the instruction the patch cut and
+  steps over the whole of it (`cut_skip`), else the lifted code would carry
+  on in the middle of the call (the first convergence hung there, at 2D24Ch,
+  66 seconds into START GAME).
+- **The helper's symbols**: `kit_is_b`, `cr_is` and `cr_is_back` (no `cb_is`,
+  no `SEG_MOVE`), from `dsclog2.asm`; without nasm the build stops, since
+  there is no old table to fall back on.
+- **Two code segments**: DSCLOG2's MZ header starts it in its install
+  section, a segment past the code that stays, which calls its routines
+  through a segment it works out and puts its handlers in the vectors. The
+  layout has the resident segment (`code_cs`, `GameDesc.tsr_code`) beside the
+  start (`tsr_cs`), and the routines' labels (every label of its own line
+  followed by an instruction, `helper_symbols.code_labels`) seed the finder:
+  722 of them, where a run would find one at a time. The tail (and its
+  buffers, `tailz`) is a code segment too, for both helpers: TAIL_CALL and
+  PL_CALL run routines there with CS the tail's segment, so the layout keeps
+  every helper segment (`tsr.segs`) and its end (`GameDesc.tsr_end`), and
+  dispatch counts all of `[tsr_code, tsr_end)` as the helper's.
+- **Memory**: the sequel's 49 overlay modules (3F29h paragraphs) and DSCLOG2
+  (1253h) don't fit together between `B000` and the BIOS stubs, so the
+  builder puts the fewest modules that make room (one, module 4, 416h
+  paragraphs) at the top of conventional memory, below the video memory,
+  and the game's memory ends there (its PSP's "first segment past ours",
+  which `dos.c`'s memory chain now follows). The game took at most 8240h
+  paragraphs from 0800h in play; the area starts at 9BEAh. The helper's
+  segment runs past `C0000`, so "the game's code" in dispatch is everything
+  outside the helper's own 64 KB rather than outside `B0000-BFFFF`.
+- **Drives**: the mod's folder is D: as for Shattered Lands, and the CD is
+  F: (`g_disc_dir`, MSCDEX answering for drive 5), as the Loader mounts it
+  in DOSBox (`ravager.CD_DRIVE`); `--game <ravager> --cd <mod>/dos`, the
+  Loader's command line, picks `ds2o`.
+- **Rules**: `DS_RULES` finds DSCLOG2's header by `DSCLOGR`; its rule words
+  are at DSCLOG's places, and the convergence and the suite mask them with
+  `ravager.RULES_PORTED`, as the Loader does.
 
 The helper's ring buffer is what the Loader reads; the runtime plants
 DOSBox's BIOS date at `F000:FFF5`, which the Loader's memory search looks

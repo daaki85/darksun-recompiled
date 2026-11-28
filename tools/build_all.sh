@@ -43,6 +43,10 @@ fi
 if [ -n "$MOD" ] && [ -f "$MOD/dsloader/launch.py" ]; then
   SKIP_CMAKE=1 sh tools/build_mod.sh "$MOD" | tail -2
   BUILDS="$BUILDS;$PWD/build/ds1o"
+  if [ -f game/ds2/DSUN.EXE ] && [ -f "$MOD/dos/DSCLOG2.EXE" ]; then   # Wake of the Ravager with the mod
+    SKIP_CMAKE=1 sh tools/build_mod.sh "$MOD" ravager | tail -2
+    BUILDS="$BUILDS;$PWD/build/ds2o"
+  fi
 fi
 cmake -S . -B build/cmake -G Ninja -DCMAKE_BUILD_TYPE=Release -DGAME_BUILDS="$BUILDS" >/dev/null
 cmake --build build/cmake 2>&1 | grep -E "error|FAILED" || true

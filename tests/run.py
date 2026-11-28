@@ -28,12 +28,30 @@ ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 DSUN = os.environ.get('DSUN', os.path.join(ROOT, 'build', 'cmake', 'dsun'))
 # A case with `game = "ds1o"` runs Shattered Lands with the Obsidian Edition mod (build/ds1o,
 # tools/build_mod.sh): the mod's obsidian-edition folder is $DS_MOD, by default beside this repository.
-def mod_rules():
+def mod_rules(sequel=False):
     """The mod's rules as its Loader's defaults (or the settings beside it) set them: without
-    them the helper's rule-gated code never runs."""
-    out = subprocess.run([sys.executable, '-c', 'from dsloader import game, launch; print("%08X" % game.rules_from_settings(launch.load_settings()))'],
+    them the helper's rule-gated code never runs. The sequel's helper takes those ported to it
+    (ravager.RULES_PORTED), as the Loader masks them."""
+    mask = ' & ravager.RULES_PORTED' if sequel else ''
+    out = subprocess.run([sys.executable, '-c', 'from dsloader import game, launch, ravager; '
+                          f'print("%08X" % (game.rules_from_settings(launch.load_settings()){mask}))'],
                          cwd=MOD, capture_output=True, text=True)
-    return out.stdout.strip() or 'FF3FFFF5'
+    return out.stdout.strip() or ('FF3FFBE5' if sequel else 'FF3FFFF5')
+
+
+# Wake of the Ravager with the mod (`game = "ds2o"`, build/ds2o, tools/build_mod.sh ... ravager):
+# its roster's and saves' character sheets are the Loader's (48h bytes, widened at each of its
+# starts): the runner widens game/ds2's with the mod's own code and puts them back afterwards.
+def mod_sheet_files(game_dir):
+    out = subprocess.run([sys.executable, '-c', 'import sys; from dsloader import ravager; '
+                          'print("\\n".join(ravager.sheet_files(sys.argv[1])))', game_dir],
+                         cwd=MOD, capture_output=True, text=True)
+    return [l for l in out.stdout.splitlines() if l.strip()]
+
+
+def widen(game_dir):
+    subprocess.run([sys.executable, '-c', 'import sys; from dsloader import ravager; ravager.widen_files(sys.argv[1])', game_dir],
+                   cwd=MOD, check=True)
 
 
 MOD = os.environ.get('DS_MOD', os.path.join(ROOT, '..', 'daaki85', 'darksun-obsidian-edition', 'obsidian-edition'))
@@ -71,8 +89,12 @@ def run_case(path, update):
         os.remove(f)
     cmd = [DSUN, '--headless', '--seconds', str(case['seconds']), '--shots', shots]
     game = case.get('game', 'ds1')
-    game_dir = os.path.join(ROOT, 'game', 'ds2' if game == 'ct' else 'ds1' if game == 'ds1o' else game)
+    game_dir = os.path.join(ROOT, 'game', {'ct': 'ds2', 'ds1o': 'ds1', 'ds2o': 'ds2'}.get(game, game))
     kept = {}
+    if game == 'ds2o':        # (the roster and saves as the mod's Loader leaves them: kept, widened, put back after)
+        for f in mod_sheet_files(game_dir):
+            kept[f] = open(f, 'rb').read()
+        widen(game_dir)
     for pattern in case.get('keeps', []):         # the game rewrites these (its roster, CHARSAVE.GFF)
         for f in glob.glob(os.path.join(game_dir, pattern)):
             kept[f] = open(f, 'rb').read()
@@ -85,13 +107,15 @@ def run_case(path, update):
         cmd += ['--transfer', '--ds1', 'game/ds1', '--ds2', 'game/ds2', '--build', 'build/ct']
     elif game == 'ds1o':                            # Shattered Lands with the Obsidian Edition mod
         cmd += ['--game', 'game/ds1', '--build', 'build/ds1o', '--mod', MOD]
+    elif game == 'ds2o':                            # Wake of the Ravager with it, as the mod's Loader starts it
+        cmd += ['--game', 'game/ds2', '--build', 'build/ds2o', '--cd', os.path.join(MOD, 'dos')]
     else:
         cmd += ['--game', f'game/{game}', '--build', f'build/{game}']
     if case.get('input'):
         cmd += ['--input', case['input']]
     env = dict(os.environ, DS_QUIET='', DS_CLOCK='1000000000')   # the clock pinned: the same dice every run
-    if case.get('game') == 'ds1o' and 'DS_RULES' not in env:    # the mod's rule switches, as its Loader sets them (runtime/main.c)
-        env['DS_RULES'] = mod_rules()
+    if case.get('game') in ('ds1o', 'ds2o') and 'DS_RULES' not in env:    # the mod's rule switches, as its Loader sets them (runtime/main.c)
+        env['DS_RULES'] = mod_rules(case.get('game') == 'ds2o')
     env.update(case.get('env', {}))                 # a case's own variables (DS_MT32_PORT, ...)
     log = subprocess.run(cmd, cwd=ROOT, env=env, capture_output=True, text=True, timeout=case["seconds"] + 60).stderr
     open(os.path.join(shots, 'log.txt'), 'w').write(log)

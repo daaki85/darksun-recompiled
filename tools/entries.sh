@@ -3,17 +3,18 @@
 # addresses runs found no function at; inside.txt, the addresses in the middle of functions the
 # helper sends the game to) kept in the repository, under entries/<name>/, so a fresh clone lifts
 # the same program without the discovery runs. The name is the build's (ds1, ds2, ct), and for the
-# mod's build ds1o-<the first 8 hex digits of the md5 of the mod's DSCLOG.EXE>: the lists depend on
+# mod's builds ds1o-<the first 8 hex digits of the md5 of the mod's DSCLOG.EXE> and ds2o-<DSCLOG2.EXE's>: the lists depend on
 # the helper's release. `seed` copies the lists into the build folder (merged with what is there);
 # `save` copies the build folder's lists back, after a convergence (tools/converge.sh).
 set -e
 cd "$(dirname "$0")/.."
 cmd=$1; B=${2:-build/ds1}; MOD=$3
 name=$(basename "$B")
-if [ "$name" = ds1o ]; then
+if [ "$name" = ds1o ] || [ "$name" = ds2o ]; then
   [ -n "$MOD" ] || MOD=../daaki85/darksun-obsidian-edition/obsidian-edition
-  key=$(md5sum "$MOD/dos/DSCLOG.EXE" | cut -c1-8)
-  name="ds1o-$key"
+  helper=DSCLOG.EXE; [ "$name" = ds2o ] && helper=DSCLOG2.EXE
+  key=$(md5sum "$MOD/dos/$helper" | cut -c1-8)
+  name="$name-$key"
 fi
 E=entries/$name
 case "$cmd" in

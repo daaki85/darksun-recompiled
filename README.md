@@ -89,7 +89,7 @@ tools/converge.sh build/ct build/cmake game/ds2 12 --transfer --ds1 game/ds1 --d
 
 **One program, both games.** CMake builds every game whose `build/<tag>/gen`
 exists into the one `dsun` (the list is `GAME_BUILDS`; each game's symbols
-carry its tag, `ds1_`, `ds1o_` (the mod's build), `ds2_` or `ct_`). The program recognises a game folder by
+carry its tag, `ds1_`, `ds1o_` and `ds2o_` (the mod's builds), `ds2_` or `ct_`). The program recognises a game folder by
 the size of its `DSUN.EXE`: `--game <folder>` names one; without it, the
 program looks for `game/ds1` and `game/ds2` beside the current folder and
 beside itself, then in `dsun.ini` beside itself, then in GOG's usual
@@ -110,7 +110,9 @@ into `build/ds1o`, a fourth entry in the one `dsun` (see docs/DESIGN.md,
 "The mod"); `dsun --mod <mod>/obsidian-edition` runs it (or `--game
 game/ds1 --build build/ds1o --cd <mod>/obsidian-edition/dos`), and the
 program finds the mod's folder on its own when it sits in or beside its
-own, offering it in the choice box. The mod's Loader starts the program
+own, offering it in the choice box. `tools/build_mod.sh <mod>/obsidian-edition
+ravager` does the same for Wake of the Ravager with the mod (`build/ds2o`,
+DSUNLOG2.EXE and DSCLOG2.EXE), offered beside it. The mod's Loader starts the program
 instead of DOSBox when the program is unzipped into or beside the mod's
 folder, or named once with `dsloader launch --recompiled <path to dsun>`,
 and attaches its dice log and window to it (in the mod's main branch
