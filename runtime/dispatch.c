@@ -115,7 +115,7 @@ static int g_ninside;
 void recomp_inside_miss(unsigned seg, unsigned off)
 {
     unsigned lin = ((seg & 0xFFFF) << 4) + (off & 0xFFFF);
-    if ((off & 0xFFFF) == 0xFFFF || lookup(lin) || !inside_function(lin)) return;
+    if ((off & 0xFFFF) == 0xFFFF || recomp_real_return_is(seg, off) || lookup(lin) || !inside_function(lin)) return;
     for (int i = 0; i < g_ninside; i++) if (g_inside[i] == lin) return;
     if (g_ninside >= NINSIDE) return;
     int k = g_ninside++, n = 0;
@@ -191,10 +191,29 @@ static recomp_fn lookup(unsigned lin)
     return NULL;
 }
 
-static unsigned g_real[64];                  /* the real return addresses pushed by the calls now running (innermost last) */
+/* The real return addresses pushed by the calls now running (innermost last): the call sites
+ * whose return address the helper reads off the stack (tools/lift.py, real_ret_sites). A callee's
+ * ret that pops one of them is returning to its C caller, as with the stand-in FFFFh. A call that
+ * finds the list full pushes the stand-in instead. */
+#define NREAL 1024
+static unsigned g_real[NREAL];
 static int g_nreal;
-void recomp_real_return_push(unsigned lin) { if (g_nreal < 64) g_real[g_nreal++] = lin; }
+int recomp_real_return_push(unsigned lin) { if (g_nreal >= NREAL) return 0; g_real[g_nreal++] = lin; return 1; }
 void recomp_real_return_pop(void) { if (g_nreal) g_nreal--; }
+/* back past the innermost entry for this call site: entries a callee left (it returned early,
+ * a frame unwound past) go with it */
+void recomp_real_return_pop_to(unsigned lin)
+{
+    for (int i = g_nreal - 1; i >= 0; i--)
+        if (g_real[i] == lin) { g_nreal = i; return; }
+}
+int recomp_real_return_is(unsigned seg, unsigned off)
+{
+    unsigned lin = ((seg & 0xFFFF) << 4) + (off & 0xFFFF);
+    for (int i = g_nreal - 1; i >= 0; i--)
+        if (g_real[i] == lin) return 1;
+    return 0;
+}
 
 int recomp_dispatch(CPU *cpu, unsigned seg, unsigned off)
 {
@@ -216,6 +235,9 @@ int recomp_dispatch(CPU *cpu, unsigned seg, unsigned off)
         return 1;
     }
     if (lin == 0) return 0;
+    /* The real address a call site pushed because the mod's helper reads it off the stack: that
+     * callee is returning to its C caller (before anything else reads the code there). */
+    if (recomp_real_return_is(seg, off)) return 1;
     /* Borland's int86x builds `int nn / retf [n]` on the stack and far-calls
      * it, so the interrupt comes with a real return address. The game's
      * builds vary: `push bp` before, `mov bp,[bp+d8]` before, `pop bp` after.
@@ -247,9 +269,6 @@ int recomp_dispatch(CPU *cpu, unsigned seg, unsigned off)
      * that pops its own return address and later jumps to it (Borland's
      * _setargv does: `pop [x] ... jmp [x]`) is returning to its C caller. */
     if ((off & 0xFFFF) == 0xFFFF) return 1;
-    /* ... or the real address a call site pushed because the mod's helper
-     * reads it off the stack: that callee is returning to its C caller too. */
-    if (g_nreal && g_real[g_nreal - 1] == lin) return 1;
     recomp_fn fn = lookup(lin);
     if (!fn) {
         extern int ail_driver_call(CPU *, unsigned, unsigned);
@@ -293,6 +312,8 @@ void recomp_return(CPU *cpu, unsigned seg, unsigned off)
      * that routine's far return to the lifted caller. The function the INT
      * is in returns too (its resume block returns after this). */
     if ((off & 0xFFFF) == 0xFFFF) return;
+    /* ... or a real return address a call site pushed for the helper to read (the same) */
+    if (recomp_real_return_is(seg, off)) return;
     /* Only into the game's own code (below the video memory): a return into
      * the middle of the helper is a continuation the finder has not seen,
      * which the miss list turns into an entry on the next build. */

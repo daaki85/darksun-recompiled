@@ -518,10 +518,23 @@ Tyr's thieves, stopping at the same places; the thieves' fight under
 Computer Control to its end, its kills, XP and autosave; a level up (a
 test edit put Ar'Anda's preserver level one back), the same "gains a
 level" box, CHOOSE A SPELL window and spells offered, the same spell
-learnt and the same HP gain. The dice log here still lacks the lines it
-tells apart by the caller's address (each attack's roll, the turns, the
-fight's summary: docs/DESIGN.md, the sentinel return address); the saves,
-hit points and XP are all there.
+learnt and the same HP gain.
+
+The dice log, compared with DOSBox's (28 November, after the real return
+addresses at the call sites the helper reads, docs/DESIGN.md): the
+thieves' fight here logs the round's initiative with its tie-breaks,
+whose turn it is, each attack with its d20, THAC0 and modifiers, the
+damage dice, the level up's hit-point roll and the fight's summary, the
+same kinds of line as DOSBox's run of the same fight (the rolls
+themselves differ from run to run in both). Shattered Lands' fountain
+ambush (the playtest kit's `fountain-user`, `fightout.sh`) the same,
+the mod's Tab line included (the Tab target comes from the Loader, so
+the helper's code for it runs only with the Loader attached and
+`converge_mod.sh`'s runs never reach it: its misses came from attached
+plays, a manual dsun run appending them to the build's lists). Left: the Loader's note "upper memory had no
+room for the game's overlay buffer" shows here and not in DOSBox: the
+overlays fill the upper memory in this layout, so the helper cannot
+reserve its 33 KB buffer there and the game's heap is that much smaller.
 
 Not seen yet: the creation screen (the CREATE script finds no miss, but
 nobody has looked at its pictures), the mod's sequel screens (quest list,

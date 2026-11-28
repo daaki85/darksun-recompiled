@@ -219,16 +219,24 @@ holding `DSUNLOG.EXE`):
   as a dispatch instead of a switch. The layout carries the bytes every
   mod `INT` replaced (`int_originals`) and the finder reads the `mov cx`
   from there.
-- The lifter's calls push a sentinel return address, not the real one. The
-  helper records where `rand()` was called from and the Loader tells the
-  rolls apart by it, so in this build its log lacks the lines it works out
-  that way (the damage dice, the Wild Fighting roll); the rolls themselves
-  are the same. Pushing real addresses for the game's calls (near and far,
-  as the helper's near calls already do, with a check after each call and
-  `ret`/`retf` popping into `cpu->cs:ip`) is the fix, and a larger change
-  than it looks: the AIL code calls an `iret` stub with `push cs / call`
-  and other idioms leave the popped address meaningless, so an attempt at
-  far calls alone broke start-up. It is the next step for the dice log.
+- The lifter's calls push a sentinel return address (FFFFh), not the real
+  one, except where the mod's helper reads it. The helper records each
+  `rand()` call with the code after the call and after the call to
+  `rand()`'s caller (its frame's `[BP+2]`), and the Loader's dice log tells
+  the rolls apart by those bytes (each attack's d20, initiative and whose
+  turn it is, the damage dice, a level up's hit points, the fight's summary
+  built from them). So `tools/lift.py` (`dice_return_sites`) works out from
+  the call graph every call to a game routine holding one of the mod's INTs
+  (`rand()` starts with one; the probes are INTs too) and every call to a
+  routine that calls one of those, and pushes the real address there:
+  about 2,200 call sites in Shattered Lands, 1,600 in the sequel. The runtime
+  keeps the addresses pushed by the calls now running (`recomp_real_return_*`);
+  a `ret`/`retf` popping one of them is a return to its C caller, as with the
+  sentinel. Pushing the real address at every call instead broke start-up
+  (the AIL code calls an `iret` stub with `push cs / call`, and other idioms
+  leave the popped address meaningless). With real addresses the helper
+  takes the paths it takes under DOSBox, some never run here before: they
+  came in as misses and a convergence round lifted them.
 - Interrupts come through at the lifter's tick points (loop back-edges) and
   are delivered there when the game has them enabled. A loop the game
   closes through one of the mod's INTs (2.12.1's scene-player check, whose
