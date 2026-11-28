@@ -72,8 +72,10 @@ void dispatch_reset_depth(void);
 void recomp_return(CPU *cpu, unsigned seg, unsigned off);
 void host_remember_window(int w, int h);      /* dsun.ini: the window's size and full screen, written at exit (main.c) */
 void host_remember_fullscreen(int on);
-void recomp_real_return_push(unsigned lin);    /* a call site pushed its real return address (the helper reads it) */
+int recomp_real_return_push(unsigned lin);     /* a call site pushed its real return address (the helper reads it); 0: list full */
 void recomp_real_return_pop(void);
+void recomp_real_return_pop_to(unsigned lin);
+int recomp_real_return_is(unsigned seg, unsigned off);
 extern uint16_t recomp_enter_ip;              /* a function entered in the middle starts at this ip (0: at its start) */
 void recomp_inside_miss(unsigned seg, unsigned off);   /* an interior address nothing enters at: noted for the next build */
 void dos_set_psp(uint16_t psp);

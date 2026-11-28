@@ -123,21 +123,28 @@ class SiteLifter(Lifter):
                        'the callee went on elsewhere')
             self.used = True
             return
-        if (inst.mnemonic == 'call' and inst.op1 and inst.op1.type == OpType.REL16
-                and (self.seg * 16 + inst.address + inst.length) in self.real_ret_sites
-                and (func_start + (inst.op1.disp & 0xFFFF)) in self.known_funcs):
-            # The helper reads this call's return address off the stack (the
-            # mod's SPREAD_GATHER: a fight's end is the gather routine called
-            # from here): the real one is pushed, and the callee's ret, finding
-            # it expected (recomp_real_return), returns here as for the stand-in.
-            target = self.known_funcs[func_start + (inst.op1.disp & 0xFFFF)]
-            ret = (inst.address + inst.length) & 0xFFFF
-            self._emit_label(inst.address)
-            self._emit(f'recomp_real_return_push(0x{self.seg * 16 + ret:05X}); push16(cpu, 0x{ret:04X});', 'near call: the real return address, which the helper reads')
-            self._emit(f'{target}(cpu); recomp_real_return_pop();', f'call {inst.op1!r}')
-            self.func_calls.add(target)
-            if getattr(self, 'unwind_sp', False):
-                self._emit('if (cpu->ss == _ss0 && (int16_t)(cpu->sp - _sp0) > 0) return;', 'a callee unwound past this frame')
+        ret_lin = self.seg * 16 + ((inst.address + inst.length) & 0xFFFF)
+        if (not self.real_returns and inst.mnemonic == 'call' and inst.op1
+                and inst.op1.type in (OpType.REL16, OpType.FAR) and ret_lin in self.real_ret_sites):
+            # The helper reads this call's return address off the stack: the mod's SPREAD_GATHER
+            # (a fight's end is the gather routine called from here), and the dice log, whose
+            # rolls are told apart by the code after the call to rand() and after the call to
+            # rand()'s caller (dice_return_sites). The real address is pushed in place of the
+            # stand-in; the callee's ret, finding it among those pushed (recomp_real_return),
+            # returns to its C caller as for the stand-in.
+            n0 = len(self.output)
+            super().lift_instruction(inst, func_start)
+            new = self.output[n0:]
+            at = [i for i, l in enumerate(new) if 'push16(cpu, 0xFFFF);' in l.split('/*')[0]]
+            call = [i for i, l in enumerate(new) if '(cpu);' in l.split('/*')[0] and 'push16' not in l.split('/*')[0]]
+            if len(at) == 1 and len(call) == 1 and call[0] > at[0]:
+                ip = ret_lin - self.seg * 16
+                i, j = at[0], call[0]
+                new[i] = new[i].replace('push16(cpu, 0xFFFF);', f'{{ int _rp = recomp_real_return_push(0x{ret_lin:05X}); '
+                                        f'push16(cpu, _rp ? 0x{ip:04X} : 0xFFFF);', 1)
+                code, sep, comment = new[j].partition(' /*')
+                new[j] = code.rstrip() + f' if (_rp) recomp_real_return_pop_to(0x{ret_lin:05X}); }}' + (sep + comment if sep else '')
+                self.output[n0:] = new
             return
         if self.real_returns and inst.mnemonic == 'ret':
             # the real return address popped: the caller checks it
@@ -161,6 +168,35 @@ class SiteLifter(Lifter):
                 self.used = True
         else:
             super().lift_instruction(inst, func_start)
+
+
+def dice_return_sites(img, funcs):
+    """The call sites whose real return address the mod's dice log needs (linear, after the call).
+    The helper records each roll with the code after the call to rand() and after the call to
+    rand()'s caller (its frame's [BP+2]: the Loader tells the rolls apart by those bytes, and
+    names a few by the address); the probes (the saving throw's, the AC's and the rest, INTs in
+    the game's routines) the same, a level up. So: every call to a game routine holding one of
+    the mod's INTs (rand() starts with one), and every call to a routine that calls one of those.
+    Everywhere else the lifter's stand-in (FFFFh) stays."""
+    hooked, sites, owner_calls = set(), {}, {}
+    for lin, f in funcs.items():
+        cs = f['cs']
+        if cs in img.tsr_segs:
+            continue
+        for ip in f['ips']:
+            ins = img.decode_at(cs, ip)
+            if ins is None:
+                continue
+            o = ins.op1
+            if ins.mnemonic == 'int' and o is not None and o.disp in img.mod_vectors:
+                hooked.add(lin)
+            elif ins.mnemonic == 'call' and o is not None and o.type in (OpType.REL16, OpType.FAR):
+                t = cs * 16 + (o.disp & 0xFFFF) if o.type == OpType.REL16 else o.far_seg * 16 + o.disp
+                t = img.stub_target.get(t, t)
+                sites.setdefault(t, []).append(cs * 16 + ((ip + ins.length) & 0xFFFF))
+                owner_calls.setdefault(lin, set()).add(t)
+    callers = {lin for lin, ts in owner_calls.items() if ts & hooked}
+    return {r for t in hooked | callers for r in sites.get(t, ())}
 
 
 def main(argv=None):
@@ -225,6 +261,11 @@ def main(argv=None):
     lift16.DIV0_FN = 'recomp_div0'
     bodies, calls, segs, failed, unhandled, overlaps = [], set(), set(), 0, 0, 0
     ranges = []                                 # [start, end) of each function's code
+    real_ret = {int(x, 16) for x in img.layout.get('real_returns', [])}
+    if img.layout.get('mod'):
+        dice = dice_return_sites(img, funcs)
+        real_ret |= dice
+        print(f'  {len(dice)} call sites push their real return address (the dice log reads them)')
     for lin in sorted(funcs):
         f = funcs[lin]
         cs = f['cs']
@@ -279,7 +320,7 @@ def main(argv=None):
         # every INT of the mod's gets the resume check: any handler may move the return address
         sites_here = {i.address for i in insns if i.mnemonic == 'int' and i.op1 and i.op1.disp in img.mod_vectors}
         lf = SiteLifter(known, sites_here, cs, real_returns=(cs in img.tsr_segs),
-                        real_ret_sites=[int(x, 16) for x in img.layout.get('real_returns', [])])
+                        real_ret_sites=real_ret)
         lf.dispatch = True
         lf.far_base = 0
         lf.iret_frame = True
@@ -320,7 +361,7 @@ def main(argv=None):
             # (rand, patched to start with an INT) has returned to its C caller; the game
             # function the INT is in must return too (recomp_return knows the sentinel).
             body = body.replace('if (_ip != 0xFFFF && _ip != 0) recomp_return(cpu,_cs,_ip); return; } /* retf',
-                                'if (_ip == 0xFFFF) { cpu->cs = _cs; cpu->ip = 0xFFFF; } else if (_ip != 0) recomp_return(cpu,_cs,_ip); return; } /* retf')
+                                'if (_ip == 0xFFFF || recomp_real_return_is(_cs, _ip)) { cpu->cs = _cs; cpu->ip = 0xFFFF; } else if (_ip != 0) recomp_return(cpu,_cs,_ip); return; } /* retf')
         # an indirect far jump is the same thing (the helper jumps back into the game that way)
         body = '\n'.join(l.replace('recomp_dispatch(cpu, ', 'recomp_return(cpu, ', 1) if '/* jmp far' in l else l
                          for l in body.split('\n'))
