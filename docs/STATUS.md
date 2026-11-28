@@ -488,15 +488,44 @@ routines; four rounds on the helper of the same day). What it took, beyond the d
   site there covers the first 3 bytes of a `call far` and returns past
   the segment left after it. The image builder now decodes the
   instruction a site cut and steps over all of it (`cut_skip`); PACE_PASS
-  and PACE_DRAW are the same shape.
+  and PACE_DRAW are the same shape. AMMO_OKAY's three sites (the last
+  arrow's fix, DSCLOG2 of 28 November) are not: INT, number and two NOPs
+  over a 5-byte compare, the patch going on to change the jump after it.
+  Counted as a cut there, the game came back to the NOPs, the middle of
+  an instruction as lifted, and the first fight stalled on a thug's turn
+  (the resume nesting deeper on every pass). A site is a cut now only when
+  the instruction under the INT and its number runs past the patch's bytes.
+- **The inventory's six ability scores were blank** (STR to CHR, in both
+  ds2 and ds2o; everything else on the screen right). The game's printf
+  (1403:612Ch) reaches its `%d` and `%s` handlers through a table,
+  `repne scasb` over the format letters and then `call [di+61B8h]`, which
+  the finder did not follow: the handlers had no function, and the call
+  went nowhere. The finder now reads such a table (a `call [di+X]` with a
+  `mov cx,N` and a `repne` before it: N words at X), which gives ds2 and
+  ds2o ten functions, ds1 and ds1o nine; nothing else changed.
 - The Loader (mod PR, `dsloader/launch.py`) starts the sequel on this
   program when it has `build/ds2o`, after preparing the sequel's files
   and widening its sheets as for DOSBox; DOSBox-X chosen in its settings
   still wins.
 
+Compared with DOSBox (the mod's playtest kit, `playtest/ravload_recomp.sh`
+beside `ravload.sh`; 28 November, after both fixes above): a DOSBox save
+loads here and the reverse, each autosave after a fight loading in the
+other program with the same inventory; the inventory screen value for
+value with the Loader attached (its AGE, AC and damage lines are the
+Loader's, so they show only with the dice log running); the walk to
+Tyr's thieves, stopping at the same places; the thieves' fight under
+Computer Control to its end, its kills, XP and autosave; a level up (a
+test edit put Ar'Anda's preserver level one back), the same "gains a
+level" box, CHOOSE A SPELL window and spells offered, the same spell
+learnt and the same HP gain. The dice log here still lacks the lines it
+tells apart by the caller's address (each attack's roll, the turns, the
+fight's summary: docs/DESIGN.md, the sentinel return address); the saves,
+hit points and XP are all there.
+
 Not seen yet: the creation screen (the CREATE script finds no miss, but
-nobody has looked at its pictures), play in Tyr past the opening talk, a fight, the mod's
-sequel screens (quest list, map controls) on this program.
+nobody has looked at its pictures), the mod's sequel screens (quest list,
+map controls) on this program.
 
 ## Wake of the Ravager (GOG 1.1, DSUN.EXE 634,416 bytes)
 

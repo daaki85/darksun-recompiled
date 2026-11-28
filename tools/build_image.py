@@ -186,8 +186,12 @@ def cut_skip(pt, exe, skip):
     from dsimage import Decoder
     code = pt.original + exe[pt.offset + len(pt.original):pt.offset + len(pt.original) + 16]
     d, end = Decoder(code), 0
-    while end < len(pt.replacement):
+    while end < 3:                                  # (the INT and its number: the instruction they end in)
         end += d.decode_one().length
+    # Cut only when that instruction runs past the patch's bytes: a patch whose bytes cover it, NOPs
+    # after the number, comes back to the NOPs (DSCLOG2's AMMO_OKAY: INT, number, two NOPs over a
+    # 5-byte compare, and its patch goes on to change the jump after it, so its bytes run past the
+    # compare: counted as a cut there, the game came back mid-instruction and the first fight stalled)
     return end - 2 if end > len(pt.replacement) else skip
 
 
