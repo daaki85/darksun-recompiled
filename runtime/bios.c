@@ -60,7 +60,7 @@ void run_guest_interrupt(CPU *cpu, int vec)
      * whose handler runs with interrupts off and spends the tick budget on
      * polls that find them off): deliver what is pending now that the iret
      * has them on again, or the timer never fires and the scene never moves. */
-    if ((cpu->flags & FLAG_IF) && g_irq_pending && !g_in_irq) irq_poll(cpu);
+    irq_if_on(cpu);
     if (watched)
         fprintf(stderr, "[int %02X] out cs:ip=%04X:%04X ds=%04X ss:sp=%04X:%04X ax=%04X flags=%04X\n", vec,
                 cpu->cs, cpu->ip, cpu->ds, cpu->ss, cpu->sp, cpu->ax, cpu->flags);
@@ -163,6 +163,14 @@ static void pit_update(void)
 
 void mouse_poll(CPU *cpu);
 void kbd_irq(CPU *cpu);
+
+/* What is pending, delivered if interrupts are on: after an INT's iret (above), and after the
+ * helper's code run from a lifted function's resume block (recomp_return), where a site's handler
+ * irets straight back into the game's function without coming through the INT's return here. */
+void irq_if_on(CPU *cpu)
+{
+    if ((cpu->flags & FLAG_IF) && g_irq_pending && !g_in_irq) irq_poll(cpu);
+}
 
 void irq_poll(CPU *cpu)
 {

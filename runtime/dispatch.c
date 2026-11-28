@@ -306,6 +306,12 @@ void recomp_return(CPU *cpu, unsigned seg, unsigned off)
         return;
     }
     recomp_dispatch(cpu, seg, off);
+    if (!helper_code(lin)) return;
+    /* A resume block runs the helper's code this way (a SITE's handler, its INT taken by a resume)
+     * and carries on where its iret went: the timer's due ticks go now, as after any INT, or a
+     * game loop closed through such a site (Shattered Lands' scene player, the mod's CINE_STEP:
+     * its polls all land in the handler, interrupts off) never sees its timer and stalls. */
+    irq_if_on(cpu);
 }
 
 void dispatch_near(CPU *cpu, unsigned seg, unsigned off)

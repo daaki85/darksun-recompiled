@@ -103,6 +103,7 @@ void irq_raise(int irq);
 void pit_write(uint16_t port, uint8_t val);
 uint8_t pit_read(uint16_t port);
 void irq_poll(CPU *cpu);                         /* deliver what is pending */
+void irq_if_on(CPU *cpu);                        /* deliver what is pending, if interrupts are on */
 
 /* VGA */
 void vga_init(void);

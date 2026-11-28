@@ -22,7 +22,7 @@ What changed, newest first. The dates are the commits'.
 - Lifted against the mod's 2.19.2 helper (`entries/ds1o-9c71bfc7`): `DS_RULES` finds the
   helper's header by `DSCLOGv` and its version letter (2.18's is `DSCLOGve`); a fifth convergence
   run, the arena's scripted bout to its end; the convergence keeps only the helper's segment.
-- Lifted against the mod's helper after its code audits (`entries/ds1o-7156d4cc`): the helper's
+- Lifted against the mod's helper after its code audits (`entries/ds1o-704822a3`): the helper's
   routines read from nasm's map (the listing had stopped showing them, and the build fell back
   to an old table without a word); the helpers' tails counted as their code.
 - Wake of the Ravager with the Obsidian Edition (`build/ds2o`): the mod's patched sequel and

@@ -448,8 +448,8 @@ header rather than its rule words (the squares in reach, `squares_on` at
 entry it lacks is logged for the next build (misses.txt).
 
 The program was lifted again on 28 November against the mod's
-`obsidian-edition` branch (its helper `7156d4cc`, after the Ravager port's
-#285 to #310 and the code audits), and what that took:
+`obsidian-edition` branch (its helper `704822a3`, after the Ravager port's
+#285 to #317 and the code audits), and what that took:
 
 - **The helper's symbols had been wrong without a word since the code
   audit.** `tools/helper_symbols.py` read nasm's listing for its routines'
@@ -461,8 +461,15 @@ The program was lifted again on 28 November against the mod's
 - **The tails hold code**: TAIL_CALL and PL_CALL run routines in the
   helper's tail with CS the tail's segment; the layout now names every
   helper segment, and dispatch counts the whole helper as the helper's.
-- **Convergence**: clean after one round on the five scripts
-  (`entries/ds1o-7156d4cc`).
+- **The intro stalled, black, for 40 seconds**, and the suite's three mod
+  cases missed their screens. The mod's scene pointer (CINE_STEP, a site in
+  the scene player's loop) now reaches its handler through a resume block,
+  not an INT's return, and the handler runs with interrupts off, so every
+  millisecond's poll found them off and the timer never fired. The
+  runtime now delivers what is pending after helper code run from a resume
+  block (`irq_if_on`, as after an INT's iret).
+- **Convergence**: clean after nine rounds on the five scripts, five of them after the interrupt fix
+  (`entries/ds1o-704822a3`).
 
 ## Wake of the Ravager with the Obsidian Edition mod
 
@@ -472,8 +479,8 @@ the Ravager with the mod"). It plays from the title through START GAME's
 narrated cinematic to the first scene in Tyr, with the mod's Shattered
 Lands portraits in the talk box (the suite's `wotr-mod-start`). The convergence
 (`tools/converge_mod.sh <mod> ravager`, two scripts) is clean
-(`entries/ds2o-17102a20`, 749 entries with the helper's 732 seeded
-routines). What it took, beyond the design's list:
+(`entries/ds2o-2e4c72b4`, 757 entries with the helper's 739 seeded
+routines; four rounds on the helper of the same day). What it took, beyond the design's list:
 
 - **Three sites step past a whole far call.** The first convergence hung
   66 seconds into START GAME, the game sent back to 2D24Ch, which the
