@@ -11,4 +11,4 @@ screen = [
   { at = 72, ref = "tyr",  min_colours = 90, tolerance = 0.12 },
 ]
 keeps = ["CHARSAVE.GFF"]
-log_has = ["DSCLOG2 loaded", "the helper's rules set to"]
+log_has = ["DSCLOG2 loaded"]

@@ -165,6 +165,8 @@ def mod_sites(mod_dir, exe, hdr, base, modules):
         site_vec = RAV_VEC_SITE if ravager else gamepatch.VEC_CR_SPELLS
         skip = MOD_SITE_SKIP.get(pt.name, 1 if pt.replacement[1] == site_vec
                                  and len(pt.replacement) > 2 and (ravager or pt.replacement[2] != 0x90) else 0)
+        if ravager and skip == 1 and pt.replacement[1] == site_vec:
+            skip = cut_skip(pt, exe, skip)
         lin = linear(pt.offset)
         if lin is None:
             raise ImageError(f'patch {pt.name} at {pt.offset:X} is outside the loaded code')
@@ -174,6 +176,19 @@ def mod_sites(mod_dir, exe, hdr, base, modules):
     if not applied:
         raise ImageError(f'{mod_dir}: none of the mod\'s patches is in this EXE (give DSUNLOG.EXE, or DSUNLOG2.EXE for Wake of the Ravager)')
     return sites, sorted(vectors), applied, originals
+
+
+def cut_skip(pt, exe, skip):
+    """A SITE that cuts an instruction of the game's in two (DSCLOG2's FIG_KEEP, PACE_PASS and PACE_DRAW
+    put INT F5h + the site's number over the first 3 bytes of a 5-byte "call far", read the segment
+    left there and come back past it): the way back is past the whole instruction, the skip counted
+    from after the INT. Any other SITE steps over its number alone."""
+    from dsimage import Decoder
+    code = pt.original + exe[pt.offset + len(pt.original):pt.offset + len(pt.original) + 16]
+    d, end = Decoder(code), 0
+    while end < len(pt.replacement):
+        end += d.decode_one().length
+    return end - 2 if end > len(pt.replacement) else skip
 
 
 def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None, original=None):

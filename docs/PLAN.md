@@ -134,7 +134,10 @@ for Shattered Lands' interface greys.
   the layer along.
 - **Depends on:** Wake of the Ravager playing in this program well past the
   start of Tyr (Phase 6), and the mod carried over (Phase 5). The tone grade
-  can come first; the palette layer is weeks of work.
+  can come first; the palette layer is weeks of work. The mod's sequel is now
+  a build of its own (`ds2o`, 2026-11-28), so the grade goes in for that build
+  (`g_game` tells `vga_render` which game it draws) without touching the plain
+  sequel's or Shattered Lands' colours.
 - **Not covered:** the look of the sequel's map art itself (its clean whites
   and crisp reds). No palette change reaches that.
 

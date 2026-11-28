@@ -31,7 +31,8 @@ saves work in both (see [Saving and loading](#saving-and-loading)).
 3. From then on, *Start Obsidian Edition.bat* runs the mod on this program
    instead of DOSBox, with its dice log and window as before. And
    `dsun.exe` double-clicked offers *Shattered Lands with the Obsidian
-   Edition* among its buttons.
+   Edition* among its buttons, and *Wake of the Ravager with the Obsidian
+   Edition* too when the sequel is installed.
 
 Windows may warn that the program is unsigned ("Windows protected your
 PC"): click **More info**, then **Run anyway**.
@@ -88,8 +89,8 @@ For *Wake of the Ravager* the program unpacks the CD's files from GOG's
    example `C:\Games\DarkSunRecompiled`. It holds:
    - `dsun.exe`, the program, and `SDL2.dll`, which it needs beside it;
    - `build\ds1\image.bin` and `build\ds2\image.bin`, the games' memory
-     images, one per game, `build\ds1o\image.bin`, the Obsidian Edition's
-     game, and `build\ct\image.bin`, the character transfer utility's;
+     images, one per game, `build\ds1o\image.bin` and `build\ds2o\image.bin`,
+     the Obsidian Edition's two games, and `build\ct\image.bin`, the character transfer utility's;
    - `run.bat`, a starter that takes your game folder as its argument;
    - this guide and the licences of the libraries used.
 2. Double-click `dsun.exe`. It looks for the games where GOG installs them
@@ -258,7 +259,7 @@ program or by DOSBox is the same file.
 ## The Obsidian Edition mod
 
 [Obsidian Edition](https://github.com/daaki85/darksun-obsidian-edition) is a
-mod for *Shattered Lands*, run through its Loader. It patches the game's
+mod for *Shattered Lands* and *Wake of the Ravager*, run through its Loader. It patches the game's
 program and adds a resident helper that answers the patched code; the
 Loader reads the helper's records to show a dice log and a combat log.
 
@@ -278,7 +279,8 @@ mod's folder (or next to it). Two ways to play from then on:
 - **The program alone** (`dsun.exe` double-clicked): when it finds the
   mod's prepared folder, in or beside its own folder (or remembered in
   `dsun.ini` as `mod=`), its box of buttons offers *Shattered Lands with
-  the Obsidian Edition*. From a command prompt, `dsun.exe --mod
+  the Obsidian Edition*, and *Wake of the Ravager with the Obsidian
+  Edition* when the sequel is found too. From a command prompt, `dsun.exe --mod
   "C:\path\to\obsidian-edition"` names the mod's folder. Without the
   Loader there is no dice log or combat log; the mod's rules and content
   are in the game.
@@ -293,6 +295,14 @@ release starts DOSBox, and `dsun.exe` on its own is the way. Through the
 Loader, everything of the mod's has been seen
 working on this program: its window's party panel and dice log, and the
 combat log in the game (L on the map).
+
+**Wake of the Ravager with the mod** is newer: the mod's patched sequel
+(`DSUNLOG2.EXE`) and its own helper (`DSCLOG2.EXE`) are built in the same
+way (`build\ds2o`). The Loader starts it on this program when the program
+has that build, and DOSBox otherwise; the Loader prepares the sequel's copies
+(its widened character sheets included) before each start, as for DOSBox.
+It is seen headless from the title to Tyr; the mod's sequel needs its CD
+image as the plain sequel does (drive F:, from GOG's `game.gog`).
 
 ## When something goes wrong
 

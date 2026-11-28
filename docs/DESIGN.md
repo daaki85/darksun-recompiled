@@ -261,7 +261,13 @@ character sheets to 48h bytes in the game folder at each start.
 differs from Shattered Lands':
 
 - **The patches and sites** come from `ravager.PATCHES` (the EXE's size
-  tells the games apart); a `SITE` INT always carries its number byte.
+  tells the games apart); a `SITE` INT always carries its number byte. Three
+  sites (`fig_keep`, `pace_pass`, `pace_draw`) put the INT and its number over
+  the first 3 bytes of a 5-byte `call far`, read the segment left behind and
+  come back past it: the builder decodes the instruction the patch cut and
+  steps over the whole of it (`cut_skip`), else the lifted code would carry
+  on in the middle of the call (the first convergence hung there, at 2D24Ch,
+  66 seconds into START GAME).
 - **The helper's symbols**: `kit_is_b`, `cr_is` and `cr_is_back` (no `cb_is`,
   no `SEG_MOVE`), from `dsclog2.asm`; without nasm the build stops, since
   there is no old table to fall back on.
@@ -271,7 +277,11 @@ differs from Shattered Lands':
   layout has the resident segment (`code_cs`, `GameDesc.tsr_code`) beside the
   start (`tsr_cs`), and the routines' labels (every label of its own line
   followed by an instruction, `helper_symbols.code_labels`) seed the finder:
-  722 of them, where a run would find one at a time.
+  722 of them, where a run would find one at a time. The tail (and its
+  buffers, `tailz`) is a code segment too, for both helpers: TAIL_CALL and
+  PL_CALL run routines there with CS the tail's segment, so the layout keeps
+  every helper segment (`tsr.segs`) and its end (`GameDesc.tsr_end`), and
+  dispatch counts all of `[tsr_code, tsr_end)` as the helper's.
 - **Memory**: the sequel's 49 overlay modules (3F29h paragraphs) and DSCLOG2
   (1253h) don't fit together between `B000` and the BIOS stubs, so the
   builder puts the fewest modules that make room (one, module 4, 416h
