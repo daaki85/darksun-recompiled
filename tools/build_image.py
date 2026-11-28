@@ -41,14 +41,22 @@ PSP_SEG = 0x0800             # program segment prefix; the image follows it
 ENV_SEG = 0x07E0             # the environment block, just below the PSP
 OVL_FIRST_SEG = 0xC000       # overlay modules from here up (no EMS page frame)
 TOP_OF_DOS = 0xA000          # end of conventional memory
+BIOS_STUBS_SEG = 0xFFE0      # the interrupt vectors' stubs (F000:FE00): the overlays and upper memory end below
+UMB_WANT = 0x200             # upper memory DSCLOG2 asks for beside the overlays (its see-through
+                             # figures' block is 160h paragraphs)
 TSR_PSP_SEG = 0xB000         # a resident helper (the mod's DSCLOG.EXE) lives in B000-BFFF,
                              # which nothing else uses in mode 13h
+WOTR_SIZE = 634416           # Wake of the Ravager's DSUN.EXE (GOG 1.1): its mod's patches are the
+                             # mod's dsloader/ravager.py's, its helper DSCLOG2.EXE (dsclog2.asm)
 
 # The mod's patches that put data after the INT, which the helper's handler
 # steps over: how many bytes, so the decoder does too. VEC_CR_SPELLS sites
 # carry a site number; "scroll" replaces the first 3 bytes of a far call and
 # the helper returns past the segment that stays.
 MOD_SITE_SKIP = {'scroll': 3}
+# Wake of the Ravager's helper's SITE (INT F5h): the byte after the INT is the site's number in its
+# SITE_TABLE (the mod's ravager._site), stepped over as VEC_CR_SPELLS' is in Shattered Lands.
+RAV_VEC_SITE = 0xF5
 
 # The helper's SEG_MOVE: at the game's first file open it points two entries
 # of the game's segment table (selector 3B8h, a small stack; 3C0h, the
@@ -111,7 +119,7 @@ def load_tsr(mem, path):
     # helper asks for (its ring; its panel gets the HMA).
     ss, sp = (mz['ss'] + load) & 0xFFFF, mz['sp']
     env_seg = (max(base + len(image), ss * 16 + sp) + 15) >> 4
-    env = b'COMSPEC=C:\\COMMAND.COM\0\0' + b'\x01\x00' + b'D:\\DSCLOG.EXE\0'
+    env = b'COMSPEC=C:\\COMMAND.COM\0\0' + b'\x01\x00' + b'D:\\' + os.path.basename(path).upper().encode('ascii') + b'\0'
     mem[env_seg * 16:env_seg * 16 + len(env)] = env
     p = TSR_PSP_SEG * 16
     mem[p:p + 2] = b'\xCD\x20'
@@ -121,8 +129,8 @@ def load_tsr(mem, path):
     mem[p + 0x81] = 0x0D
     for k in range(20):
         mem[p + 0x18 + k] = k if k < 5 else 0xFF
-    return dict(exe=os.path.basename(path), psp=TSR_PSP_SEG, load=load, env=env_seg,
-                cs=(mz['cs'] + load) & 0xFFFF, ip=mz['ip'], ss=ss, sp=sp,
+    return dict(exe=os.path.basename(path).upper(), psp=TSR_PSP_SEG, load=load, env=env_seg,
+                cs=(mz['cs'] + load) & 0xFFFF, code_cs=load, ip=mz['ip'], ss=ss, sp=sp,
                 image=[base, base + len(image)], next_seg=env_seg + ((len(env) + 15) >> 4))
 
 
@@ -131,6 +139,9 @@ def mod_sites(mod_dir, exe, hdr, base, modules):
     bytes after each INT its handler steps over, and the vectors it uses."""
     sys.path.insert(0, mod_dir)
     from dsloader import gamepatch                      # noqa: E402
+    ravager = len(exe) == WOTR_SIZE
+    if ravager:
+        from dsloader import ravager as rav             # noqa: E402
     area = min(m['file'] for m in modules if m['size']) if modules else len(exe)
 
     def linear(off):
@@ -142,7 +153,7 @@ def mod_sites(mod_dir, exe, hdr, base, modules):
         return None
 
     sites, vectors, applied, originals = {}, set(), 0, {}
-    for pt in gamepatch.PATCHES:
+    for pt in (rav.PATCHES if ravager else gamepatch.PATCHES):
         here = exe[pt.offset:pt.offset + len(pt.original)]
         if here == pt.replacement and pt.replacement != pt.original:
             applied += 1
@@ -151,8 +162,9 @@ def mod_sites(mod_dir, exe, hdr, base, modules):
         vectors.add(pt.replacement[1])
         # a VEC_CR_SPELLS site carries a site number only when the byte after the INT is not a NOP
         # (the handler steps over that byte either way: a NOP needs no help)
-        skip = MOD_SITE_SKIP.get(pt.name, 1 if pt.replacement[1] == gamepatch.VEC_CR_SPELLS
-                                 and len(pt.replacement) > 2 and pt.replacement[2] != 0x90 else 0)
+        site_vec = RAV_VEC_SITE if ravager else gamepatch.VEC_CR_SPELLS
+        skip = MOD_SITE_SKIP.get(pt.name, 1 if pt.replacement[1] == site_vec
+                                 and len(pt.replacement) > 2 and (ravager or pt.replacement[2] != 0x90) else 0)
         lin = linear(pt.offset)
         if lin is None:
             raise ImageError(f'patch {pt.name} at {pt.offset:X} is outside the loaded code')
@@ -160,7 +172,7 @@ def mod_sites(mod_dir, exe, hdr, base, modules):
             sites[f'{lin:05X}'] = dict(skip=skip, vector=pt.replacement[1], name=pt.name)
         originals[f'{lin:05X}'] = pt.original.hex()     # (the finder reads a `mov cx, N` an INT replaced: a switch's size)
     if not applied:
-        raise ImageError(f'{mod_dir}: none of the mod\'s patches is in this EXE (give DSUNLOG.EXE)')
+        raise ImageError(f'{mod_dir}: none of the mod\'s patches is in this EXE (give DSUNLOG.EXE, or DSUNLOG2.EXE for Wake of the Ravager)')
     return sites, sorted(vectors), applied, originals
 
 
@@ -204,22 +216,57 @@ def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None, original
     # Where the helper keeps the routines below: from its source and nasm
     # (tools/helper_symbols.py) when they are there, so a new helper moves
     # nothing out from under us; else the table above (helper 2.5.0's).
+    # Wake of the Ravager's helper (DSCLOG2.EXE, from dsclog2.asm) has no cb_is and no SEG_MOVE, and
+    # no table to fall back on: without its symbols the build stops.
     inline_args, plain_sites, seg_space = dict(HELPER_INLINE_ARGS), set(HELPER_INLINE_PLAIN_SITES), HELPER_SEG_SPACE
+    asm = None
     if tsr_path and mod_dir:
-        asm = os.path.join(os.path.dirname(os.path.abspath(tsr_path)), 'dsclog.asm')
-        syms = helper_symbols.symbols(asm, tsr_path) if os.path.exists(asm) else None
+        sequel = len(exe) == WOTR_SIZE
+        asm = os.path.join(os.path.dirname(os.path.abspath(tsr_path)), 'dsclog2.asm' if sequel else 'dsclog.asm')
+        need = helper_symbols.NEEDED_RAVAGER if sequel else helper_symbols.NEEDED
+        syms = helper_symbols.symbols(asm, tsr_path, need) if os.path.exists(asm) else None
         if syms:
-            inline_args = {syms['kit_is_b']: 1, syms['cr_is']: 1, syms['cb_is']: 1}
+            inline_args = {syms[k]: 1 for k in ('kit_is_b', 'cr_is', 'cb_is') if k in syms}
             plain_sites = {syms['cr_is_back'] - 3}          # cr_is's `call kit_is_b`, right before cr_is_back
-            seg_space = syms['seg_space']
+            seg_space = syms.get('seg_space')
+        elif sequel:
+            raise ImageError(f'the helper\'s symbols were not read from {asm} (nasm, and the source that '
+                             f'assembles to {os.path.basename(tsr_path)}, are needed)')
         else:
             print(f'  (helper symbols not read from {asm}: using the built-in table)')
-        for sel, paras in HELPER_MOVED.items():
-            seg_override[sel] = TSR_PSP_SEG + 0x10 + seg_space // 16 + paras
+        if seg_space is not None:
+            for sel, paras in HELPER_MOVED.items():
+                seg_override[sel] = TSR_PSP_SEG + 0x10 + seg_space // 16 + paras
     moved = 0
     modules = []
     tsr = load_tsr(mem, tsr_path) if tsr_path else None
     seg_next = tsr['next_seg'] if tsr else OVL_FIRST_SEG
+    # Wake of the Ravager's 49 modules (3F29h paragraphs) and DSCLOG2 (1253h) don't fit together
+    # between B000h and the BIOS's stubs (the helper lives in upper memory there, the overlays in
+    # a buffer of conventional memory under DOS): a few modules go below the video memory instead,
+    # at the top of conventional memory, which the game's then ends below (its PSP's "first
+    # segment past ours", which runtime/dos.c's memory chain follows). The game took at most
+    # 8240h paragraphs from 0800h in play, under 8A40h: the low area is far above that.
+    low = set()
+    top_of_dos = TOP_OF_DOS
+    if tsr:
+        sizes = []
+        for r in (r for r in records if r['cls'] == 3):
+            d = base + r['para'] * 16
+            sizes.append((u16(mem, d + 8) + 15) >> 4)
+        # (Shattered Lands' DSCLOG takes what is left, 91h paragraphs for its ring: nothing moves)
+        short = seg_next + sum(sizes) + (UMB_WANT if len(exe) == WOTR_SIZE else 0) - BIOS_STUBS_SEG
+        if short > 0:
+            fits = sorted((n, i) for i, n in enumerate(sizes) if n >= short)
+            if fits:
+                low = {fits[0][1]}
+            else:                                         # (the biggest, until they are enough)
+                for n, i in sorted(((n, i) for i, n in enumerate(sizes)), reverse=True):
+                    low.add(i)
+                    if sum(sizes[j] for j in low) >= short:
+                        break
+            top_of_dos = TOP_OF_DOS - sum(sizes[j] for j in low)
+    low_next = top_of_dos
     for r in (r for r in records if r['cls'] == 3):
         d = base + r['para'] * 16
         if bytes(mem[d:d + 4]) != b'\xCD\x3F\x00\x00':
@@ -234,8 +281,8 @@ def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None, original
         modules.append(m)
         if size == 0:
             continue                                  # an empty slot
-        seg = seg_next
-        if seg > 0xFFFF or seg * 16 + size > MEM_SIZE:
+        seg = low_next if m['index'] in low else seg_next
+        if seg > 0xFFFF or seg * 16 + size > MEM_SIZE or (tsr and seg_next >= BIOS_STUBS_SEG):
             raise ImageError('the overlay modules do not fit above the video memory')
         m['seg'] = seg
         code = exe[m['file']:m['file'] + size]
@@ -264,7 +311,11 @@ def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None, original
         struct.pack_into('<H', mem, d + 0x10, seg)    # descriptor: loaded here
         mem[d + 0x1A] |= 0x04                         # in use
         mem[d + 0x1B] = 1                             # locked
-        seg_next = seg + ((size + 15) >> 4)
+        if m['index'] in low:
+            m['low'] = True
+            low_next = seg + ((size + 15) >> 4)
+        else:
+            seg_next = seg + ((size + 15) >> 4)
 
     # The environment and the program segment prefix, as DOS leaves them.
     exe_name = os.path.basename(original or exe_path).upper().encode('ascii')
@@ -272,7 +323,7 @@ def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None, original
     mem[ENV_SEG * 16:ENV_SEG * 16 + len(env)] = env
     p = PSP_SEG * 16
     mem[p:p + 2] = b'\xCD\x20'
-    struct.pack_into('<H', mem, p + 2, TOP_OF_DOS)    # first segment past ours
+    struct.pack_into('<H', mem, p + 2, top_of_dos)    # first segment past ours
     struct.pack_into('<H', mem, p + 0x2C, ENV_SEG)
     tail = (' ' + game_args if game_args else '').encode('ascii')
     mem[p + 0x80] = len(tail)
@@ -302,8 +353,7 @@ def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None, original
     # SPREAD_GATHER knows a fight's end by the gather routine's caller): the
     # lifter pushes the real address there instead of its stand-in.
     real_returns = []
-    if tsr_path and mod_dir:
-        asm = os.path.join(os.path.dirname(os.path.abspath(tsr_path)), 'dsclog.asm')
+    if asm:
         if os.path.exists(asm):
             src = open(asm, encoding='latin-1').read()
             para = re.search(r'SPREAD_FROM_DS\s+equ\s+0x4356\s*-\s*0x([0-9A-Fa-f]+)', src)
@@ -326,20 +376,39 @@ def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None, original
     # tail (a file offset in the creation overlay), reached by a far jump after a recall. The
     # lifter gives that address an entry of its own (tools/lift.py, recomp_enter_ip).
     interior_entries = []
-    if tsr_path and mod_dir and os.path.exists(asm):
+    if asm and os.path.exists(asm):
         for m_ in re.finditer(r'RS_TAIL\s+equ\s+0x([0-9A-Fa-f]+)\s*-\s*0x([0-9A-Fa-f]+)', src):
             file_off = int(m_.group(1), 16)
             for mod in modules:
                 if mod.get('seg') is not None and mod['file'] <= file_off < mod['file'] + mod['size']:
                     interior_entries.append(f'{mod["seg"] * 16 + file_off - mod["file"]:05X}')
-    umb = [[seg_next, 0xFFE0 - seg_next], [0xFFFF, 0x0FFF]] if tsr else []
+    umb = [[seg_next, BIOS_STUBS_SEG - seg_next], [0xFFFF, 0x0FFF]] if tsr else []
     if tsr:
         tsr['moved_relocs'] = moved
         tsr['inline_args'] = {f'{tsr["load"] * 16 + off:05X}': n for off, n in inline_args.items()}
         tsr['inline_plain_sites'] = [f'{tsr["load"] * 16 + off:05X}' for off in sorted(plain_sites)]
         tsr['seg_space'] = seg_space
     if tsr:
-        code_segs.append(dict(seg=tsr['cs'], size=tsr['image'][1] - tsr['image'][0], tsr=True))
+        # The helper's code: its segment, its tail (code run with CS the tail's segment, through
+        # TAIL_CALL and PL_CALL, after the tables) and, for DSCLOG2, its install, which runs from a
+        # segment of its own past the rest (the MZ header's CS). From its sections (nasm's map);
+        # without them, one segment as before.
+        secs = helper_symbols.sections(asm, tsr_path) if asm and os.path.exists(asm) else None
+        tsr['end'] = tsr['image'][1]
+        if secs and 'image' in secs:
+            code_segs.append(dict(seg=tsr['load'], size=secs['image'][1], tsr=True))
+            if 'tail' in secs:
+                t_off = secs['tail'][0]
+                t_len = sum(secs[k][1] for k in ('tail', 'tailz') if k in secs)
+                code_segs.append(dict(seg=tsr['load'] + t_off // 16, size=t_len, tsr=True, tail=True))
+                tsr['end'] = tsr['load'] * 16 + t_off + t_len
+            if tsr['cs'] != tsr['load']:
+                code_segs.append(dict(seg=tsr['cs'], size=tsr['image'][1] - tsr['cs'] * 16, tsr=True, install=True))
+        elif tsr['cs'] != tsr['load']:
+            raise ImageError(f'{tsr["exe"]}: its sections were not read (nasm and its source are needed)')
+        else:
+            code_segs.append(dict(seg=tsr['cs'], size=tsr['image'][1] - tsr['image'][0], tsr=True))
+        tsr['segs'] = [s['seg'] for s in code_segs if s.get('tsr')]
     sites, vectors, applied, originals = mod_sites(mod_dir, exe, hdr, base, modules) if mod_dir else ({}, [], 0, {})
 
     layout = dict(
@@ -347,7 +416,7 @@ def build(exe_path, out_dir, game_args='', tsr_path=None, mod_dir=None, original
         disk_size=os.path.getsize(original) if original else len(exe),
         tsr=tsr, mod=dict(dir=os.path.abspath(mod_dir), patches=applied, vectors=vectors) if mod_dir else None,
         int_sites=sites, int_originals=originals, real_returns=real_returns, interior_entries=interior_entries,
-        psp_seg=PSP_SEG, load_seg=load, env_seg=ENV_SEG, top_of_dos=TOP_OF_DOS,
+        psp_seg=PSP_SEG, load_seg=load, env_seg=ENV_SEG, top_of_dos=top_of_dos,
         resident=[base, res_end],
         entry=dict(cs=(mz['cs'] + load) & 0xFFFF, ip=mz['ip']),
         stack=dict(ss=(mz['ss'] + load) & 0xFFFF, sp=mz['sp']),
@@ -384,11 +453,16 @@ def main(argv=None):
           f"DGROUP {lay['dgroup']:04X}")
     print(f"  {len(live)} overlay modules at {OVL_FIRST_SEG:04X}0-{lay['overlay_top']:05X}, "
           f"{sum(m['nstubs'] for m in live)} stubs patched")
+    lows = [m for m in live if m.get('low')]
+    if lows:
+        print(f"  {len(lows)} of them below the video memory, from {lay['top_of_dos']:04X}0 (modules "
+              f"{', '.join(str(m['index']) for m in lows)}): the game's memory ends there")
     print(f"  {len(lay['code_segments'])} code segments")
     if lay['tsr']:
         t = lay['tsr']
         print(f"  helper {t['exe']} at {t['psp']:04X}, entry {t['cs']:04X}:{t['ip']:04X}; "
-              f"{t['moved_relocs']} overlay references moved to its seg_space")
+              f"{t['moved_relocs']} overlay references moved to its seg_space; "
+              f"inline-argument routines at {', '.join(sorted(t['inline_args']))}")
     if lay['mod']:
         print(f"  mod: {lay['mod']['patches']} patches in the EXE, {len(lay['int_sites'])} INT sites with data after them, "
               f"{len(lay['mod']['vectors'])} vectors")

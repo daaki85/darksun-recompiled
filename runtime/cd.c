@@ -49,8 +49,8 @@ static unsigned from_redbook(unsigned r)
 
 void cd_init(void)
 {
-    extern const char *g_cd_dir;
-    if (!g_cd_dir) return;
+    extern const char *g_cd_dir, *g_disc_dir;
+    if (!g_cd_dir && !g_disc_dir) return;
     g_lock = SDL_CreateMutex();
     char path[1024];
     unsigned at = PREGAP;

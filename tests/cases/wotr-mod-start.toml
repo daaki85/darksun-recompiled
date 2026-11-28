@@ -1,0 +1,14 @@
+# Wake of the Ravager with the Obsidian Edition (build/ds2o: the mod's patched DSUNLOG2.EXE and
+# its helper DSCLOG2.EXE, lifted together; the mod's dos folder on D:, the CD on F:, the roster's
+# sheets widened as the Loader leaves them): Shift skips the intro, START GAME from the menu, the
+# narrated cinematic, and the first scene in Tyr with its opening conversation.
+game = "ds2o"
+seconds = 74
+input = "6:key=LSHIFT/500 12:move=150,75 13:click=150,75"
+screen = [
+  { at = 9,  ref = "menu", min_colours = 40, tolerance = 0.05 },
+  { at = 30, min_colours = 60 },                       # the narrated cinematic
+  { at = 72, ref = "tyr",  min_colours = 90, tolerance = 0.12 },
+]
+keeps = ["CHARSAVE.GFF"]
+log_has = ["DSCLOG2 loaded", "the helper's rules set to"]

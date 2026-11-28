@@ -31,7 +31,19 @@ void recomp_trace_last(int n);
 static int inside_function(unsigned lin);
 static recomp_fn lookup(unsigned lin);
 /* the game's own code: below the video memory, or an overlay above it (the helper sits in B000) */
-static int game_code(unsigned lin) { return lin < 0xA0000 || lin >= 0xC0000; }
+/* The helper's code that stays: its segment and its tail (code too, run with CS the tail's
+ * segment), from tsr_code to tsr_end (past C0000h, where Shattered Lands' overlays start). */
+static int helper_code(unsigned lin)
+{
+    unsigned h = (unsigned)g_game->tsr_code << 4;
+    return h && lin >= h && lin < (g_game->tsr_end ? g_game->tsr_end : h + 0x10000);
+}
+/* The game's code, not the helper's: below the video memory, or above the helper. */
+static int game_code(unsigned lin)
+{
+    if (lin < 0xA0000) return 1;
+    return g_game->tsr_code ? !helper_code(lin) && lin >= ((unsigned)g_game->tsr_code << 4) : lin >= 0xC0000;
+}
 
 static void note_miss(unsigned lin)
 {
@@ -287,7 +299,7 @@ void recomp_return(CPU *cpu, unsigned seg, unsigned off)
     /* ... inside a handler, or from the helper's own code later (its floor
      * probe comes back through a far jump after the game's routine returned
      * to it). */
-    if (!lookup(lin) && g_game->tsr_cs && (g_in_int || cpu->cs == g_game->tsr_cs) && game_code(lin) && inside_function(lin)) {
+    if (!lookup(lin) && g_game->tsr_cs && (g_in_int || helper_code((unsigned)cpu->cs << 4)) && game_code(lin) && inside_function(lin)) {
         static int shown;
         if (shown++ < 200 && getenv("DS_TRACE_INT")) { trace("[dispatch] a handler sends the game on to %04X:%04X (ss:sp %04X:%04X)\n", seg, off, cpu->ss, cpu->sp); dispatch_backtrace(); }
         cpu->cs = (uint16_t)seg; cpu->ip = (uint16_t)off;

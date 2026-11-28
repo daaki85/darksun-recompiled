@@ -245,7 +245,7 @@ def main(argv=None):
             known.pop(lin, None)                # (no body: no dispatch entry either, or the link fails)
             continue
         ranges.append((lin, cs * 16 + max(i.address + i.length for i in insns)))
-        if cs == img.tsr_cs:
+        if cs in img.tsr_segs:
             # The helper's own continuations: `push cs / push word .label` builds a far return
             # address into the middle of a routine, which a game routine's retf (or the die
             # routine's tail) comes back to. Each such label is an entry in the middle of the
@@ -278,7 +278,7 @@ def main(argv=None):
         insns = fixed
         # every INT of the mod's gets the resume check: any handler may move the return address
         sites_here = {i.address for i in insns if i.mnemonic == 'int' and i.op1 and i.op1.disp in img.mod_vectors}
-        lf = SiteLifter(known, sites_here, cs, real_returns=(cs == img.tsr_cs),
+        lf = SiteLifter(known, sites_here, cs, real_returns=(cs in img.tsr_segs),
                         real_ret_sites=[int(x, 16) for x in img.layout.get('real_returns', [])])
         lf.dispatch = True
         lf.far_base = 0
@@ -287,11 +287,11 @@ def main(argv=None):
         # game's code; the helper's handlers pop their interrupt frame before
         # calling anything, which puts SP above their entry value and made
         # the check return from them early.
-        lf.unwind_sp = cs != img.tsr_cs
+        lf.unwind_sp = cs not in img.tsr_segs
         lift16._CODE_SEG = f'{cs:04X}'
         lf.jump_tables = {int(ip): [cs * 16 + arm for arm in arms]
                           for ip, arms in f['tables'].items()}
-        resumes = bool(sites_here) or cs == img.tsr_cs      # (the helper's near calls check their return too)
+        resumes = bool(sites_here) or cs in img.tsr_segs      # (the helper's near calls check their return too)
         if resumes or lin in inside:                 # every instruction gets a label: the resume switch needs them
             lf.jump_tables[-1] = [cs * 16 + ip for ip in f['ips']]
         entry_ip = lin - cs * 16
@@ -315,7 +315,7 @@ def main(argv=None):
         # a far return to a real address goes through recomp_return (a tail
         # call, or the mod's helper sending the game on)
         body = body.replace('recomp_dispatch(cpu,_cs,_ip); return; } /* retf', 'recomp_return(cpu,_cs,_ip); return; } /* retf')
-        if cs == img.tsr_cs:
+        if cs in img.tsr_segs:
             # The helper's retf popping the lifter's sentinel: the routine it stands in for
             # (rand, patched to start with an INT) has returned to its C caller; the game
             # function the INT is in must return too (recomp_return knows the sentinel).
@@ -404,7 +404,7 @@ def main(argv=None):
         umb = lay.get('umb') or []
         fh.write('static const uint16_t umb[][2] = {\n' + ''.join(f'  {{0x{s:04X}, 0x{n:04X}}},\n' for s, n in umb)
                  + ('  {0, 0},\n' if not umb else '') + '};\n\n')
-        cd = 'cd' if TAG == 'ds2' else ''
+        cd = 'cd' if TAG in ('ds2', 'ds2o') else ''
         mod = lay.get('mod')
         tsr = lay.get('tsr') or dict(psp=0, cs=0, ip=0, ss=0, sp=0)
         if mod:
@@ -416,6 +416,7 @@ def main(argv=None):
                  f'    dispatch, {len(entries)}, {TAG}_drivers, &{TAG}_ndrivers, "{cd}",\n'
                  f'    "{os.path.basename(os.path.abspath(a.build))}", "{"obsidian" if mod else ""}",\n'
                  f'    0x{tsr["psp"]:04X}, 0x{tsr["cs"]:04X}, 0x{tsr["ip"]:04X}, 0x{tsr["ss"]:04X}, 0x{tsr["sp"]:04X},\n'
+                 f'    0x{tsr.get("code_cs", tsr["cs"]):04X}, "{tsr.get("exe", "")}", 0x{tsr.get("end", 0):05X},\n'
                  f'    ranges, {len(ranges)},\n'
                  f'    umb, {len(umb)},\n'
                  f'}};\n\n')

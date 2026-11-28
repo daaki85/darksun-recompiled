@@ -179,7 +179,12 @@ static void guest_str(CPU *cpu, uint16_t seg, uint16_t off, char *out, int n)
 }
 
 /* "C:\\DIR\\File.ext" -> a host path inside the game folder, matching case. */
-const char *g_cd_dir;          /* --cd: the folder D: shows (the CD-ROM's files) */
+const char *g_cd_dir;          /* --cd: the folder D: shows (the CD-ROM's files; the mod's dos folder for the mod's builds) */
+/* Wake of the Ravager with the mod (ds2o): D: is the mod's dos folder, as for Shattered Lands', and
+ * the CD is another drive (F:, as the mod's Loader mounts it in DOSBox: dsloader/ravager.py's
+ * CD_DRIVE), whose files are g_disc_dir. Without g_disc_dir the CD is D: (g_cd_dir). */
+const char *g_disc_dir;
+int g_disc_drive = 3;          /* the CD's drive, 0 = A: */
 
 /* Folders of C:\ that stand for host folders elsewhere: the character
  * transfer utility expects both games, as C:\DSUN and C:\RAVAGER. */
@@ -197,7 +202,8 @@ int dos_host_path(const char *dos, char *out, size_t n, int must_exist)
     const char *p = dos;
     const char *root = g_game_dir;
     if (p[0] && p[1] == ':') {
-        if ((p[0] == 'D' || p[0] == 'd') && g_cd_dir) root = g_cd_dir;
+        if (g_disc_dir && toupper((unsigned char)p[0]) - 'A' == g_disc_drive) root = g_disc_dir;
+        else if ((p[0] == 'D' || p[0] == 'd') && g_cd_dir) root = g_cd_dir;
         p += 2;
     }
     while (*p == '\\' || *p == '/') p++;
@@ -373,7 +379,12 @@ void dos_init(CPU *cpu)
     g_files[3] = 2; g_files[4] = 2;
     g_psp = 0x0800;
     mcb_set(cpu, FIRST_MCB, 'M', g_psp, 0x1F);                 /* environment */
-    mcb_set(cpu, 0x07FF, 'Z', g_psp, (uint16_t)(0xA000 - 0x0800 - 1));
+    /* (the top of the game's memory as the image's PSP says it, the "first segment past ours":
+     * A000h, or lower where the image keeps overlay modules below the video memory,
+     * tools/build_image.py's low_area for Wake of the Ravager with the mod) */
+    uint16_t top = mem_read16(cpu, g_psp, 2);
+    if (top <= g_psp || top > 0xA000) top = 0xA000;
+    mcb_set(cpu, 0x07FF, 'Z', g_psp, (uint16_t)(top - 0x0800 - 1));
     g_dta_seg = g_psp; g_dta_off = 0x80;
 }
 
@@ -437,7 +448,7 @@ void dos_service(CPU *cpu)
     case 0x0C: { uint8_t f = cpu->al; uint16_t w; while (host_key_pop(&w, 1)) host_key_pop(&w, 0);
                  if (f) { cpu->ah = f; dos_service(cpu); } break; }
     case 0x0D: break;
-    case 0x0E: cpu->al = 3; break;
+    case 0x0E: cpu->al = g_disc_dir ? (uint8_t)(g_disc_drive + 1) : 3; break;   /* (the drives there are) */
     case 0x19: cpu->al = 2; break;                              /* C: */
     case 0x1A: g_dta_seg = cpu->ds; g_dta_off = cpu->dx; g_dta_seg_off_set = 1; break;
     case 0x25: mem_write16(cpu, 0, (uint16_t)(cpu->al * 4), cpu->dx);
