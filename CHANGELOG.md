@@ -28,7 +28,10 @@ What changed, newest first. The dates are the commits'.
 - Wake of the Ravager with the Obsidian Edition (`build/ds2o`): the mod's patched sequel and
   DSCLOG2 lifted together, one overlay module below the video memory to make room, the CD on F:;
   a button in the choice box, `--game <ravager> --cd <mod>/dos` from the Loader; a suite case,
-  `wotr-mod-start`, to Tyr.
+  `wotr-mod-start`, to Tyr. Compared with DOSBox past it: a fight, saves both ways, the
+  inventory, a level up; two faults fixed on the way (a fight stalled at DSCLOG2's last-arrow
+  check, taken for a cut instruction; the inventory's ability scores blank, the game's printf
+  handlers reached through a table the finder now reads).
 - The mouse: SDL's logical coordinates, a queue with a 60 ms hold for the games' polling, the
   middle button for the mod's map drag; keys; F11 for full screen.
 - A text error screen that waits for a key; `dsun.log` beside the program; a crash handler that

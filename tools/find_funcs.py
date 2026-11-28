@@ -302,6 +302,19 @@ class Finder:
                             calls.add(sg * 16 + off)
                     if m == 'jmp far':
                         break
+                if (m == 'call' and o and o.type == OpType.MEM and o.base == 'di' and not o.index):
+                    # `mov di, chars / mov cx, N / repne scasb / ... / call [di+table]`: a table of N
+                    # near routines in this segment, picked by a character (the run-time's printf,
+                    # its %d and %s handlers; DS is CS there). Seeded while they decode as code.
+                    prev = [seen[a] for a in sorted(seen) if a < ip][-10:]
+                    n = [p.op2.disp for p in prev if p.mnemonic == 'mov' and p.op1 and repr(p.op1) == 'cx'
+                         and p.op2 and p.op2.type == OpType.IMM16]
+                    if n and 0 < n[-1] <= 32 and any(p.mnemonic.startswith('repne') or p.prefix.startswith('rep') for p in prev):
+                        for k in range(n[-1]):
+                            t = self.img.u16(cs * 16 + ((o.disp + 2 * k) & 0xFFFF))
+                            ins2 = self.img.decode_at(cs, t)
+                            if ins2 and ins2.mnemonic != 'db':
+                                calls.add(cs * 16 + t)
                 if m == 'call' and o and o.type == OpType.REL16:
                     calls.add(cs * 16 + (o.disp & 0xFFFF))
                 elif m == 'call' and o and o.type == OpType.FAR:

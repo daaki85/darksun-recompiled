@@ -24,7 +24,9 @@
    target, every `push bp / mov bp, sp`, and the addresses earlier runs
    reported as misses. Code segments are exact, from the Borland segment table
    in the EXE, so every function knows its CS. Jump tables (Borland's switch)
-   are followed.
+   are followed, and so is a table of handlers picked by a scan (`mov cx,N`,
+   `repne scasb` over N letters, `call [di+X]`: the printf's format letters,
+   whose `%d` handler the inventory's scores go through).
 
 3. **`tools/lift.py`** translates each function to C with pcrecomp's lift16.
    Each function is decoded against its code segment's base, so instruction
@@ -267,7 +269,10 @@ differs from Shattered Lands':
   come back past it: the builder decodes the instruction the patch cut and
   steps over the whole of it (`cut_skip`), else the lifted code would carry
   on in the middle of the call (the first convergence hung there, at 2D24Ch,
-  66 seconds into START GAME).
+  66 seconds into START GAME). A cut is an instruction that runs past the
+  patch's bytes: AMMO_OKAY's patch puts NOPs after the number and goes on
+  to change the jump after the compare, and its handler comes back to the
+  NOPs, so it steps over the number alone.
 - **The helper's symbols**: `kit_is_b`, `cr_is` and `cr_is_back` (no `cb_is`,
   no `SEG_MOVE`), from `dsclog2.asm`; without nasm the build stops, since
   there is no old table to fall back on.
